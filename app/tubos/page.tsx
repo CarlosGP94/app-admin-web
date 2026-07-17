@@ -1,6 +1,3 @@
-import React from "react";
-import useDataTable, { TableFilter } from "@/hooks/useDataTable";
-
 export default function TubosPage() {
   //   const {} = useDataTable({
   //     initFilters: [],

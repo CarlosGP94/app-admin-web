@@ -307,6 +307,7 @@ export default function Sidebar({
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: "block", md: "none" },
+
           "& .MuiDrawer-paper": {
             boxSizing: "border-box",
             width: sidebarWidth,

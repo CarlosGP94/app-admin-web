@@ -1,5 +1,91 @@
 import { createTheme } from "@mui/material/styles";
 
+// 1. Extendemos los tipos de MUI para que TypeScript reconozca tus propiedades personalizadas
+declare module "@mui/material/styles" {
+  interface Theme {
+    rounded: {
+      sm: string;
+      DEFAULT: string;
+      md: string;
+      lg: string;
+      xl: string;
+      full: string;
+    };
+    customSpacing: {
+      containerMargin: number;
+      gutter: number;
+      sidebarWidth: number;
+      unitXs: number;
+      unitSm: number;
+      unitMd: number;
+      unitLg: number;
+      unitXl: number;
+    };
+  }
+  interface ThemeOptions {
+    rounded?: {
+      sm?: string;
+      DEFAULT?: string;
+      md?: string;
+      lg?: string;
+      xl?: string;
+      full?: string;
+    };
+    customSpacing?: {
+      containerMargin?: number;
+      gutter?: number;
+      sidebarWidth?: number;
+      unitXs?: number;
+      unitSm?: number;
+      unitMd?: number;
+      unitLg?: number;
+      unitXl?: number;
+    };
+  }
+  interface Palette {
+    surface: {
+      main: string;
+      dim: string;
+      bright: string;
+      containerLowest: string;
+      containerLow: string;
+      container: string;
+      containerHigh: string;
+      containerHighest: string;
+    };
+    surfaceVariant: {
+      main: string;
+    };
+  }
+  interface PaletteOptions {
+    surface?: {
+      main?: string;
+      dim?: string;
+      bright?: string;
+      containerLowest?: string;
+      containerLow?: string;
+      container?: string;
+      containerHigh?: string;
+      containerHighest?: string;
+    };
+    surfaceVariant?: {
+      main?: string;
+    };
+  }
+  interface TypographyVariants {
+    displayLg: React.CSSProperties;
+    headlineMdMobile: React.CSSProperties;
+    labelBold: React.CSSProperties;
+    dataMono: React.CSSProperties;
+  }
+  interface TypographyVariantsOptions {
+    displayLg?: React.CSSProperties;
+    headlineMdMobile?: React.CSSProperties;
+    labelBold?: React.CSSProperties;
+    dataMono?: React.CSSProperties;
+  }
+}
+
 const theme = createTheme({
   breakpoints: {
     values: {
@@ -26,8 +112,6 @@ const theme = createTheme({
     primary: {
       main: "#001040",
       contrastText: "#ffffff",
-      container: "#0a2366",
-      onContainer: "#7a8dd5",
     },
     secondary: {
       main: "#505f76",
@@ -139,7 +223,7 @@ const theme = createTheme({
   components: {
     MuiPaper: {
       defaultProps: {
-        elevation: 0,
+        elevation: 1,
       },
       styleOverrides: {
         root: {
@@ -153,9 +237,9 @@ const theme = createTheme({
       },
       styleOverrides: {
         root: ({ theme }) => ({
-          borderRadius: theme.rounded.DEFAULT,
+          borderRadius: theme.rounded.sm,
           padding: "8px 16px",
-          fontWeight: 600,
+          fontWeight: 700,
           textTransform: "none",
           letterSpacing: "0.01em",
           "&:active": {
@@ -166,18 +250,24 @@ const theme = createTheme({
     },
     MuiCard: {
       styleOverrides: {
-        root: ({ theme }) => ({
+        root: ({ theme, ownerState }) => ({
           borderRadius: theme.rounded.DEFAULT,
-          border: "1px solid #eceef0",
-          backgroundColor: "#ffffff",
-          padding: theme.spacing(2.5),
+          boxShadow: "none",
+
+          ...(ownerState?.variant === "outlined"
+            ? {
+                border: "1px solid #c5c5d2", // Gris claro limpio y estético
+              }
+            : {
+                border: "none", // Quitamos el borde por defecto para otras variantes (ej. 'elevation')
+              }),
         }),
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
         root: ({ theme }) => ({
-          borderRadius: theme.rounded.DEFAULT,
+          borderRadius: theme.rounded.sm,
           backgroundColor: "#f2f4f6",
           transition: "all 0.2s ease-in-out",
           "& .MuiOutlinedInput-notchedOutline": {
@@ -194,15 +284,14 @@ const theme = createTheme({
             },
           },
         }),
-        input: {
-          padding: "12px 14px",
-        },
+        input: ({ ownerState }) => ({
+          padding: ownerState.size === "small" ? "8px 12px" : "12.5px 14px",
+        }),
       },
     },
     MuiTableContainer: {
       styleOverrides: {
         root: ({ theme }) => ({
-          borderRadius: theme.rounded.DEFAULT,
           border: "1px solid #eceef0",
         }),
       },

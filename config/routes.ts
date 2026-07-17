@@ -23,6 +23,12 @@ export const APP_ROUTES = {
       tubos: "/tubos/inventario/tubos",
     },
   },
+  api: {
+    tubos: {
+      planes_corte: "/api/tubos/planes_corte",
+      planes_corte_anchos: "/api/tubos/planes_corte/anchos",
+    },
+  },
 };
 
 // Rutas globales auxiliares (por si necesitas iterar barras de herramientas)

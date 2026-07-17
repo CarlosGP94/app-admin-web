@@ -2,19 +2,46 @@
 
 import React, { useState } from "react";
 import { Box, useTheme } from "@mui/material";
+import { usePathname } from "next/navigation"; // 🔥 Importamos el hook para leer la ruta actual
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import { APP_ROUTES } from "@/config/routes";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+// 🗺️ Diccionario de títulos mapeados por sus rutas
+const ROUTE_TITLES: Record<string, string> = {
+  [APP_ROUTES.tubos.subRoutes.planes_corte]: "Planes de Corte",
+};
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
+  const pathname = usePathname(); // 📍 Obtiene la ruta actual, ej: "/dashboard/plan-corte"
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  // 🏷️ Función para resolver el título de forma limpia o dinámica
+  const getPageTitle = (): string => {
+    // 1. Intenta buscar la coincidencia exacta en el diccionario
+    if (ROUTE_TITLES[pathname]) {
+      return ROUTE_TITLES[pathname];
+    }
+
+    // 2. Fallback dinámico: si la ruta no existe en el mapa (ej: "/dashboard/mallas/crear"),
+    // limpia el último segmento de la URL sustituyendo guiones por espacios y capitalizando.
+    const segments = pathname.split("/").filter(Boolean);
+    const lastSegment = segments[segments.length - 1] || "";
+
+    if (!lastSegment || lastSegment === "dashboard") return "Inicio";
+
+    return lastSegment
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   const gutter = theme.customSpacing?.gutter || 16;
@@ -35,12 +62,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           flexGrow: 1,
           display: "flex",
           flexDirection: "column",
-          minWidth: 0, // Previene desbordamiento en elementos flex con tablas
+          minWidth: 0,
         }}
       >
         {/* Barra superior */}
         <Header
-          title="Titulo de la pagina"
+          title={getPageTitle()} // 🔥 Inyectamos el título resuelto dinámicamente
           onDrawerToggle={handleDrawerToggle}
         />
 

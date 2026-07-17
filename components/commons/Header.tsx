@@ -33,7 +33,6 @@ export default function Header({ title = "", onDrawerToggle }: HeaderProps) {
     >
       <Toolbar sx={{ justifyContent: "space-between", px: { xs: 2, md: 3 } }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {/* Botón de menú hamburguesa (visible solo en móviles y tablets) */}
           <IconButton
             color="inherit"
             aria-label="open drawer"

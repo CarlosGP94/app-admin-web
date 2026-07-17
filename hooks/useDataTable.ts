@@ -13,10 +13,12 @@ export interface FilterOption {
 
 export interface TableFilter {
   name: string;
-  type: "select" | "daterange";
-  value: number | null; // IDs numéricos para select
-  valueStart: string | null; // ISO date string
-  valueEnd: string | null; // ISO date string
+  label: string;
+  type: "select" | "daterangeStart" | "daterangeEnd" | "autocomplete";
+  value?: number | null; // IDs numéricos para select
+  valueStart?: string | null; // ISO date string
+  valueEnd?: string | null; // ISO date string
+  defaultLabel?: string;
   options?: FilterOption[];
 }
 
@@ -24,23 +26,23 @@ export interface PersistedTableState {
   page: number;
   searchTerm: string;
   filters: TableFilter[] | null;
-  sortModel: unknown[]; // Mantén esto según uses DataGrid (ej. GridSortModel) o puedes dejarlo como unknown[] por ahora
+  sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[];
 }
 
-// Interfaz para el valor que recibe handleFilterChange
 export interface DateRangeValue {
   start: string | null;
   end: string | null;
 }
 
-interface UseDataTableProps {
+// 1. Añadimos el genérico <T> extendiendo un objeto con la propiedad mínima 'id'
+interface UseDataTableProps<T extends { id: string | number }> {
   fetchData?: (
     page: number,
     pageSize: number,
     searchTerm: string,
     filters: TableFilter[],
-    sortModel: unknown[],
-  ) => Promise<{ data: unknown[]; total: number } | undefined | null | void>;
+    sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[],
+  ) => Promise<{ data: T[]; total: number } | undefined | null | void>; // Retorna T[]
   fetchFilters?: (
     filters: TableFilter[],
   ) => Promise<Record<string, (FilterOption | number | string)[]>>;
@@ -50,11 +52,9 @@ interface UseDataTableProps {
     id: string | number,
   ) => Promise<{ success: boolean; error?: string }>;
   onCreateConfirm?: (
-    newData: unknown,
+    newData: Partial<T>,
   ) => Promise<{ success: boolean; error?: string }>;
-  onEditConfirm?: (
-    newData: unknown,
-  ) => Promise<{ success: boolean; error?: string }>;
+  onEditConfirm?: (newData: T) => Promise<{ success: boolean; error?: string }>;
   onOtherAction?: () => Promise<{
     success: boolean;
     message?: string;
@@ -68,11 +68,8 @@ interface UseDataTableProps {
   onPersistStateChange?: (state: PersistedTableState) => void;
 }
 
-interface Error {
-  message?: string;
-}
-
-const useDataTable = ({
+// 2. Declaramos la función usando el genérico <T>
+const useDataTable = <T extends { id: string | number }>({
   fetchData = async () => ({ data: [], total: 0 }),
   fetchFilters = async () => ({}),
   initFilters,
@@ -87,9 +84,7 @@ const useDataTable = ({
 
   persistedState,
   onPersistStateChange,
-}: UseDataTableProps) => {
-  const [reinitFilters, setReinitFilters] = useState<boolean>(false);
-
+}: UseDataTableProps<T>) => {
   const [page, setPage] = useState<number>(persistedState?.page || 1);
   const [searchTerm, setSearchTerm] = useState<string>(
     persistedState?.searchTerm || "",
@@ -97,21 +92,23 @@ const useDataTable = ({
   const [filters, setFilteredMallas] = useState<TableFilter[]>(
     persistedState?.filters || initFilters,
   );
-  const [sortModel, setSortModel] = useState<unknown[]>(
-    persistedState?.sortModel || [],
-  );
+  const [sortModel, setSortModel] = useState<
+    { orderBy: string; orderDir: "ASC" | "DESC" }[]
+  >(persistedState?.sortModel || []);
 
   const [total, setTotal] = useState<number>(0);
-  const [data, setData] = useState<unknown[]>([]);
+
+  // 3. Tipamos los estados dinámicos usando 'T'
+  const [data, setData] = useState<T[]>([]);
   const [initializedFilters, setInitializedFilters] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingFilters, setLoadingFilters] = useState<boolean>(true);
-  const [selectedItem, setSelectedItem] = useState<unknown>(null);
+  const [selectedItem, setSelectedItem] = useState<T | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [showDetail, setShowDetail] = useState<boolean>(false);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
-  const [selectedIds, setSelectedIds] = useState<unknown[]>([]);
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   useEffect(() => {
     if (onPersistStateChange) {
@@ -124,11 +121,16 @@ const useDataTable = ({
     }
   }, [page, searchTerm, filters, sortModel, onPersistStateChange]);
 
-  const handleSortModel = (model: unknown[]) => {
+  const handleSortModel = (
+    model: { orderBy: string; orderDir: "ASC" | "DESC" }[],
+  ) => {
     setSortModel(model);
   };
 
-  const handleSelectItems = (ids: unknown[], type?: "exclude" | "include") => {
+  const handleSelectItems = (
+    ids: (string | number)[],
+    type?: "exclude" | "include",
+  ) => {
     if (type === "exclude") {
       setSelectedIds(data.map((item) => item.id));
     } else {
@@ -136,12 +138,8 @@ const useDataTable = ({
     }
   };
 
-  const handleSelectItem = (item: unknown) => {
-    if (!item) {
-      setSelectedItem(null);
-    } else {
-      setSelectedItem(item);
-    }
+  const handleSelectItem = (item: T | null) => {
+    setSelectedItem(item);
   };
 
   const setInitFilters = async () => {
@@ -182,11 +180,10 @@ const useDataTable = ({
       if (!resp.success) throw new Error(resp.error || "Error desconocido");
       setActionLoading(false);
       if (resp.message) toast.success(resp.message);
-    } catch (error: unknown) {
+    } catch (error) {
       setActionLoading(false);
-      toast.error(
-        error?.message ? error?.message : "Error al realizar la acción.",
-      );
+      console.error("Error do action:", error);
+      toast.error("Error al realizar la acción.");
       console.error("Error:", error);
     }
   };
@@ -195,22 +192,22 @@ const useDataTable = ({
     try {
       setShowDeleteConfirm(false);
       setActionLoading(true);
+      // Ahora TS sabe que selectedItem tiene la propiedad id de forma segura
       const resp = await onDeleteConfirm(selectedItem?.id || "");
       if (!resp.success) throw new Error(resp.error || "Error desconocido");
       setActionLoading(false);
       toast.success("Elemento eliminado correctamente.");
       await loadData(page, searchTerm, filters);
       setInitFilters();
-    } catch (error: unknown) {
+    } catch (error) {
       setActionLoading(false);
-      toast.error(
-        error?.message ? error?.message : "Error al eliminar el elemento.",
-      );
+      console.error("Error deleting item:", error);
+      toast.error("Error al eliminar el elemento.");
       console.error("Error deleting item:", error);
     }
   };
 
-  const handleCreateConfirm = async (newData: unknown) => {
+  const handleCreateConfirm = async (newData: Partial<T>) => {
     try {
       setShowForm(false);
       setActionLoading(true);
@@ -221,32 +218,28 @@ const useDataTable = ({
       await loadData(page, searchTerm, filters);
       setInitFilters();
       await handleAfterCreate();
-    } catch (error: unknown) {
+    } catch (error) {
       setActionLoading(false);
-      toast.error(
-        error?.message ? error?.message : "Error al crear el elemento.",
-      );
-      console.error("Error creating item:", error.message);
+      console.error("Error creating item:", error);
+      toast.error("Error al crear el elemento.");
     }
   };
 
-  const handleEditConfirm = async (newData: unknown) => {
+  const handleEditConfirm = async (newData: T) => {
     try {
       setShowForm(false);
       setActionLoading(true);
       const resp = await onEditConfirm(newData);
       if (!resp?.success) throw new Error(resp?.error || "Error desconocido");
       setActionLoading(false);
-      toast.success("Elemento actualizado correctamente.");
+      toast.success(successActionMessage);
       await loadData(page, searchTerm, filters);
       setInitFilters();
       await handleAfterUpdate();
-    } catch (error: unknown) {
+    } catch (error) {
       setActionLoading(false);
-      toast.error(
-        error?.message ? error?.message : "Error al actualizar el elemento.",
-      );
       console.error("Error updating item:", error);
+      toast.error("Error al actualizar el elemento.");
     }
   };
 
@@ -255,34 +248,19 @@ const useDataTable = ({
     setShowForm(isCancel ? false : true);
   };
 
-  const handleEdit = (item: unknown) => {
-    if (!item) {
-      setShowForm(true);
-      setSelectedItem(null);
-      return;
-    }
+  const handleEdit = (item: T | null) => {
     setSelectedItem(item);
-    setShowForm(true);
+    setShowForm(!!item);
   };
 
-  const handleDetail = (item: unknown) => {
-    if (!item) {
-      setShowDetail(true);
-      setSelectedItem(null);
-      return;
-    }
+  const handleDetail = (item: T | null) => {
     setSelectedItem(item);
-    setShowDetail(true);
+    setShowDetail(!!item);
   };
 
-  const handleDelete = (item: unknown) => {
-    if (!item) {
-      setSelectedItem(null);
-      setShowDeleteConfirm(false);
-      return;
-    }
+  const handleDelete = (item: T | null) => {
     setSelectedItem(item);
-    setShowDeleteConfirm(true);
+    setShowDeleteConfirm(!!item);
   };
 
   const loadData = async (
@@ -298,17 +276,20 @@ const useDataTable = ({
       currentFilters,
       sortModel,
     );
-    setData(result?.data || []);
+    setData((result?.data as T[]) || []);
     setTotal(result?.total || 0);
     setLoading(false);
     if (!initializedFilters) setInitFilters();
   };
 
-  // handleFilterChange con firmas de tipo estrictas para 'select' y 'daterange'
   const handleFilterChange = async (
     filterName: string,
     value: number | DateRangeValue | string | null,
-    type: "select" | "daterange" = "select",
+    type:
+      | "select"
+      | "daterangeStart"
+      | "daterangeEnd"
+      | "autocomplete" = "select",
   ) => {
     if (filterName === "search") {
       setSearchTerm(typeof value === "string" ? value : "");
@@ -317,12 +298,15 @@ const useDataTable = ({
 
     let newFilters = filters.map((filter) => {
       if (filter.name === filterName) {
-        if (type === "daterange") {
-          const range = value as DateRangeValue;
+        if (type === "daterangeStart") {
           return {
             ...filter,
-            valueStart: range?.start || null,
-            valueEnd: range?.end || null,
+            valueStart: value ? String(value) : null,
+          };
+        } else if (type === "daterangeEnd") {
+          return {
+            ...filter,
+            valueEnd: value ? String(value) : null,
           };
         } else {
           return {
@@ -360,7 +344,6 @@ const useDataTable = ({
     });
 
     setFilteredMallas(newFilters);
-    setSortModel([]);
   };
 
   const handleClearAllFilters = () => {
@@ -373,40 +356,47 @@ const useDataTable = ({
       valueEnd: null,
     }));
     setFilteredMallas(resetFilters);
+    setPage(1);
+    setSortModel([]);
   };
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
   };
 
+  const handleFilter = async () => {
+    setPage(1);
+    setSortModel([]);
+  };
+
   useEffect(() => {
     loadData(page, searchTerm, filters);
-  }, [page, filters, searchTerm, sortModel, ...externalDeps]);
+  }, [page, sortModel, ...externalDeps]);
 
   return {
     data,
     total,
     loading,
     page,
-    handleFilterChange,
-    handlePageChange,
     searchTerm,
     filters,
     loadingFilters,
     selectedIds,
     sortModel,
+    selectedItem,
+    showDeleteConfirm,
+    showDetail,
+    showForm,
+    actionLoading,
+    handleFilterChange,
+    handlePageChange,
     handleSortModel,
     handleSelectItem,
-    selectedItem,
     setSelectedItem,
-    showDeleteConfirm,
     handleDelete,
-    showDetail,
     handleDetail,
-    showForm,
     handleEdit,
     handleCreate,
-    actionLoading,
     setActionLoading,
     handleDeleteConfirm,
     handleCreateConfirm,
@@ -416,6 +406,7 @@ const useDataTable = ({
     setInitFilters,
     handleSelectItems,
     handleFetchData: loadData,
+    handleFilter,
   };
 };
 
