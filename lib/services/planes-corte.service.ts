@@ -72,13 +72,14 @@ export async function listarPlanesCorteService(
       whereClauses.push(`ancho_estipulado = @ancho_estipulado`);
       request.input("ancho_estipulado", params.filtros.ancho_estipulado);
     }
+
     if (fechaInicio) {
       whereClauses.push(`creado >= @fechaInicio`);
-      request.input("fechaInicio", fechaInicio);
+      request.input("fechaInicio", `${fechaInicio} 00:00:00.000`);
     }
     if (fechaFin) {
-      whereClauses.push(`creado <= @fechaFin`);
-      request.input("fechaFin", fechaFin);
+      whereClauses.push(`creado < @fechaFin`);
+      request.input("fechaFin", `${fechaFin} 23:59:59.999`);
     }
   }
 

@@ -43,6 +43,9 @@ export async function GET(request: Request) {
         calidades: resultado.calidades,
         turnos: resultado.turnos,
         maquinas: resultado.maquinas,
+        operarios: resultado.operarios,
+        espesores: resultado.espesores,
+        estructural: resultado.estructural,
         rangoFechas: resultado.rangoFechas,
       },
     });

@@ -9,7 +9,6 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
-import TableFooter from "@mui/material/TableFooter";
 import { Skeleton } from "@mui/material";
 import { PAGE_SIZE } from "@/config/constants";
 
@@ -85,11 +84,11 @@ export default function ColumnGroupingTable<T>({
         width: "100%",
         borderRadius: 2,
         overflow: "hidden",
-        flex: 1,
         display: "flex",
         flexDirection: "column",
         backgroundColor: "#f8fafc",
         height: "100%",
+        flex: 1,
       }}
     >
       <TableContainer
@@ -97,6 +96,24 @@ export default function ColumnGroupingTable<T>({
           flex: 1,
           overflowY: "auto",
           overflowX: "auto",
+          // Estilos personalizados para el scrollbar (Webkit / Chrome / Safari / Edge)
+          "&::-webkit-scrollbar": {
+            width: "8px",
+            height: "8px",
+          },
+          "&::-webkit-scrollbar-track": {
+            backgroundColor: "#f1f1f1",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#c5c5d2",
+            borderRadius: "4px",
+            "&:hover": {
+              backgroundColor: "#a8a8b8",
+            },
+          },
+          // Soporte nativo para Firefox
+          scrollbarWidth: "thin",
+          scrollbarColor: "#c5c5d2 #f1f1f1",
         }}
       >
         <Table
@@ -153,64 +170,12 @@ export default function ColumnGroupingTable<T>({
           </TableHead>
 
           <TableBody sx={{ backgroundColor: "#ffffff" }}>
-            {loading ? (
-              Array.from(new Array(PAGE_SIZE)).map((_, rowIndex) => (
-                <TableRow key={`skeleton-row-${rowIndex}`}>
-                  {columns.map((column, colIndex) => (
-                    <TableCell
-                      key={`skeleton-cell-${rowIndex}-${column.id as string}`}
-                      align={column.align}
-                      style={{
-                        width: column.width || "auto",
-                        minWidth: column.minWidth,
-                      }}
-                      sx={{
-                        ...(colIndex === 0 && {
-                          boxShadow: "inset 6px 0px 0px 0px transparent",
-                        }),
-                      }}
-                    >
-                      <Skeleton
-                        animation="wave"
-                        variant="text"
-                        width={column.align === "right" ? "60%" : "85%"}
-                        height={20}
-                      />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  align="center"
-                  sx={{
-                    borderBottom: "none",
-                    height: "200px",
-                  }}
-                >
-                  No hay elementos para mostrar
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((row, rowIndex) => (
-                <TableRow
-                  hover
-                  role="checkbox"
-                  tabIndex={-1}
-                  key={rowKeyExtractor(row) || rowIndex}
-                  sx={{
-                    "&:hover .MuiTableCell-root:first-of-type": {
-                      boxShadow: "inset 6px 0px 0px 0px #001040",
-                    },
-                  }}
-                >
-                  {columns.map((column, colIndex) => {
-                    const value = row[column.id];
-                    return (
+            {loading
+              ? Array.from(new Array(PAGE_SIZE)).map((_, rowIndex) => (
+                  <TableRow key={`skeleton-row-${rowIndex}`}>
+                    {columns.map((column, colIndex) => (
                       <TableCell
-                        key={String(column.id)}
+                        key={`skeleton-cell-${rowIndex}-${column.id as string}`}
                         align={column.align}
                         style={{
                           width: column.width || "auto",
@@ -219,54 +184,80 @@ export default function ColumnGroupingTable<T>({
                         sx={{
                           ...(colIndex === 0 && {
                             boxShadow: "inset 6px 0px 0px 0px transparent",
-                            transition: "box-shadow 0.15s ease-in-out",
-                          }),
-                          ...(column.fontWeight && {
-                            fontWeight: column.fontWeight,
                           }),
                         }}
                       >
-                        {column.format
-                          ? column.format(row)
-                          : String(value ?? "-")}
+                        <Skeleton
+                          animation="wave"
+                          variant="text"
+                          width={column.align === "right" ? "60%" : "85%"}
+                          height={20}
+                        />
                       </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))
-            )}
+                    ))}
+                  </TableRow>
+                ))
+              : rows.map((row, rowIndex) => (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={rowKeyExtractor(row) || rowIndex}
+                    sx={{
+                      "&:hover .MuiTableCell-root:first-of-type": {
+                        boxShadow: "inset 6px 0px 0px 0px #001040",
+                      },
+                    }}
+                  >
+                    {columns.map((column, colIndex) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell
+                          key={String(column.id)}
+                          align={column.align}
+                          style={{
+                            width: column.width || "auto",
+                            minWidth: column.minWidth,
+                          }}
+                          sx={{
+                            ...(colIndex === 0 && {
+                              boxShadow: "inset 6px 0px 0px 0px transparent",
+                              transition: "box-shadow 0.15s ease-in-out",
+                            }),
+                            ...(column.fontWeight && {
+                              fontWeight: column.fontWeight,
+                            }),
+                          }}
+                        >
+                          {column.format
+                            ? column.format(row)
+                            : String(value ?? "-")}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
           </TableBody>
-
-          {/* SOLUCIÓN: El paginador envuelto semánticamente dentro del Footer de la Tabla */}
-          <TableFooter
-            sx={{
-              position: "sticky",
-              bottom: 0,
-              zIndex: 2,
-              backgroundColor: "#ECEEF0",
-            }}
-          >
-            <TableRow>
-              <TablePagination
-                sx={{
-                  borderTop: "1px solid #c5c5d2",
-                  width: "100%",
-                }}
-                colSpan={columns.length}
-                rowsPerPage={PAGE_SIZE}
-                rowsPerPageOptions={[PAGE_SIZE]}
-                count={total}
-                page={Math.max(0, page - 1)}
-                onPageChange={(_, value) => handlePageChange(value + 1)}
-                labelRowsPerPage="Filas por página:"
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from} - ${to} de ${count !== -1 ? count : `más de ${to}`}`
-                }
-              />
-            </TableRow>
-          </TableFooter>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        component="div"
+        sx={{
+          borderTop: "1px solid #c5c5d2",
+          backgroundColor: "#ECEEF0",
+          width: "100%",
+        }}
+        rowsPerPage={PAGE_SIZE}
+        rowsPerPageOptions={[PAGE_SIZE]}
+        count={total}
+        page={Math.max(0, page - 1)}
+        onPageChange={(_, value) => handlePageChange(value + 1)}
+        labelRowsPerPage="Filas por página:"
+        labelDisplayedRows={({ from, to, count }) =>
+          `${from} - ${to} de ${count !== -1 ? count : `más de ${to}`}`
+        }
+      />
     </Paper>
   );
 }

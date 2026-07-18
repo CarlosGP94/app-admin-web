@@ -47,11 +47,7 @@ export async function GET(request: Request) {
         calidad: calidad ? Number(calidad) : undefined,
         turno: turno ? Number(turno) : undefined,
         estructural:
-          estructural === "true"
-            ? true
-            : estructural === "false"
-              ? false
-              : undefined,
+          estructural === "1" ? true : estructural === "2" ? false : undefined,
         operario: operario ? Number(operario) : undefined,
         maquina: maquina ? Number(maquina) : undefined,
         fechaInicio,

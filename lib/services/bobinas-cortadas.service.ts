@@ -110,17 +110,13 @@ export async function listarBobinasCortadasService(
       whereClauses.push(`bc.colada_id = @colada`);
       request.input("colada", colada);
     }
-    if (
-      fechaInicio !== undefined &&
-      fechaInicio !== null &&
-      fechaInicio !== ""
-    ) {
+    if (fechaInicio) {
       whereClauses.push(`bc.creado >= @fechaInicio`);
-      request.input("fechaInicio", fechaInicio);
+      request.input("fechaInicio", `${fechaInicio} 00:00:00.000`);
     }
-    if (fechaFin !== undefined && fechaFin !== null && fechaFin !== "") {
-      whereClauses.push(`bc.creado <= @fechaFin`);
-      request.input("fechaFin", fechaFin);
+    if (fechaFin) {
+      whereClauses.push(`bc.creado < @fechaFin`);
+      request.input("fechaFin", `${fechaFin} 23:59:59.999`);
     }
   }
 

@@ -28,6 +28,21 @@ interface Prod {
   fecha: string;
 }
 
+interface Calidad {
+  id: number;
+  calidad: string;
+}
+
+interface Maquina {
+  id: number;
+  maquina: string;
+}
+
+interface Turno {
+  id: number;
+  prefijo: string;
+}
+
 export default function ProduccionPage() {
   const fecthData = async (
     currentPage: number,
@@ -107,26 +122,44 @@ export default function ProduccionPage() {
     if (!response.ok)
       throw new Error("Error al consultar las productos de tubos");
     const result = await response.json();
-    console.log("result", result);
+    console.log("result.data", result.data);
     return {
-      //   fabricante: result.data.fabricantes.map((f: Fabricante) => ({
-      //     label: f.nombre,
-      //     value: f.id,
-      //   })),
-      //   colada: result.data.coladas.map((c: Colada) => ({
-      //     label: c.colada,
-      //     value: c.id,
-      //   })),
-      //   creado: [
-      //     {
-      //       label: "limitStart",
-      //       value: result.data.rangoFechas.minFecha || null,
-      //     },
-      //     {
-      //       label: "limitEnd",
-      //       value: result.data.rangoFechas.maxFecha || null,
-      //     },
-      //   ],
+      calidad: result.data.calidades.map((f: Calidad) => ({
+        label: f.calidad,
+        value: f.id,
+      })),
+      maquina: result.data.maquinas.map((c: Maquina) => ({
+        label: c.maquina,
+        value: c.id,
+      })),
+      turno: result.data.turnos.map((t: Turno) => ({
+        label: t.prefijo,
+        value: t.id,
+      })),
+      operario: result.data.operarios.map(
+        (o: { id: number; nombre: string }) => ({
+          label: o.nombre,
+          value: o.id,
+        }),
+      ),
+      espesor: result.data.espesores.map((e: number) => ({
+        label: String(e),
+        value: e,
+      })),
+      estructural: [
+        result.data.estructural.si ? { label: "SI", value: 1 } : null,
+        result.data.estructural.no ? { label: "NO", value: 2 } : null,
+      ].filter(Boolean) as FilterOption[],
+      creado: [
+        {
+          label: "limitStart",
+          value: result.data.rangoFechas.minFecha || null,
+        },
+        {
+          label: "limitEnd",
+          value: result.data.rangoFechas.maxFecha || null,
+        },
+      ],
     };
   };
 
