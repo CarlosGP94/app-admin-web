@@ -62,6 +62,11 @@ export default function Sidebar({
       path: APP_ROUTES.tubos.subRoutes.planes_corte,
     },
     {
+      text: "Bobinas Cortadas",
+      icon: <LayersOutlined />,
+      path: APP_ROUTES.tubos.subRoutes.bobinas_cortadas,
+    },
+    {
       text: "Producción de Tubos",
       icon: <PrecisionManufacturingOutlined />,
       path: APP_ROUTES.tubos.subRoutes.produccion,
@@ -70,11 +75,6 @@ export default function Sidebar({
       text: "Salida de Paquetes",
       icon: <LocalShippingOutlined />,
       path: APP_ROUTES.tubos.subRoutes.salida_paquetes,
-    },
-    {
-      text: "Bobinas Cortadas",
-      icon: <LayersOutlined />,
-      path: APP_ROUTES.tubos.subRoutes.bobinas_cortadas,
     },
   ];
 

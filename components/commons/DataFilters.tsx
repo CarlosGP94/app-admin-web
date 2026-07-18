@@ -11,7 +11,7 @@ import {
   Select,
   MenuItem,
   Autocomplete,
-  CircularProgress, // 🔥 Importamos el spinner de MUI
+  CircularProgress,
 } from "@mui/material";
 import { TableFilter } from "@/hooks/useDataTable";
 
@@ -35,106 +35,133 @@ const DataFilters: React.FC<{
   return (
     <Card variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
       <Grid container spacing={2}>
-        {filters.map((filter, index) => (
-          <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
-            <Typography
-              variant="subtitle2"
-              color="textSecondary"
-              sx={{ textTransform: "uppercase", mb: 0.5 }}
-            >
-              {filter?.label && <strong>{filter.label}</strong>}
-            </Typography>
+        {filters.map((filter, index) => {
+          const limitedStart =
+            filter.options?.find((f) => f.label === "limitStart")?.value ??
+            undefined;
+          const limitedEnd =
+            filter.options?.find((f) => f.label === "limitEnd")?.value ??
+            undefined;
 
-            {filter.type === "daterangeStart" ||
-            filter.type === "daterangeEnd" ? (
-              <Stack direction="row" spacing={0.5}>
-                <TextField
-                  type="date"
-                  size="small"
-                  fullWidth
-                  variant="outlined"
-                  disabled={loading}
-                  value={filter.valueStart || ""}
-                  onChange={(e) => {
-                    handleFilterChange(
-                      filter.name,
-                      e?.target?.value ? e.target.value : "",
-                      "daterangeStart",
-                    );
-                  }}
-                />
-                <TextField
-                  type="date"
-                  size="small"
-                  fullWidth
-                  variant="outlined"
-                  disabled={loading}
-                  value={filter.valueEnd || ""}
-                  onChange={(e) => {
-                    handleFilterChange(
-                      filter.name,
-                      e?.target?.value ? e.target.value : "",
-                      "daterangeEnd",
-                    );
-                  }}
-                />
-              </Stack>
-            ) : null}
-
-            {filter.type === "select" ? (
-              <Select
-                size="small"
-                fullWidth
-                variant="outlined"
-                disabled={loading}
-                value={filter.value || 0}
-                onChange={(e) => {
-                  handleFilterChange(
-                    filter.name,
-                    e?.target?.value ? Number(e.target.value) : 0,
-                  );
-                }}
+          return (
+            <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
+              <Typography
+                variant="subtitle2"
+                color="textSecondary"
+                sx={{ textTransform: "uppercase", mb: 0.5 }}
               >
-                {filter.defaultLabel && (
-                  <MenuItem value={0}>{filter.defaultLabel}</MenuItem>
-                )}
-                {filter.options?.map((option, indexOption) => (
-                  <MenuItem
-                    key={option.label + indexOption}
-                    value={option.value}
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            ) : null}
+                {filter?.label && <strong>{filter.label}</strong>}
+              </Typography>
 
-            {filter.type === "autocomplete" && (
-              <Autocomplete
-                size="small"
-                disabled={loading} // 🔒 Deshabilitar autocomplete en carga
-                options={filter.options || []}
-                getOptionLabel={(option) => option.label}
-                noOptionsText="Sin opciones"
-                renderInput={(params) => (
+              {filter.type === "daterangeStart" ||
+              filter.type === "daterangeEnd" ? (
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  sx={{
+                    pointerEvents: loading ? "none" : "auto",
+                    opacity: loading ? 0.6 : 1,
+                    transition: "opacity 0.2s",
+                  }}
+                >
                   <TextField
-                    {...params}
-                    label={filter.defaultLabel || ""}
-                    value={filter.value || 0}
-                    variant="outlined"
+                    type="date"
+                    size="small"
                     fullWidth
+                    variant="outlined"
+                    value={filter.valueStart || ""}
+                    slotProps={{
+                      htmlInput: {
+                        min: limitedStart || undefined,
+                        max: filter.valueEnd || limitedEnd || undefined,
+                      },
+                    }}
                     onChange={(e) => {
                       handleFilterChange(
                         filter.name,
-                        e?.target?.value ? Number(e.target.value) : 0,
+                        e?.target?.value ? e.target.value : "",
+                        "daterangeStart",
                       );
                     }}
                   />
-                )}
-              />
-            )}
-          </Grid>
-        ))}
+                  <TextField
+                    type="date"
+                    size="small"
+                    fullWidth
+                    variant="outlined"
+                    value={filter.valueEnd || ""}
+                    slotProps={{
+                      htmlInput: {
+                        min: filter.valueStart || limitedStart || undefined,
+                        max: limitedEnd || undefined,
+                      },
+                    }}
+                    onChange={(e) => {
+                      handleFilterChange(
+                        filter.name,
+                        e?.target?.value ? e.target.value : "",
+                        "daterangeEnd",
+                      );
+                    }}
+                  />
+                </Stack>
+              ) : null}
+
+              {filter.type === "select" ? (
+                <Select
+                  size="small"
+                  fullWidth
+                  variant="outlined"
+                  disabled={loading}
+                  value={filter.value || 0}
+                  onChange={(e) => {
+                    handleFilterChange(
+                      filter.name,
+                      e?.target?.value ? Number(e.target.value) : 0,
+                    );
+                  }}
+                >
+                  {filter.defaultLabel && (
+                    <MenuItem value={0}>{filter.defaultLabel}</MenuItem>
+                  )}
+                  {filter.options?.map((option, indexOption) => (
+                    <MenuItem
+                      key={option.label + indexOption}
+                      value={Number(option.value)}
+                    >
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              ) : null}
+
+              {filter.type === "autocomplete" && (
+                <Autocomplete
+                  size="small"
+                  disabled={loading}
+                  options={filter.options || []}
+                  getOptionLabel={(option) => option.label}
+                  noOptionsText="Sin opciones"
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={filter.defaultLabel || ""}
+                      value={filter.value || 0}
+                      variant="outlined"
+                      fullWidth
+                      onChange={(e) => {
+                        handleFilterChange(
+                          filter.name,
+                          e?.target?.value ? Number(e.target.value) : 0,
+                        );
+                      }}
+                    />
+                  )}
+                />
+              )}
+            </Grid>
+          );
+        })}
 
         {/* Grillas de balanceo */}
         {filters.length < 3 && <Grid size={{ xs: 12, sm: 6, md: 3 }} />}
@@ -156,7 +183,7 @@ const DataFilters: React.FC<{
               fullWidth
               variant="outlined"
               color="primary"
-              disabled={loading} // 🔒 Deshabilitar botón limpiar en carga
+              disabled={loading}
               onClick={handleClearFilters}
             >
               Limpiar
@@ -168,7 +195,7 @@ const DataFilters: React.FC<{
               variant="contained"
               color="primary"
               disabled={loading}
-              onClick={handleFilter} // 🔥 Llamamos a la función handleFilter al hacer clic
+              onClick={handleFilter}
               startIcon={
                 loading ? <CircularProgress size={16} color="inherit" /> : null
               }

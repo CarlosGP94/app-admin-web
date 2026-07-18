@@ -13,23 +13,36 @@ import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
 
-interface PlanCorte {
+interface BobinaCortada {
   id: number;
-  ancho_estipulado: number;
+  bobina_concepto: string;
+  colada: string;
+  turno_prefijo: string;
+  operario: string;
   action_id: number;
   fecha: string;
 }
 
-export default function PlanesCortePage() {
+interface Fabricante {
+  id: number;
+  nombre: string;
+}
+
+interface Colada {
+  id: number;
+  colada: string;
+}
+
+export default function BobinaCortadaPage() {
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
     searchTerm: string,
     filters: TableFilter[],
     sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[],
-  ): Promise<{ data: PlanCorte[]; total: number }> => {
+  ): Promise<{ data: BobinaCortada[]; total: number }> => {
     const url = new URL(
-      APP_ROUTES.api.tubos.planes_corte,
+      APP_ROUTES.api.tubos.bobinas_cortadas,
       window.location.origin,
     );
 
@@ -60,16 +73,15 @@ export default function PlanesCortePage() {
     }
 
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error("Error al consultar los planes de corte");
+    if (!response.ok)
+      throw new Error("Error al consultar las bobinas cortadas");
 
     const result = await response.json();
-
     return {
       data:
-        (result.data.map((item: PlanCorte) => ({
+        (result.data.map((item: BobinaCortada) => ({
           ...item,
-          action_id: item.id,
-        })) as PlanCorte[]) || [],
+        })) as BobinaCortada[]) || [],
       total: result.total || 0,
     };
   };
@@ -78,7 +90,7 @@ export default function PlanesCortePage() {
     currentFilters: CurrentFilter[],
   ): Promise<Record<string, (string | number | FilterOption)[]>> => {
     const url = new URL(
-      APP_ROUTES.api.tubos.planes_corte_filtros,
+      APP_ROUTES.api.tubos.bobinas_cortadas_filtros,
       window.location.origin,
     );
 
@@ -97,13 +109,17 @@ export default function PlanesCortePage() {
     });
 
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error("Error al consultar los planes de corte");
+    if (!response.ok)
+      throw new Error("Error al consultar las bobinas cortadas");
     const result = await response.json();
-
     return {
-      ancho_estipulado: result.data.anchos.map((item: string) => ({
-        value: item,
-        label: item,
+      fabricante: result.data.fabricantes.map((f: Fabricante) => ({
+        label: f.nombre,
+        value: f.id,
+      })),
+      colada: result.data.coladas.map((c: Colada) => ({
+        label: c.colada,
+        value: c.id,
       })),
       creado: [
         {
@@ -138,11 +154,18 @@ export default function PlanesCortePage() {
   } = useDataTable({
     initFilters: [
       {
-        name: "ancho_estipulado",
-        label: "Ancho",
+        name: "fabricante",
+        label: "Fabricante",
         type: "select",
         value: 0,
-        defaultLabel: "Todos los anchos",
+        defaultLabel: "Todos los fabricantes",
+      },
+      {
+        name: "colada",
+        label: "Colada",
+        type: "select",
+        value: 0,
+        defaultLabel: "Todas las coladas",
       },
       {
         name: "creado",
@@ -182,12 +205,12 @@ export default function PlanesCortePage() {
           />
         </Box>
       )}
-      <Table<PlanCorte>
+      <Table<BobinaCortada>
         sortModel={sortModel}
         onSortModelChange={handleSortModel}
         page={page}
         loading={loading}
-        rows={data as PlanCorte[]}
+        rows={data as BobinaCortada[]}
         total={total}
         columns={columns(handleDetail, handleEdit, handleDelete)}
         rowKeyExtractor={(row) => row.id}
@@ -198,19 +221,38 @@ export default function PlanesCortePage() {
 }
 
 const columns = (
-  handleDetail: (row: PlanCorte) => void,
-  handleEdit: (row: PlanCorte) => void,
-  handleDelete: (row: PlanCorte) => void,
-): Column<PlanCorte>[] => [
+  handleDetail: (row: BobinaCortada) => void,
+  handleEdit: (row: BobinaCortada) => void,
+  handleDelete: (row: BobinaCortada) => void,
+): Column<BobinaCortada>[] => [
   {
     id: "id",
-    label: "Plan",
+    label: "ID",
+    align: "left",
+    width: 20,
+  },
+  {
+    id: "bobina_concepto",
+    minWidth: 200,
+    label: "Bobina",
     align: "left",
     sortable: true,
   },
   {
-    id: "ancho_estipulado",
-    label: "Ancho (mm)",
+    id: "colada",
+    label: "Colada",
+    align: "left",
+    sortable: true,
+  },
+  {
+    id: "turno_prefijo",
+    label: "Turno",
+    width: 100,
+    align: "center",
+  },
+  {
+    id: "operario",
+    label: "Operario",
     align: "left",
     sortable: true,
   },
@@ -237,21 +279,21 @@ const columns = (
       >
         <IconButton
           size="small"
-          onClick={() => handleDetail(row as unknown as PlanCorte)}
+          onClick={() => handleDetail(row as unknown as BobinaCortada)}
           sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
         >
           <Eye size={16} />
         </IconButton>
         <IconButton
           size="small"
-          onClick={() => handleEdit(row as unknown as PlanCorte)}
+          onClick={() => handleEdit(row as unknown as BobinaCortada)}
           sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
         >
           <Edit2 size={16} />
         </IconButton>
         <IconButton
           size="small"
-          onClick={() => handleDelete(row as unknown as PlanCorte)}
+          onClick={() => handleDelete(row as unknown as BobinaCortada)}
           sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
         >
           <Trash2 size={16} />

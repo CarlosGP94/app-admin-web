@@ -25,8 +25,12 @@ export const APP_ROUTES = {
   },
   api: {
     tubos: {
+      produccion: "/api/tubos/produccion",
+      produccion_filtros: "/api/tubos/produccion/filtros",
+      bobinas_cortadas: "/api/tubos/bobinas_cortadas",
+      bobinas_cortadas_filtros: "/api/tubos/bobinas_cortadas/filtros",
       planes_corte: "/api/tubos/planes_corte",
-      planes_corte_anchos: "/api/tubos/planes_corte/anchos",
+      planes_corte_filtros: "/api/tubos/planes_corte/filtros",
     },
   },
 };

@@ -14,6 +14,8 @@ interface DashboardLayoutProps {
 // 🗺️ Diccionario de títulos mapeados por sus rutas
 const ROUTE_TITLES: Record<string, string> = {
   [APP_ROUTES.tubos.subRoutes.planes_corte]: "Planes de Corte",
+  [APP_ROUTES.tubos.subRoutes.bobinas_cortadas]: "Bobinas Cortadas",
+  [APP_ROUTES.tubos.subRoutes.produccion]: "Producción de Tubos",
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {

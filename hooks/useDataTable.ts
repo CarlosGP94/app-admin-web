@@ -1,23 +1,33 @@
+"use client";
 import { useEffect, useState } from "react";
 import { PAGE_SIZE } from "@/config/constants";
 import { toast } from "react-toastify";
 
 // ==========================================
-// TIPADO ESTRICTO DE FILTROS (SIN unknown)
+// TIPADO ESTRICTO DE FILTROS
 // ==========================================
-
 export interface FilterOption {
   label: string;
-  value: number; // Identificador numérico
+  value: number | string | Date;
+}
+
+export interface CurrentFilter {
+  name: string;
+  value: string | number | null;
+  valueStart?: string | null;
+  valueEnd?: string | null;
+  type: "select" | "daterangeStart" | "daterangeEnd" | "autocomplete";
 }
 
 export interface TableFilter {
   name: string;
   label: string;
   type: "select" | "daterangeStart" | "daterangeEnd" | "autocomplete";
-  value?: number | null; // IDs numéricos para select
-  valueStart?: string | null; // ISO date string
-  valueEnd?: string | null; // ISO date string
+  value?: string | number | null;
+  limitStart?: number;
+  limitEnd?: number;
+  valueStart?: string | null;
+  valueEnd?: string | null;
   defaultLabel?: string;
   options?: FilterOption[];
 }
@@ -34,7 +44,6 @@ export interface DateRangeValue {
   end: string | null;
 }
 
-// 1. Añadimos el genérico <T> extendiendo un objeto con la propiedad mínima 'id'
 interface UseDataTableProps<T extends { id: string | number }> {
   fetchData?: (
     page: number,
@@ -42,9 +51,9 @@ interface UseDataTableProps<T extends { id: string | number }> {
     searchTerm: string,
     filters: TableFilter[],
     sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[],
-  ) => Promise<{ data: T[]; total: number } | undefined | null | void>; // Retorna T[]
+  ) => Promise<{ data: T[]; total: number } | undefined | null | void>;
   fetchFilters?: (
-    filters: TableFilter[],
+    filters: CurrentFilter[],
   ) => Promise<Record<string, (FilterOption | number | string)[]>>;
   initFilters: TableFilter[];
   externalDeps?: unknown[];
@@ -63,12 +72,10 @@ interface UseDataTableProps<T extends { id: string | number }> {
   handleAfterUpdate?: () => Promise<void> | void;
   handleAfterCreate?: () => Promise<void> | void;
   successActionMessage?: string;
-
   persistedState?: PersistedTableState;
   onPersistStateChange?: (state: PersistedTableState) => void;
 }
 
-// 2. Declaramos la función usando el genérico <T>
 const useDataTable = <T extends { id: string | number }>({
   fetchData = async () => ({ data: [], total: 0 }),
   fetchFilters = async () => ({}),
@@ -81,7 +88,6 @@ const useDataTable = <T extends { id: string | number }>({
   handleAfterUpdate = async () => {},
   handleAfterCreate = async () => {},
   successActionMessage = "Acción realizada correctamente",
-
   persistedState,
   onPersistStateChange,
 }: UseDataTableProps<T>) => {
@@ -95,10 +101,8 @@ const useDataTable = <T extends { id: string | number }>({
   const [sortModel, setSortModel] = useState<
     { orderBy: string; orderDir: "ASC" | "DESC" }[]
   >(persistedState?.sortModel || []);
-
   const [total, setTotal] = useState<number>(0);
 
-  // 3. Tipamos los estados dinámicos usando 'T'
   const [data, setData] = useState<T[]>([]);
   const [initializedFilters, setInitializedFilters] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -110,14 +114,33 @@ const useDataTable = <T extends { id: string | number }>({
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
+  // Mutación limpia de mapeo de opciones devueltas de base de datos
+  const mapRawOptions = (
+    type: "select" | "daterangeStart" | "daterangeEnd" | "autocomplete",
+    rawOptions: (FilterOption | number | string)[],
+  ): FilterOption[] => {
+    return rawOptions.map((option) => {
+      if (
+        typeof option === "object" &&
+        option !== null &&
+        "label" in option &&
+        "value" in option
+      ) {
+        return {
+          label: option.label,
+          value:
+            type === "daterangeStart" || type === "daterangeEnd"
+              ? new Date(option.value).toISOString().split("T")[0] // Convierte a "YYYY-MM-DD"
+              : Number(option.value),
+        };
+      }
+      return { label: String(option), value: Number(option) };
+    });
+  };
+
   useEffect(() => {
     if (onPersistStateChange) {
-      onPersistStateChange({
-        page,
-        searchTerm,
-        filters,
-        sortModel,
-      });
+      onPersistStateChange({ page, searchTerm, filters, sortModel });
     }
   }, [page, searchTerm, filters, sortModel, onPersistStateChange]);
 
@@ -142,35 +165,30 @@ const useDataTable = <T extends { id: string | number }>({
     setSelectedItem(item);
   };
 
-  const setInitFilters = async () => {
+  // Inicializa los filtros usando el estado base actual
+  const setInitFilters = async (currentFilters: TableFilter[] = filters) => {
     setLoadingFilters(true);
-    const filtersData = await fetchFilters(filters);
-    const initializedFilters = initFilters.map((filter) => {
-      const rawOptions = filtersData[filter.name] || [];
-      return {
+    try {
+      const filtersData = await fetchFilters(
+        currentFilters.map((filter) => ({
+          name: filter.name,
+          value: filter.value || null,
+          valueStart: filter.valueStart || null,
+          valueEnd: filter.valueEnd || null,
+          type: filter.type,
+        })),
+      );
+      const updated = currentFilters.map((filter) => ({
         ...filter,
-        options: rawOptions.map((option): FilterOption => {
-          if (
-            typeof option === "object" &&
-            option !== null &&
-            "label" in option &&
-            "value" in option
-          ) {
-            return {
-              label: option.label,
-              value: Number(option.value),
-            };
-          }
-          return {
-            label: String(option),
-            value: Number(option),
-          };
-        }),
-      };
-    });
-    setFilteredMallas(initializedFilters);
-    setLoadingFilters(false);
-    setInitializedFilters(true);
+        options: mapRawOptions(filter.type, filtersData[filter.name] || []),
+      }));
+      setFilteredMallas(updated);
+      setInitializedFilters(true);
+    } catch (err) {
+      console.error("Error inicializando filtros:", err);
+    } finally {
+      setLoadingFilters(false);
+    }
   };
 
   const handleOtherAction = async () => {
@@ -182,9 +200,7 @@ const useDataTable = <T extends { id: string | number }>({
       if (resp.message) toast.success(resp.message);
     } catch (error) {
       setActionLoading(false);
-      console.error("Error do action:", error);
       toast.error("Error al realizar la acción.");
-      console.error("Error:", error);
     }
   };
 
@@ -192,18 +208,15 @@ const useDataTable = <T extends { id: string | number }>({
     try {
       setShowDeleteConfirm(false);
       setActionLoading(true);
-      // Ahora TS sabe que selectedItem tiene la propiedad id de forma segura
       const resp = await onDeleteConfirm(selectedItem?.id || "");
       if (!resp.success) throw new Error(resp.error || "Error desconocido");
       setActionLoading(false);
       toast.success("Elemento eliminado correctamente.");
       await loadData(page, searchTerm, filters);
-      setInitFilters();
+      await setInitFilters();
     } catch (error) {
       setActionLoading(false);
-      console.error("Error deleting item:", error);
       toast.error("Error al eliminar el elemento.");
-      console.error("Error deleting item:", error);
     }
   };
 
@@ -216,11 +229,10 @@ const useDataTable = <T extends { id: string | number }>({
       setActionLoading(false);
       toast.success("Elemento creado correctamente.");
       await loadData(page, searchTerm, filters);
-      setInitFilters();
+      await setInitFilters();
       await handleAfterCreate();
     } catch (error) {
       setActionLoading(false);
-      console.error("Error creating item:", error);
       toast.error("Error al crear el elemento.");
     }
   };
@@ -234,18 +246,17 @@ const useDataTable = <T extends { id: string | number }>({
       setActionLoading(false);
       toast.success(successActionMessage);
       await loadData(page, searchTerm, filters);
-      setInitFilters();
+      await setInitFilters();
       await handleAfterUpdate();
     } catch (error) {
       setActionLoading(false);
-      console.error("Error updating item:", error);
       toast.error("Error al actualizar el elemento.");
     }
   };
 
   const handleCreate = (isCancel: boolean = false) => {
     setSelectedItem(null);
-    setShowForm(isCancel ? false : true);
+    setShowForm(!isCancel);
   };
 
   const handleEdit = (item: T | null) => {
@@ -279,7 +290,7 @@ const useDataTable = <T extends { id: string | number }>({
     setData((result?.data as T[]) || []);
     setTotal(result?.total || 0);
     setLoading(false);
-    if (!initializedFilters) setInitFilters();
+    if (!initializedFilters) setInitFilters(currentFilters);
   };
 
   const handleFilterChange = async (
@@ -293,19 +304,22 @@ const useDataTable = <T extends { id: string | number }>({
   ) => {
     if (filterName === "search") {
       setSearchTerm(typeof value === "string" ? value : "");
-      return;
     }
 
-    let newFilters = filters.map((filter) => {
+    // 1. Crear el nuevo array de filtros con los datos actuales frescos
+    const targetFilters: TableFilter[] = filters.map((filter) => {
       if (filter.name === filterName) {
         if (type === "daterangeStart") {
           return {
             ...filter,
+            value: value ? String(value) : null,
             valueStart: value ? String(value) : null,
+            type,
           };
         } else if (type === "daterangeEnd") {
           return {
             ...filter,
+            value: value ? String(value) : null,
             valueEnd: value ? String(value) : null,
           };
         } else {
@@ -318,37 +332,34 @@ const useDataTable = <T extends { id: string | number }>({
       return filter;
     });
 
-    const filtersData = await fetchFilters(filters);
-    newFilters = newFilters.map((filter) => {
-      const rawOptions = filtersData[filter.name] || [];
-      return {
-        ...filter,
-        options: rawOptions.map((option): FilterOption => {
-          if (
-            typeof option === "object" &&
-            option !== null &&
-            "label" in option &&
-            "value" in option
-          ) {
-            return {
-              label: option.label,
-              value: Number(option.value),
-            };
-          }
-          return {
-            label: String(option),
-            value: Number(option),
-          };
-        }),
-      };
-    });
+    setLoadingFilters(true);
+    try {
+      // 2. Traer del backend las opciones calculadas basados en los filtros combinados actualizados
+      const filtersData = await fetchFilters(
+        targetFilters.map((filter) => ({
+          name: filter.name,
+          value: filter.value || null,
+          valueStart: filter.valueStart || null,
+          valueEnd: filter.valueEnd || null,
+          type: filter.type,
+        })),
+      );
 
-    setFilteredMallas(newFilters);
+      const updatedFiltersWithNewOptions = targetFilters.map((filter) => ({
+        ...filter,
+        options: mapRawOptions(filter.type, filtersData[filter.name] || []),
+      }));
+
+      setFilteredMallas(updatedFiltersWithNewOptions);
+    } catch (err) {
+      console.error("Error refrescando opciones cruzadas de filtros:", err);
+    } finally {
+      setLoadingFilters(false);
+    }
   };
 
   const handleClearAllFilters = () => {
     setSearchTerm("");
-
     const resetFilters = filters.map((filter) => ({
       ...filter,
       value: null,
@@ -358,6 +369,7 @@ const useDataTable = <T extends { id: string | number }>({
     setFilteredMallas(resetFilters);
     setPage(1);
     setSortModel([]);
+    setInitFilters(resetFilters);
   };
 
   const handlePageChange = (newPage: number) => {

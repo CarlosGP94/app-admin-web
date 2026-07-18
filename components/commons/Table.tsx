@@ -8,8 +8,8 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import TableFooter from "@mui/material/TableFooter";
 import TableSortLabel from "@mui/material/TableSortLabel";
+import TableFooter from "@mui/material/TableFooter";
 import { Skeleton } from "@mui/material";
 import { PAGE_SIZE } from "@/config/constants";
 
@@ -17,10 +17,11 @@ export interface Column<T> {
   id: keyof T;
   label: string;
   minWidth?: number;
+  fontWeight?: "normal" | "bold" | number;
   width?: number;
   align?: "right" | "left" | "center";
   sortable?: boolean;
-  format?: (value: T[keyof T]) => React.ReactNode;
+  format?: (row: T) => React.ReactNode;
 }
 
 interface GenericTableProps<T> {
@@ -92,21 +93,24 @@ export default function ColumnGroupingTable<T>({
       }}
     >
       <TableContainer
-        sx={{ flex: 1, display: "flex", flexDirection: "column" }}
+        sx={{
+          flex: 1,
+          overflowY: "auto",
+          overflowX: "auto",
+        }}
       >
         <Table
           stickyHeader
           aria-label="sticky table"
           sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
+            minWidth: "max-content",
+            tableLayout: "fixed",
+            width: "100%",
           }}
         >
-          <TableHead sx={{ display: "grid" }}>
-            <TableRow sx={{ display: "flex", width: "100%" }}>
-              {columns.map((column) => {
+          <TableHead>
+            <TableRow>
+              {columns.map((column, colIndex) => {
                 const columnIdStr = String(column.id);
                 const { active, direction } = getColumnSortState(columnIdStr);
 
@@ -114,16 +118,21 @@ export default function ColumnGroupingTable<T>({
                   <TableCell
                     key={columnIdStr}
                     align={column.align}
-                    style={{ width: column.width, minWidth: column.minWidth }}
+                    style={{
+                      width: column.width || "auto",
+                      minWidth: column.minWidth,
+                    }}
                     sx={{
                       ...stylesHeaderCell,
-                      flex: column.width ? `0 0 ${column.width}px` : 1,
+                      ...(colIndex === 0 && {
+                        boxShadow: "inset 6px 0px 0px 0px transparent",
+                      }),
                     }}
                   >
                     {column.sortable ? (
                       <TableSortLabel
                         active={active}
-                        direction={direction === "asc" ? "desc" : "asc"}
+                        direction={direction}
                         onClick={() => handleSortRequest(columnIdStr)}
                         sx={{
                           "&.MuiTableSortLabel-active": { color: "#454650" },
@@ -143,25 +152,23 @@ export default function ColumnGroupingTable<T>({
             </TableRow>
           </TableHead>
 
-          <TableBody
-            sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              backgroundColor: "#ffffff",
-            }}
-          >
+          <TableBody sx={{ backgroundColor: "#ffffff" }}>
             {loading ? (
               Array.from(new Array(PAGE_SIZE)).map((_, rowIndex) => (
-                <TableRow
-                  key={`skeleton-row-${rowIndex}`}
-                  sx={{ display: "flex", width: "100%" }}
-                >
-                  {columns.map((column) => (
+                <TableRow key={`skeleton-row-${rowIndex}`}>
+                  {columns.map((column, colIndex) => (
                     <TableCell
                       key={`skeleton-cell-${rowIndex}-${column.id as string}`}
                       align={column.align}
-                      sx={{ flex: column.width ? `0 0 ${column.width}px` : 1 }}
+                      style={{
+                        width: column.width || "auto",
+                        minWidth: column.minWidth,
+                      }}
+                      sx={{
+                        ...(colIndex === 0 && {
+                          boxShadow: "inset 6px 0px 0px 0px transparent",
+                        }),
+                      }}
                     >
                       <Skeleton
                         animation="wave"
@@ -174,18 +181,14 @@ export default function ColumnGroupingTable<T>({
                 </TableRow>
               ))
             ) : rows.length === 0 ? (
-              <TableRow
-                sx={{
-                  display: "flex",
-                  flex: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+              <TableRow>
                 <TableCell
                   colSpan={columns.length}
                   align="center"
-                  sx={{ borderBottom: "none" }}
+                  sx={{
+                    borderBottom: "none",
+                    height: "200px",
+                  }}
                 >
                   No hay elementos para mostrar
                 </TableCell>
@@ -198,11 +201,8 @@ export default function ColumnGroupingTable<T>({
                   tabIndex={-1}
                   key={rowKeyExtractor(row) || rowIndex}
                   sx={{
-                    display: "flex",
-                    width: "100%",
-                    position: "relative",
                     "&:hover .MuiTableCell-root:first-of-type": {
-                      borderLeftColor: "primary.main",
+                      boxShadow: "inset 6px 0px 0px 0px #001040",
                     },
                   }}
                 >
@@ -212,17 +212,23 @@ export default function ColumnGroupingTable<T>({
                       <TableCell
                         key={String(column.id)}
                         align={column.align}
+                        style={{
+                          width: column.width || "auto",
+                          minWidth: column.minWidth,
+                        }}
                         sx={{
-                          flex: column.width ? `0 0 ${column.width}px` : 1,
                           ...(colIndex === 0 && {
-                            borderLeft: "6px solid transparent",
-                            transition: "border-color 0.15s ease-in-out",
+                            boxShadow: "inset 6px 0px 0px 0px transparent",
+                            transition: "box-shadow 0.15s ease-in-out",
+                          }),
+                          ...(column.fontWeight && {
+                            fontWeight: column.fontWeight,
                           }),
                         }}
                       >
                         {column.format
-                          ? column.format(value)
-                          : String(value ?? "")}
+                          ? column.format(row)
+                          : String(value ?? "-")}
                       </TableCell>
                     );
                   })}
@@ -231,25 +237,30 @@ export default function ColumnGroupingTable<T>({
             )}
           </TableBody>
 
-          <TableFooter sx={{ display: "grid" }}>
-            <TableRow sx={{ display: "flex", width: "100%" }}>
+          {/* SOLUCIÓN: El paginador envuelto semánticamente dentro del Footer de la Tabla */}
+          <TableFooter
+            sx={{
+              position: "sticky",
+              bottom: 0,
+              zIndex: 2,
+              backgroundColor: "#ECEEF0",
+            }}
+          >
+            <TableRow>
               <TablePagination
                 sx={{
-                  backgroundColor: "#ECEEF0",
                   borderTop: "1px solid #c5c5d2",
                   width: "100%",
-                  display: "flex",
-                  justifyContent: "flex-end",
                 }}
+                colSpan={columns.length}
                 rowsPerPage={PAGE_SIZE}
                 rowsPerPageOptions={[PAGE_SIZE]}
                 count={total}
-                page={page - 1}
+                page={Math.max(0, page - 1)}
                 onPageChange={(_, value) => handlePageChange(value + 1)}
-                colSpan={columns.length}
                 labelRowsPerPage="Filas por página:"
                 labelDisplayedRows={({ from, to, count }) =>
-                  `${from}–${to} de ${count !== -1 ? count : `más de ${to}`}`
+                  `${from} - ${to} de ${count !== -1 ? count : `más de ${to}`}`
                 }
               />
             </TableRow>

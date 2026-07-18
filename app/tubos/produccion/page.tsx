@@ -7,29 +7,37 @@ import useDataTable, {
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton } from "@mui/material";
+import { Box, IconButton, Typography, Stack } from "@mui/material";
 import { Eye, Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
 
-interface PlanCorte {
+interface Prod {
   id: number;
-  ancho_estipulado: number;
+  tubo: string;
+  lote: string;
+  turno_prefijo: string;
+  operario: string;
+  maquinas: { id: number; maquina: string }[];
+  tubos_buenos: number;
+  tubos_malos: number;
+  paquetes: number;
+  paquete_incompleto: number;
   action_id: number;
   fecha: string;
 }
 
-export default function PlanesCortePage() {
+export default function ProduccionPage() {
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
     searchTerm: string,
     filters: TableFilter[],
     sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[],
-  ): Promise<{ data: PlanCorte[]; total: number }> => {
+  ): Promise<{ data: Prod[]; total: number }> => {
     const url = new URL(
-      APP_ROUTES.api.tubos.planes_corte,
+      APP_ROUTES.api.tubos.produccion,
       window.location.origin,
     );
 
@@ -60,16 +68,15 @@ export default function PlanesCortePage() {
     }
 
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error("Error al consultar los planes de corte");
+    if (!response.ok)
+      throw new Error("Error al consultar la producción de tubos");
 
     const result = await response.json();
-
     return {
       data:
-        (result.data.map((item: PlanCorte) => ({
+        (result.data.map((item: Prod) => ({
           ...item,
-          action_id: item.id,
-        })) as PlanCorte[]) || [],
+        })) as Prod[]) || [],
       total: result.total || 0,
     };
   };
@@ -78,7 +85,7 @@ export default function PlanesCortePage() {
     currentFilters: CurrentFilter[],
   ): Promise<Record<string, (string | number | FilterOption)[]>> => {
     const url = new URL(
-      APP_ROUTES.api.tubos.planes_corte_filtros,
+      APP_ROUTES.api.tubos.produccion_filtros,
       window.location.origin,
     );
 
@@ -97,24 +104,29 @@ export default function PlanesCortePage() {
     });
 
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error("Error al consultar los planes de corte");
+    if (!response.ok)
+      throw new Error("Error al consultar las productos de tubos");
     const result = await response.json();
-
+    console.log("result", result);
     return {
-      ancho_estipulado: result.data.anchos.map((item: string) => ({
-        value: item,
-        label: item,
-      })),
-      creado: [
-        {
-          label: "limitStart",
-          value: result.data.rangoFechas.minFecha || null,
-        },
-        {
-          label: "limitEnd",
-          value: result.data.rangoFechas.maxFecha || null,
-        },
-      ],
+      //   fabricante: result.data.fabricantes.map((f: Fabricante) => ({
+      //     label: f.nombre,
+      //     value: f.id,
+      //   })),
+      //   colada: result.data.coladas.map((c: Colada) => ({
+      //     label: c.colada,
+      //     value: c.id,
+      //   })),
+      //   creado: [
+      //     {
+      //       label: "limitStart",
+      //       value: result.data.rangoFechas.minFecha || null,
+      //     },
+      //     {
+      //       label: "limitEnd",
+      //       value: result.data.rangoFechas.maxFecha || null,
+      //     },
+      //   ],
     };
   };
 
@@ -138,11 +150,46 @@ export default function PlanesCortePage() {
   } = useDataTable({
     initFilters: [
       {
-        name: "ancho_estipulado",
-        label: "Ancho",
+        name: "calidad",
+        label: "Calidad",
         type: "select",
         value: 0,
-        defaultLabel: "Todos los anchos",
+        defaultLabel: "Todas las calidad",
+      },
+      {
+        name: "maquina",
+        label: "Máquina",
+        type: "select",
+        value: 0,
+        defaultLabel: "Todas las máquinas",
+      },
+      {
+        name: "operario",
+        label: "Operario",
+        type: "select",
+        value: 0,
+        defaultLabel: "Todos los operarios",
+      },
+      {
+        name: "turno",
+        label: "Turno",
+        type: "select",
+        value: 0,
+        defaultLabel: "Todos los turnos",
+      },
+      {
+        name: "espesor",
+        label: "Espesor",
+        type: "select",
+        value: 0,
+        defaultLabel: "Todos los espesores",
+      },
+      {
+        name: "estructural",
+        label: "Estructural",
+        type: "select",
+        value: 0,
+        defaultLabel: "Ninguna",
       },
       {
         name: "creado",
@@ -182,37 +229,122 @@ export default function PlanesCortePage() {
           />
         </Box>
       )}
-      <Table<PlanCorte>
-        sortModel={sortModel}
-        onSortModelChange={handleSortModel}
-        page={page}
-        loading={loading}
-        rows={data as PlanCorte[]}
-        total={total}
-        columns={columns(handleDetail, handleEdit, handleDelete)}
-        rowKeyExtractor={(row) => row.id}
-        handlePageChange={handlePageChange}
-      />
+      <Box sx={{ height: "calc(100vh - 370px)", overflow: "hidden" }}>
+        <Table<Prod>
+          sortModel={sortModel}
+          onSortModelChange={handleSortModel}
+          page={page}
+          loading={loading}
+          rows={data as Prod[]}
+          total={total}
+          columns={columns(handleDetail, handleEdit, handleDelete)}
+          rowKeyExtractor={(row) => row.id}
+          handlePageChange={handlePageChange}
+        />
+      </Box>
     </Box>
   );
 }
 
 const columns = (
-  handleDetail: (row: PlanCorte) => void,
-  handleEdit: (row: PlanCorte) => void,
-  handleDelete: (row: PlanCorte) => void,
-): Column<PlanCorte>[] => [
+  handleDetail: (row: Prod) => void,
+  handleEdit: (row: Prod) => void,
+  handleDelete: (row: Prod) => void,
+): Column<Prod>[] => [
   {
     id: "id",
-    label: "Plan",
+    label: "ID",
+    align: "left",
+    width: 20,
+  },
+  {
+    id: "tubo",
+    minWidth: 200,
+    label: "Tubo",
+    align: "left",
+    sortable: true,
+    format: (row) => (
+      <Box>
+        <Typography variant="body2">{row.tubo}</Typography>
+        <Stack sx={{ flexDirection: "row", gap: 0.5, flexWrap: "wrap" }}>
+          {row.maquinas.map((m, index) => (
+            <Typography
+              key={m.id}
+              variant="body2"
+              sx={{ color: "text.secondary" }}
+            >
+              {m.maquina}
+              {index < row.maquinas.length - 1 ? "," : ""}
+            </Typography>
+          ))}
+        </Stack>
+      </Box>
+    ),
+  },
+  {
+    id: "lote",
+    width: 120,
+    label: "Lote",
     align: "left",
     sortable: true,
   },
   {
-    id: "ancho_estipulado",
-    label: "Ancho (mm)",
+    id: "turno_prefijo",
+    width: 80,
+    label: "Turno",
+    align: "center",
+  },
+  {
+    id: "operario",
+    label: "Operario",
     align: "left",
     sortable: true,
+  },
+  {
+    id: "tubos_buenos",
+    width: 220,
+    label: "Tubos Buenos / Malos",
+    align: "center",
+    format: (row) => (
+      <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
+        <Typography
+          variant="body2"
+          sx={{ color: "success.main", fontWeight: "bold" }}
+        >
+          {row.tubos_buenos}
+        </Typography>
+        <span>/</span>
+        <Typography
+          variant="body2"
+          sx={{ color: "error.main", fontWeight: "bold" }}
+        >
+          {row.tubos_malos}
+        </Typography>
+      </Box>
+    ),
+  },
+  {
+    id: "paquetes",
+    width: 200,
+    label: "Paquetes / Resto (uds)",
+    align: "center",
+    format: (row) => (
+      <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
+        <Typography
+          variant="body2"
+          sx={{ color: "info.main", fontWeight: "bold" }}
+        >
+          {row.paquetes}
+        </Typography>
+        <span>/</span>
+        <Typography
+          variant="body2"
+          sx={{ color: "secondary.main", fontWeight: "bold" }}
+        >
+          {row.paquete_incompleto}
+        </Typography>
+      </Box>
+    ),
   },
   {
     id: "fecha",
@@ -237,21 +369,21 @@ const columns = (
       >
         <IconButton
           size="small"
-          onClick={() => handleDetail(row as unknown as PlanCorte)}
+          onClick={() => handleDetail(row)}
           sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
         >
           <Eye size={16} />
         </IconButton>
         <IconButton
           size="small"
-          onClick={() => handleEdit(row as unknown as PlanCorte)}
+          onClick={() => handleEdit(row)}
           sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
         >
           <Edit2 size={16} />
         </IconButton>
         <IconButton
           size="small"
-          onClick={() => handleDelete(row as unknown as PlanCorte)}
+          onClick={() => handleDelete(row)}
           sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
         >
           <Trash2 size={16} />

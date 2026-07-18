@@ -129,17 +129,83 @@ export async function listarPlanesCorteService(
   };
 }
 
-export async function listarAnchosPlanesCorteService(
+export interface ListarFiltrosPlanesCorteParams {
+  busqueda?: string;
+  ancho_estipulado?: number | null;
+  fechaInicio?: string;
+  fechaFin?: string;
+}
+
+export interface ListarFiltrosPlanesCorteResponse {
+  anchos: number[];
+  rangoFechas: {
+    minFecha: string | null;
+    maxFecha: string | null;
+  };
+}
+
+/**
+ * Servicio dinámico cruzado para obtener los filtros disponibles en Planes de Corte
+ */
+export async function listarFiltrosPlanesCorteService(
   pool: ConnectionPool,
-): Promise<number[]> {
-  const query = `
+  params: ListarFiltrosPlanesCorteParams,
+): Promise<ListarFiltrosPlanesCorteResponse> {
+  const { ancho_estipulado, fechaInicio, fechaFin } = params;
+
+  const reqAnchos = pool.request();
+  const reqFechas = pool.request();
+
+  // --- 1. CONSULTA PARA ANCHOS ESTIPULADOS POSIBLES ---
+  // Filtra por búsqueda y fechas (IGNORA su propio filtro: ancho_estipulado)
+  let whereAnchos = "WHERE 1=1 AND ancho_estipulado IS NOT NULL";
+
+  if (fechaInicio) {
+    whereAnchos += " AND creado >= @fechaInicio";
+    reqAnchos.input("fechaInicio", fechaInicio);
+  }
+  if (fechaFin) {
+    whereAnchos += " AND creado <= @fechaFin";
+    reqAnchos.input("fechaFin", fechaFin);
+  }
+
+  const qAnchos = `
     SELECT DISTINCT ancho_estipulado
     FROM Planes_Corte
-    Order BY ancho_estipulado ASC
+    ${whereAnchos}
+    ORDER BY ancho_estipulado ASC;
   `;
 
-  const result = await pool.request().query(query);
-  return result.recordset.map(
-    (row: { ancho_estipulado: number }) => row.ancho_estipulado,
-  );
+  let whereFechas = "WHERE 1=1";
+
+  if (
+    ancho_estipulado !== undefined &&
+    ancho_estipulado !== null &&
+    ancho_estipulado !== 0
+  ) {
+    whereFechas += " AND ancho_estipulado = @ancho_estipulado";
+    reqFechas.input("ancho_estipulado", ancho_estipulado);
+  }
+
+  const qFechas = `
+    SELECT 
+      MIN(creado) AS minFecha, 
+      MAX(creado) AS maxFecha
+    FROM Planes_Corte
+    ${whereFechas};
+  `;
+
+  // Ejecutamos ambas consultas en paralelo
+  const [resAnchos, resFechas] = await Promise.all([
+    reqAnchos.query(qAnchos),
+    reqFechas.query(qFechas),
+  ]);
+
+  return {
+    anchos: resAnchos.recordset.map((row) => Number(row.ancho_estipulado)),
+    rangoFechas: {
+      minFecha: resFechas.recordset[0]?.minFecha || null,
+      maxFecha: resFechas.recordset[0]?.maxFecha || null,
+    },
+  };
 }
