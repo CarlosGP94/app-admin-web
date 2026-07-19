@@ -7,11 +7,13 @@ import { Add, Search } from "@mui/icons-material";
 const TopCrud: React.FC<{
   placeholder?: string;
   searchTerm: string;
+  actions?: React.ReactNode;
   handleSearchChange: (value: string) => void;
   handleNew?: () => void;
 }> = ({
   placeholder = "Buscar...",
   searchTerm = "",
+  actions = [],
   handleSearchChange = () => {},
   handleNew = () => {},
 }) => {
@@ -43,16 +45,19 @@ const TopCrud: React.FC<{
         value={searchTerm ?? ""}
         onChange={(e) => handleSearchChange(e.target.value)}
       />
-      <Button
-        startIcon={<Add fontSize="small" />}
-        sx={{ minWidth: "120px" }}
-        color="primary"
-        size="small"
-        variant="contained"
-        onClick={handleNew}
-      >
-        Nuevo Elemento
-      </Button>
+      <Stack direction="row" spacing={1}>
+        {actions}
+        <Button
+          startIcon={<Add fontSize="small" />}
+          sx={{ minWidth: "120px" }}
+          color="primary"
+          size="small"
+          variant="contained"
+          onClick={handleNew}
+        >
+          Nuevo Elemento
+        </Button>
+      </Stack>
     </Stack>
   );
 };

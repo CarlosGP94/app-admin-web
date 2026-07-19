@@ -16,6 +16,7 @@ const ROUTE_TITLES: Record<string, string> = {
   [APP_ROUTES.tubos.subRoutes.planes_corte]: "Planes de Corte",
   [APP_ROUTES.tubos.subRoutes.bobinas_cortadas]: "Bobinas Cortadas",
   [APP_ROUTES.tubos.subRoutes.produccion]: "Producción de Tubos",
+  [APP_ROUTES.tubos.subRoutes.salida_paquetes]: "Salidas de Paquetes",
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {

@@ -7,25 +7,18 @@ import useDataTable, {
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton, Typography, Stack, Button } from "@mui/material";
+import { Box, IconButton, Typography, Stack } from "@mui/material";
 import { Eye, Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
-import { Add } from "@mui/icons-material";
-import FormatListBulletedAddIcon from "@mui/icons-material/FormatListBulletedAdd";
 
 interface Prod {
   id: number;
   tubo: string;
-  lote: string;
-  turno_prefijo: string;
+  num_paqs: number;
+  resto: number;
   operario: string;
-  maquinas: { id: number; maquina: string }[];
-  tubos_buenos: number;
-  tubos_malos: number;
-  paquetes: number;
-  paquete_incompleto: number;
   action_id: number;
   fecha: string;
 }
@@ -35,17 +28,12 @@ interface Calidad {
   calidad: string;
 }
 
-interface Maquina {
+interface Operario {
   id: number;
-  maquina: string;
+  nombre: string;
 }
 
-interface Turno {
-  id: number;
-  prefijo: string;
-}
-
-export default function ProduccionPage() {
+export default function SalidaPaqsPage() {
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
@@ -54,7 +42,7 @@ export default function ProduccionPage() {
     sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[],
   ): Promise<{ data: Prod[]; total: number }> => {
     const url = new URL(
-      APP_ROUTES.api.tubos.produccion,
+      APP_ROUTES.api.tubos.salida_paquetes,
       window.location.origin,
     );
 
@@ -86,7 +74,7 @@ export default function ProduccionPage() {
 
     const response = await fetch(url.toString());
     if (!response.ok)
-      throw new Error("Error al consultar la producción de tubos");
+      throw new Error("Error al consultar la salida de paquetes");
 
     const result = await response.json();
     return {
@@ -102,7 +90,7 @@ export default function ProduccionPage() {
     currentFilters: CurrentFilter[],
   ): Promise<Record<string, (string | number | FilterOption)[]>> => {
     const url = new URL(
-      APP_ROUTES.api.tubos.produccion_filtros,
+      APP_ROUTES.api.tubos.salida_paquetes_filtros,
       window.location.origin,
     );
 
@@ -124,34 +112,15 @@ export default function ProduccionPage() {
     if (!response.ok)
       throw new Error("Error al consultar las productos de tubos");
     const result = await response.json();
-
     return {
       calidad: result.data.calidades.map((f: Calidad) => ({
         label: f.calidad,
         value: f.id,
       })),
-      maquina: result.data.maquinas.map((c: Maquina) => ({
-        label: c.maquina,
-        value: c.id,
+      operario: result.data.operarios.map((o: Operario) => ({
+        label: o.nombre,
+        value: o.id,
       })),
-      turno: result.data.turnos.map((t: Turno) => ({
-        label: t.prefijo,
-        value: t.id,
-      })),
-      operario: result.data.operarios.map(
-        (o: { id: number; nombre: string }) => ({
-          label: o.nombre,
-          value: o.id,
-        }),
-      ),
-      espesor: result.data.espesores.map((e: number) => ({
-        label: String(e),
-        value: e,
-      })),
-      estructural: [
-        result.data.estructural.si ? { label: "SI", value: 1 } : null,
-        result.data.estructural.no ? { label: "NO", value: 2 } : null,
-      ].filter(Boolean) as FilterOption[],
       creado: [
         {
           label: "limitStart",
@@ -174,7 +143,6 @@ export default function ProduccionPage() {
     loadingFilters,
     loading,
     sortModel,
-    selectedIds,
     handleSortModel,
     handlePageChange,
     handleDetail,
@@ -183,50 +151,23 @@ export default function ProduccionPage() {
     handleFilterChange,
     handleClearAllFilters,
     handleFilter,
-    handleSelectItems,
   } = useDataTable({
     initFilters: [
       {
         name: "calidad",
         label: "Calidad",
         type: "select",
-        value: 0,
-        defaultLabel: "Todas las calidad",
-      },
-      {
-        name: "maquina",
-        label: "Máquina",
-        type: "select",
-        value: 0,
-        defaultLabel: "Todas las máquinas",
+        value: null,
+        defaultLabel: "Todas las calidades",
+        options: [],
       },
       {
         name: "operario",
         label: "Operario",
         type: "select",
-        value: 0,
+        value: null,
         defaultLabel: "Todos los operarios",
-      },
-      {
-        name: "turno",
-        label: "Turno",
-        type: "select",
-        value: 0,
-        defaultLabel: "Todos los turnos",
-      },
-      {
-        name: "espesor",
-        label: "Espesor",
-        type: "select",
-        value: 0,
-        defaultLabel: "Todos los espesores",
-      },
-      {
-        name: "estructural",
-        label: "Estructural",
-        type: "select",
-        value: 0,
-        defaultLabel: "Ninguna",
+        options: [],
       },
       {
         name: "creado",
@@ -254,20 +195,6 @@ export default function ProduccionPage() {
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
         }}
-        actions={
-          <>
-            <Button
-              disabled={selectedIds.length === 0}
-              startIcon={<FormatListBulletedAddIcon fontSize="small" />}
-              sx={{ minWidth: "120px" }}
-              color="primary"
-              size="small"
-              variant="contained"
-            >
-              Insertar Coladas
-            </Button>
-          </>
-        }
       />
       {filters.length > 0 && (
         <Box sx={{ mb: 2 }}>
@@ -282,9 +209,6 @@ export default function ProduccionPage() {
       )}
       <Box sx={{ height: "calc(100vh - 370px)", overflow: "hidden" }}>
         <Table<Prod>
-          selectable
-          selectedIds={selectedIds}
-          onSelectionChange={handleSelectItems}
           sortModel={sortModel}
           onSortModelChange={handleSortModel}
           page={page}
@@ -317,36 +241,6 @@ const columns = (
     label: "Tubo",
     align: "left",
     sortable: true,
-    format: (row) => (
-      <Box>
-        <Typography variant="body2">{row.tubo}</Typography>
-        <Stack sx={{ flexDirection: "row", gap: 0.5, flexWrap: "wrap" }}>
-          {row.maquinas.map((m, index) => (
-            <Typography
-              key={m.id}
-              variant="body2"
-              sx={{ color: "text.secondary" }}
-            >
-              {m.maquina}
-              {index < row.maquinas.length - 1 ? "," : ""}
-            </Typography>
-          ))}
-        </Stack>
-      </Box>
-    ),
-  },
-  {
-    id: "lote",
-    width: 120,
-    label: "Lote",
-    align: "left",
-    sortable: true,
-  },
-  {
-    id: "turno_prefijo",
-    width: 80,
-    label: "Turno",
-    align: "center",
   },
   {
     id: "operario",
@@ -355,30 +249,7 @@ const columns = (
     sortable: true,
   },
   {
-    id: "tubos_buenos",
-    width: 220,
-    label: "Tubos Buenos / Malos",
-    align: "center",
-    format: (row) => (
-      <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
-        <Typography
-          variant="body2"
-          sx={{ color: "success.main", fontWeight: "bold" }}
-        >
-          {row.tubos_buenos}
-        </Typography>
-        <span>/</span>
-        <Typography
-          variant="body2"
-          sx={{ color: "error.main", fontWeight: "bold" }}
-        >
-          {row.tubos_malos}
-        </Typography>
-      </Box>
-    ),
-  },
-  {
-    id: "paquetes",
+    id: "num_paqs",
     width: 200,
     label: "Paquetes / Resto (uds)",
     align: "center",
@@ -388,14 +259,14 @@ const columns = (
           variant="body2"
           sx={{ color: "info.main", fontWeight: "bold" }}
         >
-          {row.paquetes}
+          {row.num_paqs}
         </Typography>
         <span>/</span>
         <Typography
           variant="body2"
           sx={{ color: "secondary.main", fontWeight: "bold" }}
         >
-          {row.paquete_incompleto}
+          {row.resto}
         </Typography>
       </Box>
     ),

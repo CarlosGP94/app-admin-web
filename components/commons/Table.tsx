@@ -9,6 +9,9 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
+import Checkbox from "@mui/material/Checkbox";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 import { Skeleton } from "@mui/material";
 import { PAGE_SIZE } from "@/config/constants";
 
@@ -35,6 +38,9 @@ interface GenericTableProps<T> {
   onSortModelChange: (
     model: { orderBy: string; orderDir: "ASC" | "DESC" }[],
   ) => void;
+  selectable?: boolean;
+  selectedIds?: (string | number)[];
+  onSelectionChange?: (selectedIds: (string | number)[]) => void;
 }
 
 const stylesHeaderCell = {
@@ -55,6 +61,9 @@ export default function ColumnGroupingTable<T>({
   rowKeyExtractor,
   sortModel,
   onSortModelChange,
+  selectable = false,
+  selectedIds = [],
+  onSelectionChange,
 }: GenericTableProps<T>) {
   const getColumnSortState = (columnId: string) => {
     const activeSort = sortModel.find((item) => item.orderBy === columnId);
@@ -77,6 +86,54 @@ export default function ColumnGroupingTable<T>({
     }
   };
 
+  // Lógica para Selección Global y de Fila Individual
+  const pageRowKeys = React.useMemo(
+    () => rows.map(rowKeyExtractor),
+    [rows, rowKeyExtractor],
+  );
+
+  const isAllSelected = React.useMemo(() => {
+    if (pageRowKeys.length === 0) return false;
+    return pageRowKeys.every((key) => selectedIds.includes(key));
+  }, [pageRowKeys, selectedIds]);
+
+  const isSomeSelected = React.useMemo(() => {
+    return (
+      pageRowKeys.some((key) => selectedIds.includes(key)) && !isAllSelected
+    );
+  }, [pageRowKeys, selectedIds, isAllSelected]);
+
+  const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!onSelectionChange) return;
+    if (event.target.checked) {
+      // Unir los elementos de la página actual que no estén ya en la selección global
+      const newSelections = [...selectedIds];
+      pageRowKeys.forEach((key) => {
+        if (!newSelections.includes(key)) newSelections.push(key);
+      });
+      onSelectionChange(newSelections);
+    } else {
+      // Filtrar y quitar los elementos de la página actual
+      const newSelections = selectedIds.filter(
+        (id) => !pageRowKeys.includes(id),
+      );
+      onSelectionChange(newSelections);
+    }
+  };
+
+  const handleRowSelectClick = (id: string | number) => {
+    if (!onSelectionChange) return;
+    const selectedIndex = selectedIds.indexOf(id);
+    let newSelected: (string | number)[] = [];
+
+    if (selectedIndex === -1) {
+      newSelected = [...selectedIds, id];
+    } else {
+      newSelected = selectedIds.filter((item) => item !== id);
+    }
+    onSelectionChange(newSelected);
+  };
+
   return (
     <Paper
       variant="outlined"
@@ -96,7 +153,6 @@ export default function ColumnGroupingTable<T>({
           flex: 1,
           overflowY: "auto",
           overflowX: "auto",
-          // Estilos personalizados para el scrollbar (Webkit / Chrome / Safari / Edge)
           "&::-webkit-scrollbar": {
             width: "8px",
             height: "8px",
@@ -111,7 +167,6 @@ export default function ColumnGroupingTable<T>({
               backgroundColor: "#a8a8b8",
             },
           },
-          // Soporte nativo para Firefox
           scrollbarWidth: "thin",
           scrollbarColor: "#c5c5d2 #f1f1f1",
         }}
@@ -127,6 +182,27 @@ export default function ColumnGroupingTable<T>({
         >
           <TableHead>
             <TableRow>
+              {/* Celda del Header del Checkbox de Selección múltiple global */}
+              {selectable && (
+                <TableCell
+                  padding="checkbox"
+                  sx={{
+                    ...stylesHeaderCell,
+                    width: 50,
+                    boxShadow: "inset 6px 0px 0px 0px transparent",
+                  }}
+                >
+                  <Checkbox
+                    color="primary"
+                    indeterminate={isSomeSelected}
+                    checked={isAllSelected}
+                    onChange={handleSelectAllClick}
+                    disabled={loading || rows.length === 0}
+                    size="small"
+                  />
+                </TableCell>
+              )}
+
               {columns.map((column, colIndex) => {
                 const columnIdStr = String(column.id);
                 const { active, direction } = getColumnSortState(columnIdStr);
@@ -141,9 +217,11 @@ export default function ColumnGroupingTable<T>({
                     }}
                     sx={{
                       ...stylesHeaderCell,
-                      ...(colIndex === 0 && {
-                        boxShadow: "inset 6px 0px 0px 0px transparent",
-                      }),
+                      // Si no es seleccionable, la primera columna de datos lleva el reset del sombreado izquierdo
+                      ...(!selectable &&
+                        colIndex === 0 && {
+                          boxShadow: "inset 6px 0px 0px 0px transparent",
+                        }),
                     }}
                   >
                     {column.sortable ? (
@@ -173,6 +251,19 @@ export default function ColumnGroupingTable<T>({
             {loading
               ? Array.from(new Array(PAGE_SIZE)).map((_, rowIndex) => (
                   <TableRow key={`skeleton-row-${rowIndex}`}>
+                    {selectable && (
+                      <TableCell
+                        padding="checkbox"
+                        sx={{ boxShadow: "inset 6px 0px 0px 0px transparent" }}
+                      >
+                        <Skeleton
+                          variant="rectangular"
+                          width={20}
+                          height={20}
+                          animation="wave"
+                        />
+                      </TableCell>
+                    )}
                     {columns.map((column, colIndex) => (
                       <TableCell
                         key={`skeleton-cell-${rowIndex}-${column.id as string}`}
@@ -182,9 +273,10 @@ export default function ColumnGroupingTable<T>({
                           minWidth: column.minWidth,
                         }}
                         sx={{
-                          ...(colIndex === 0 && {
-                            boxShadow: "inset 6px 0px 0px 0px transparent",
-                          }),
+                          ...(!selectable &&
+                            colIndex === 0 && {
+                              boxShadow: "inset 6px 0px 0px 0px transparent",
+                            }),
                         }}
                       >
                         <Skeleton
@@ -197,67 +289,129 @@ export default function ColumnGroupingTable<T>({
                     ))}
                   </TableRow>
                 ))
-              : rows.map((row, rowIndex) => (
-                  <TableRow
-                    hover
-                    role="checkbox"
-                    tabIndex={-1}
-                    key={rowKeyExtractor(row) || rowIndex}
-                    sx={{
-                      "&:hover .MuiTableCell-root:first-of-type": {
-                        boxShadow: "inset 6px 0px 0px 0px #001040",
-                      },
-                    }}
-                  >
-                    {columns.map((column, colIndex) => {
-                      const value = row[column.id];
-                      return (
+              : rows.map((row, rowIndex) => {
+                  const rowKey = rowKeyExtractor(row) || rowIndex;
+                  const isItemSelected = selectedIds.includes(rowKey);
+
+                  return (
+                    <TableRow
+                      hover
+                      role="checkbox"
+                      tabIndex={-1}
+                      key={rowKey}
+                      selected={selectable && isItemSelected}
+                      sx={{
+                        "&:hover .MuiTableCell-root:first-of-type": {
+                          boxShadow: "inset 6px 0px 0px 0px #001040",
+                        },
+                      }}
+                    >
+                      {/* Celda del Checkbox individual para cada fila */}
+                      {selectable && (
                         <TableCell
-                          key={String(column.id)}
-                          align={column.align}
-                          style={{
-                            width: column.width || "auto",
-                            minWidth: column.minWidth,
-                          }}
+                          padding="checkbox"
+                          onClick={() => handleRowSelectClick(rowKey)}
                           sx={{
-                            ...(colIndex === 0 && {
-                              boxShadow: "inset 6px 0px 0px 0px transparent",
-                              transition: "box-shadow 0.15s ease-in-out",
-                            }),
-                            ...(column.fontWeight && {
-                              fontWeight: column.fontWeight,
-                            }),
+                            transition: "box-shadow 0.15s ease-in-out",
+                            boxShadow: "inset 6px 0px 0px 0px transparent",
+                            cursor: "pointer",
                           }}
                         >
-                          {column.format
-                            ? column.format(row)
-                            : String(value ?? "-")}
+                          <Checkbox
+                            color="primary"
+                            checked={isItemSelected}
+                            size="small"
+                          />
                         </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))}
+                      )}
+
+                      {columns.map((column, colIndex) => {
+                        const value = row[column.id];
+                        return (
+                          <TableCell
+                            key={String(column.id)}
+                            align={column.align}
+                            style={{
+                              width: column.width || "auto",
+                              minWidth: column.minWidth,
+                            }}
+                            sx={{
+                              // Aplica el efecto de la barra lateral izquierda a la celda de datos solo si no hay Checkbox previo
+                              ...(!selectable &&
+                                colIndex === 0 && {
+                                  boxShadow:
+                                    "inset 6px 0px 0px 0px transparent",
+                                  transition: "box-shadow 0.15s ease-in-out",
+                                }),
+                              ...(column.fontWeight && {
+                                fontWeight: column.fontWeight,
+                              }),
+                            }}
+                          >
+                            {column.format
+                              ? column.format(row)
+                              : String(value ?? "-")}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  );
+                })}
           </TableBody>
         </Table>
       </TableContainer>
 
-      <TablePagination
-        component="div"
+      {/* Footer unificado con Contador de Selección y Paginación */}
+      <Box
         sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           borderTop: "1px solid #c5c5d2",
           backgroundColor: "#ECEEF0",
-          width: "100%",
+          px: 3,
         }}
-        rowsPerPage={PAGE_SIZE}
-        rowsPerPageOptions={[PAGE_SIZE]}
-        count={total}
-        page={Math.max(0, page - 1)}
-        onPageChange={(_, value) => handlePageChange(value + 1)}
-        labelRowsPerPage="Filas por página:"
-        labelDisplayedRows={({ from, to, count }) =>
-          `${from} - ${to} de ${count !== -1 ? count : `más de ${to}`}`
-        }
-      />
+      >
+        <Box sx={{ minWidth: "150px" }}>
+          {selectable && selectedIds.length > 0 && (
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#001040",
+                fontWeight: "bold",
+                backgroundColor: "#e0e4e8",
+                px: 1.5,
+                py: 0.5,
+                borderRadius: "12px",
+                display: "inline-block",
+                fontSize: "0.75rem",
+              }}
+            >
+              {selectedIds.length}{" "}
+              {selectedIds.length === 1 ? "seleccionado" : "seleccionados"}
+            </Typography>
+          )}
+        </Box>
+
+        <TablePagination
+          component="div"
+          sx={{
+            borderTop: "none",
+            "& .MuiTablePagination-toolbar": {
+              paddingLeft: 0,
+            },
+          }}
+          rowsPerPage={PAGE_SIZE}
+          rowsPerPageOptions={[PAGE_SIZE]}
+          count={total}
+          page={Math.max(0, page - 1)}
+          onPageChange={(_, value) => handlePageChange(value + 1)}
+          labelRowsPerPage="Filas por página:"
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from} - ${to} de ${count !== -1 ? count : `más de ${to}`}`
+          }
+        />
+      </Box>
     </Paper>
   );
 }

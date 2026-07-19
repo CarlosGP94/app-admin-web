@@ -196,8 +196,6 @@ export async function listarProdTubosService(
     WHERE RowNum BETWEEN @rowStart AND @rowEnd;
   `;
 
-  console.log("Query SQL generado:", query);
-
   request.input("rowStart", rowStart);
   request.input("rowEnd", rowEnd);
 
