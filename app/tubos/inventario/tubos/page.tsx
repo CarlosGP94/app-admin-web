@@ -7,19 +7,24 @@ import useDataTable, {
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton, Chip } from "@mui/material";
+import { Box, IconButton, Chip, Typography } from "@mui/material";
 import { Eye, Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
 
-interface Fleje {
+interface Tubo {
   id: number;
-  concepto: string;
-  calidad: string;
+  art_concepto: string;
   activo: boolean;
-  peso_medio: number;
+  peso_unitario: number;
+  peso_total: number;
+  num_paquetes: number;
+  num_por_paq: number;
+  resto: number;
   unidades: number;
+  alto_paq: number;
+  ancho_paq: number;
   action_id: number;
   fecha: string;
 }
@@ -29,15 +34,20 @@ interface Calidad {
   nombre: string;
 }
 
-export default function FlejesPage() {
+interface Tipo {
+  id: number;
+  nombre: string;
+}
+
+export default function TubosPage() {
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
     searchTerm: string,
     filters: TableFilter[],
     sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[],
-  ): Promise<{ data: Fleje[]; total: number }> => {
-    const url = new URL(APP_ROUTES.api.tubos.flejes, window.location.origin);
+  ): Promise<{ data: Tubo[]; total: number }> => {
+    const url = new URL(APP_ROUTES.api.tubos.tubos, window.location.origin);
 
     url.searchParams.append("page", String(currentPage));
     url.searchParams.append("limit", String(currentPageSize));
@@ -66,14 +76,14 @@ export default function FlejesPage() {
     }
 
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error("Error al consultar los flejes");
+    if (!response.ok) throw new Error("Error al consultar los tubos");
 
     const result = await response.json();
     return {
       data:
-        (result.data.map((item: Fleje) => ({
+        (result.data.map((item: Tubo) => ({
           ...item,
-        })) as Fleje[]) || [],
+        })) as Tubo[]) || [],
       total: result.total || 0,
     };
   };
@@ -82,7 +92,7 @@ export default function FlejesPage() {
     currentFilters: CurrentFilter[],
   ): Promise<Record<string, (string | number | FilterOption)[]>> => {
     const url = new URL(
-      APP_ROUTES.api.tubos.flejes_filtros,
+      APP_ROUTES.api.tubos.tubos_filtros,
       window.location.origin,
     );
 
@@ -101,13 +111,17 @@ export default function FlejesPage() {
     });
 
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error("Error al consultar las bobinas");
+    if (!response.ok) throw new Error("Error al consultar los tubos");
     const result = await response.json();
-
+    console.log("result.data", result.data);
     return {
       calidad: result.data.calidades.map((c: Calidad) => ({
         label: c.nombre,
         value: c.id,
+      })),
+      tipo: result.data.tipos.map((t: Tipo) => ({
+        label: t.nombre,
+        value: t.id,
       })),
       espesor: result.data.espesores.map((e: number) => ({
         label: e.toString(),
@@ -141,6 +155,14 @@ export default function FlejesPage() {
         type: "select",
         value: null,
         defaultLabel: "Todas las calidades",
+        options: [],
+      },
+      {
+        name: "tipo",
+        label: "Tipo",
+        type: "select",
+        value: null,
+        defaultLabel: "Todos los tipos",
         options: [],
       },
       {
@@ -183,12 +205,12 @@ export default function FlejesPage() {
         </Box>
       )}
       <Box sx={{ height: "calc(100vh - 285px)", overflow: "hidden" }}>
-        <Table<Fleje>
+        <Table<Tubo>
           sortModel={sortModel}
           onSortModelChange={handleSortModel}
           page={page}
           loading={loading}
-          rows={data as Fleje[]}
+          rows={data as Tubo[]}
           total={total}
           columns={columns(handleDetail, handleEdit, handleDelete)}
           rowKeyExtractor={(row) => row.id}
@@ -200,10 +222,10 @@ export default function FlejesPage() {
 }
 
 const columns = (
-  handleDetail: (row: Fleje) => void,
-  handleEdit: (row: Fleje) => void,
-  handleDelete: (row: Fleje) => void,
-): Column<Fleje>[] => [
+  handleDetail: (row: Tubo) => void,
+  handleEdit: (row: Tubo) => void,
+  handleDelete: (row: Tubo) => void,
+): Column<Tubo>[] => [
   {
     id: "id",
     label: "ID",
@@ -211,9 +233,9 @@ const columns = (
     width: 20,
   },
   {
-    id: "concepto",
+    id: "art_concepto",
     minWidth: 200,
-    label: "Fleje",
+    label: "Tubo",
     align: "left",
     sortable: true,
   },
@@ -232,18 +254,77 @@ const columns = (
     },
   },
   {
-    id: "unidades",
-    label: "Unidades",
-    width: 100,
+    id: "num_paquetes",
+    label: "Cant. Paqs / Resto (uds)",
+    width: 250,
     align: "center",
     sortable: true,
+    format: (row) => (
+      <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
+        <Typography
+          variant="body2"
+          sx={{ color: "info.main", fontWeight: "bold" }}
+        >
+          {row.num_paquetes}
+        </Typography>
+        <span>/</span>
+        <Typography
+          variant="body2"
+          sx={{ color: "secondary.main", fontWeight: "bold" }}
+        >
+          {row.resto}
+        </Typography>
+      </Box>
+    ),
   },
   {
-    id: "peso_medio",
-    label: "Peso Medio (Tn)",
+    id: "peso_total",
+    label: "Peso Unit / Total (Kg)",
+    width: 220,
+    align: "center",
+    sortable: true,
+    format: (row) => (
+      <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
+        <Typography
+          variant="body2"
+          sx={{ color: "info.main", fontWeight: "bold" }}
+        >
+          {row?.peso_unitario?.toFixed(2) ?? "0.00"}
+        </Typography>
+        <span>/</span>
+        <Typography
+          variant="body2"
+          sx={{ color: "secondary.main", fontWeight: "bold" }}
+        >
+          {row?.peso_total?.toFixed(2) ?? "0.00"}
+        </Typography>
+      </Box>
+    ),
+  },
+
+  {
+    id: "alto_paq",
+    label: "Alto / Ancho (mm)",
     width: 200,
     align: "center",
     sortable: true,
+    format: (row) => (
+      <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
+        <Typography
+          variant="body2"
+          sx={{ color: "info.main", fontWeight: "bold" }}
+        >
+          {row.alto_paq}
+        </Typography>
+        <span>/</span>
+        <Typography
+          variant="body2"
+          sx={{ color: "secondary.main", fontWeight: "bold" }}
+        >
+          {row.ancho_paq}
+        </Typography>
+      </Box>
+    ),
   },
   {
     id: "fecha",

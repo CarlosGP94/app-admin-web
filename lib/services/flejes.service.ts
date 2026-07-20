@@ -18,7 +18,7 @@ export interface ListarFlejesParams {
 export interface FlejeRow {
   id: number;
   concepto: string;
-  activa: boolean;
+  activo: boolean;
   unidades: number;
   peso_medio: number;
   action_id: number;
@@ -99,7 +99,7 @@ export async function listarFlejesService(
         SELECT
             f.id,
             f.concepto,
-            f.activa,
+            f.activo,
             f.unidades,
             f.peso_medio,
             f.espesor,
@@ -128,7 +128,7 @@ export async function listarFlejesService(
       id: row.id,
       action_id: row.id,
       concepto: row.concepto,
-      activa: row.activa,
+      activo: row.activo,
       unidades: row.unidades,
       peso_medio: row.peso_medio,
       fecha: row.fecha ? new Date(row.fecha).toISOString() : "",

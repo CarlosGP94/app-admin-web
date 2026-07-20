@@ -25,6 +25,10 @@ export const APP_ROUTES = {
   },
   api: {
     tubos: {
+      tubos: "/api/tubos/tubos",
+      tubos_filtros: "/api/tubos/tubos/filtros",
+      flejes: "/api/tubos/flejes",
+      flejes_filtros: "/api/tubos/flejes/filtros",
       bobinas: "/api/tubos/bobinas",
       bobinas_filtros: "/api/tubos/bobinas/filtros",
       salida_paquetes: "/api/tubos/salida-paquetes",
