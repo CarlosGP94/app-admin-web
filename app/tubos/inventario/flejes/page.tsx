@@ -7,31 +7,37 @@ import useDataTable, {
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton } from "@mui/material";
+import { Box, IconButton, Chip } from "@mui/material";
 import { Eye, Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
 
-interface PlanCorte {
+interface Fleje {
   id: number;
-  ancho_estipulado: number;
+  concepto: string;
+  calidad: string;
+  activo: boolean;
+  peso_medio: number;
+  unidades: number;
   action_id: number;
   fecha: string;
 }
 
-export default function PlanesCortePage() {
+interface Calidad {
+  id: number;
+  nombre: string;
+}
+
+export default function BobinasPage() {
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
     searchTerm: string,
     filters: TableFilter[],
     sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[],
-  ): Promise<{ data: PlanCorte[]; total: number }> => {
-    const url = new URL(
-      APP_ROUTES.api.tubos.planes_corte,
-      window.location.origin,
-    );
+  ): Promise<{ data: Fleje[]; total: number }> => {
+    const url = new URL(APP_ROUTES.api.tubos.bobinas, window.location.origin);
 
     url.searchParams.append("page", String(currentPage));
     url.searchParams.append("limit", String(currentPageSize));
@@ -60,16 +66,14 @@ export default function PlanesCortePage() {
     }
 
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error("Error al consultar los planes de corte");
+    if (!response.ok) throw new Error("Error al consultar las bobinas");
 
     const result = await response.json();
-
     return {
       data:
-        (result.data.map((item: PlanCorte) => ({
+        (result.data.map((item: Fleje) => ({
           ...item,
-          action_id: item.id,
-        })) as PlanCorte[]) || [],
+        })) as Fleje[]) || [],
       total: result.total || 0,
     };
   };
@@ -78,7 +82,7 @@ export default function PlanesCortePage() {
     currentFilters: CurrentFilter[],
   ): Promise<Record<string, (string | number | FilterOption)[]>> => {
     const url = new URL(
-      APP_ROUTES.api.tubos.planes_corte_filtros,
+      APP_ROUTES.api.tubos.bobinas_filtros,
       window.location.origin,
     );
 
@@ -97,24 +101,18 @@ export default function PlanesCortePage() {
     });
 
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error("Error al consultar los planes de corte");
+    if (!response.ok) throw new Error("Error al consultar las bobinas");
     const result = await response.json();
 
     return {
-      ancho_estipulado: result.data.anchos.map((item: string) => ({
-        value: item,
-        label: item,
+      calidad: result.data.calidades.map((c: Calidad) => ({
+        label: c.nombre,
+        value: c.id,
       })),
-      creado: [
-        {
-          label: "limitStart",
-          value: result.data.rangoFechas.minFecha || null,
-        },
-        {
-          label: "limitEnd",
-          value: result.data.rangoFechas.maxFecha || null,
-        },
-      ],
+      espesor: result.data.espesores.map((e: number) => ({
+        label: e.toString(),
+        value: e,
+      })),
     };
   };
 
@@ -138,18 +136,20 @@ export default function PlanesCortePage() {
   } = useDataTable({
     initFilters: [
       {
-        name: "ancho_estipulado",
-        label: "Ancho",
+        name: "calidad",
+        label: "Calidad",
         type: "select",
-        value: 0,
-        defaultLabel: "Todos los anchos",
+        value: null,
+        defaultLabel: "Todas las calidades",
+        options: [],
       },
       {
-        name: "creado",
-        label: "Fecha de corte",
-        type: "daterangeStart",
-        valueStart: null,
-        valueEnd: null,
+        name: "espesor",
+        label: "Espesor",
+        type: "select",
+        value: null,
+        defaultLabel: "Todos los espesores",
+        options: [],
       },
     ],
     fetchData: fecthData,
@@ -183,12 +183,12 @@ export default function PlanesCortePage() {
         </Box>
       )}
       <Box sx={{ height: "calc(100vh - 285px)", overflow: "hidden" }}>
-        <Table<PlanCorte>
+        <Table<Fleje>
           sortModel={sortModel}
           onSortModelChange={handleSortModel}
           page={page}
           loading={loading}
-          rows={data as PlanCorte[]}
+          rows={data as Fleje[]}
           total={total}
           columns={columns(handleDetail, handleEdit, handleDelete)}
           rowKeyExtractor={(row) => row.id}
@@ -200,20 +200,49 @@ export default function PlanesCortePage() {
 }
 
 const columns = (
-  handleDetail: (row: PlanCorte) => void,
-  handleEdit: (row: PlanCorte) => void,
-  handleDelete: (row: PlanCorte) => void,
-): Column<PlanCorte>[] => [
+  handleDetail: (row: Fleje) => void,
+  handleEdit: (row: Fleje) => void,
+  handleDelete: (row: Fleje) => void,
+): Column<Fleje>[] => [
   {
     id: "id",
-    label: "Plan",
+    label: "ID",
+    align: "left",
+    width: 20,
+  },
+  {
+    id: "concepto",
+    minWidth: 200,
+    label: "Fleje",
     align: "left",
     sortable: true,
   },
   {
-    id: "ancho_estipulado",
-    label: "Ancho (mm)",
-    align: "left",
+    id: "activo",
+    label: "Activo",
+    align: "center",
+    width: 110,
+    format: (row) => {
+      return (
+        <Chip
+          color={row.activo ? "success" : "error"}
+          label={row.activo ? "Activo" : "Inactivo"}
+        />
+      );
+    },
+  },
+  {
+    id: "unidades",
+    label: "Unidades",
+    width: 100,
+    align: "center",
+    sortable: true,
+  },
+  {
+    id: "peso_medio",
+    label: "Peso Medio (Tn)",
+    width: 200,
+    align: "center",
     sortable: true,
   },
   {
@@ -239,21 +268,21 @@ const columns = (
       >
         <IconButton
           size="small"
-          onClick={() => handleDetail(row as unknown as PlanCorte)}
+          onClick={() => handleDetail(row)}
           sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
         >
           <Eye size={16} />
         </IconButton>
         <IconButton
           size="small"
-          onClick={() => handleEdit(row as unknown as PlanCorte)}
+          onClick={() => handleEdit(row)}
           sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
         >
           <Edit2 size={16} />
         </IconButton>
         <IconButton
           size="small"
-          onClick={() => handleDelete(row as unknown as PlanCorte)}
+          onClick={() => handleDelete(row)}
           sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
         >
           <Trash2 size={16} />

@@ -32,6 +32,15 @@ const DataFilters: React.FC<{
   handleClearFilters = () => {},
   handleFilter = () => {},
 }) => {
+  const MenuProps = {
+    slotProps: {
+      paper: {
+        style: {
+          maxHeight: 200,
+        },
+      },
+    },
+  };
   return (
     <Card variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
       <Grid container spacing={2}>
@@ -120,6 +129,7 @@ const DataFilters: React.FC<{
                       e?.target?.value ? Number(e.target.value) : 0,
                     );
                   }}
+                  MenuProps={MenuProps}
                 >
                   {filter.defaultLabel && (
                     <MenuItem value={0}>{filter.defaultLabel}</MenuItem>

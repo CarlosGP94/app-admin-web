@@ -207,7 +207,7 @@ export default function SalidaPaqsPage() {
           />
         </Box>
       )}
-      <Box sx={{ height: "calc(100vh - 370px)", overflow: "hidden" }}>
+      <Box sx={{ height: "calc(100vh - 285px)", overflow: "hidden" }}>
         <Table<Prod>
           sortModel={sortModel}
           onSortModelChange={handleSortModel}
