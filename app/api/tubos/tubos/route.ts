@@ -3,6 +3,8 @@ import { getConnection } from "@/lib/db";
 import {
   ListarTubosParams,
   listarTubosService,
+  TuboCreatePayload,
+  crearTuboService,
 } from "@/lib/services/tubos.service"; // Ajusta la ruta a donde guardaste el servicio de tubos
 
 /**
@@ -79,6 +81,58 @@ export async function GET(request: Request) {
       error instanceof Error
         ? error.message
         : "Error interno del servidor al procesar el listado de tubos.";
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: message,
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST: Crea un nuevo tubo y registra sus configuraciones de máquinas/flejes
+ */
+export async function POST(request: Request) {
+  try {
+    // 1. Parsear el cuerpo de la petición
+    const body: TuboCreatePayload = await request.json();
+
+    // 2. Validación básica de campos requeridos
+    if (!body.art_concepto || !body.calidad_id || !body.tipo_id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Los campos 'art_concepto', 'calidad_id' y 'tipo_id' son obligatorios.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // 3. Obtener la conexión a la base de datos
+    const pool = await getConnection("tubos");
+
+    // 4. Ejecutar el servicio de creación
+    const resultado = await crearTuboService(pool, body);
+
+    // 5. Responder con el resultado del registro creado (HTTP 201 Created)
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Tubo creado correctamente.",
+        data: resultado,
+      },
+      { status: 201 },
+    );
+  } catch (error: unknown) {
+    console.error("❌ Error en POST /api/tubos/tubos:", error);
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Error interno del servidor al crear el tubo.";
 
     return NextResponse.json(
       {

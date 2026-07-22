@@ -1,4 +1,4 @@
-import { ConnectionPool, Request } from "mssql";
+import { ConnectionPool, Request, Transaction } from "mssql";
 
 export interface FiltrosTubos {
   calidadId?: number;
@@ -270,4 +270,138 @@ export async function listarFiltrosTubosService(
     })),
     espesores: resEspesores.recordset.map((row) => row.espesor),
   };
+}
+
+// Crear tubo
+
+export interface MaquinaConfigPayload {
+  maquina_id: number;
+  maquina_nombre: string;
+  habilitada: boolean;
+  flejes_ids: number[];
+}
+
+export interface TuboCreatePayload {
+  calidad_id: number;
+  tipo_id: number;
+  activo: boolean;
+  art_concepto: string;
+  alto: number;
+  ancho: number;
+  diametro: number;
+  espesor: number;
+  longitud: number;
+  num_paquetes: number;
+  num_por_paq: number;
+  unidades: number;
+  peso_unitario: number;
+  peso_total: number;
+  alto_paq: number;
+  ancho_paq: number;
+  maquinasConfig: MaquinaConfigPayload[];
+}
+
+export interface TuboCreateResponse {
+  id: number;
+  art_concepto: string;
+  medida: string;
+  relacionesCreadas: number;
+}
+
+/**
+ * Servicio para crear un nuevo Tubo y registrar la configuración de sus máquinas/flejes asociadas.
+ */
+export async function crearTuboService(
+  pool: ConnectionPool,
+  payload: TuboCreatePayload,
+): Promise<TuboCreateResponse> {
+  // 1. Transformación de campos según la lógica de negocio
+  const medidaInsertar = payload.art_concepto.trim();
+  const artConceptoInsertar = `Tubo ${medidaInsertar}`;
+
+  const transaction = new Transaction(pool);
+
+  try {
+    await transaction.begin();
+
+    // 2. Inserción de la cabecera en la tabla Tubos
+    const reqTubo = new Request(transaction);
+    reqTubo.input("calidad_id", payload.calidad_id);
+    reqTubo.input("tipo_id", payload.tipo_id);
+    reqTubo.input("activo", payload.activo);
+    reqTubo.input("art_concepto", artConceptoInsertar);
+    reqTubo.input("medida", medidaInsertar);
+    reqTubo.input("alto", payload.alto);
+    reqTubo.input("ancho", payload.ancho);
+    reqTubo.input("diametro", payload.diametro);
+    reqTubo.input("espesor", payload.espesor);
+    reqTubo.input("longitud", payload.longitud);
+    reqTubo.input("num_paquetes", payload.num_paquetes);
+    reqTubo.input("num_por_paq", payload.num_por_paq);
+    reqTubo.input("unidades", payload.unidades);
+    reqTubo.input("peso_unitario", payload.peso_unitario);
+    reqTubo.input("peso_total", payload.peso_total);
+    reqTubo.input("alto_paq", payload.alto_paq);
+    reqTubo.input("ancho_paq", payload.ancho_paq);
+
+    const queryInsertTubo = `
+      INSERT INTO Tubos (
+        calidad_id, tipo_id, activo, art_concepto, medida,
+        alto, ancho, diametro, espesor, longitud,
+        num_paquetes, num_por_paq, unidades, peso_unitario,
+        peso_total, alto_paq, ancho_paq, creado
+      )
+      OUTPUT INSERTED.id
+      VALUES (
+        @calidad_id, @tipo_id, @activo, @art_concepto, @medida,
+        @alto, @ancho, @diametro, @espesor, @longitud,
+        @num_paquetes, @num_por_paq, @unidades, @peso_unitario,
+        @peso_total, @alto_paq, @ancho_paq, GETDATE()
+      );
+    `;
+
+    const resTubo = await reqTubo.query(queryInsertTubo);
+    const nuevoTuboId = resTubo.recordset[0].id;
+
+    // 3. Procesar las configuraciones de máquinas y flejes (Tubos_Maquinas)
+    let totalRelaciones = 0;
+
+    for (const config of payload.maquinasConfig) {
+      // Si la máquina está habilitada y tiene IDs de flejes
+      if (
+        config.habilitada &&
+        config.flejes_ids &&
+        config.flejes_ids.length > 0
+      ) {
+        for (const flejeId of config.flejes_ids) {
+          const reqMaquina = new Request(transaction);
+          reqMaquina.input("tubo_id", nuevoTuboId);
+          reqMaquina.input("maquina_id", config.maquina_id);
+          reqMaquina.input("fleje_id", flejeId);
+
+          const queryInsertMaquina = `
+            INSERT INTO Tubos_Maquinas (tubo_id, maquina_id, fleje_id, creado)
+            VALUES (@tubo_id, @maquina_id, @fleje_id, GETDATE());
+          `;
+
+          await reqMaquina.query(queryInsertMaquina);
+          totalRelaciones++;
+        }
+      }
+    }
+
+    // 4. Confirmar transacción
+    await transaction.commit();
+
+    return {
+      id: nuevoTuboId,
+      art_concepto: artConceptoInsertar,
+      medida: medidaInsertar,
+      relacionesCreadas: totalRelaciones,
+    };
+  } catch (error) {
+    // Si algo falla, revertimos cualquier cambio en la BD
+    await transaction.rollback();
+    throw error;
+  }
 }

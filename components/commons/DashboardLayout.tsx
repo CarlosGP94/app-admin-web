@@ -17,6 +17,11 @@ const ROUTE_TITLES: Record<string, string> = {
   [APP_ROUTES.tubos.subRoutes.bobinas_cortadas]: "Bobinas Cortadas",
   [APP_ROUTES.tubos.subRoutes.produccion]: "Producción de Tubos",
   [APP_ROUTES.tubos.subRoutes.salida_paquetes]: "Salidas de Paquetes",
+  [APP_ROUTES.tubos.subRoutes.tubos]: "Inventario de Tubos",
+  [APP_ROUTES.tubos.subRoutes.tubos_create]: "Inventario de Tubos - Nuevo",
+  [APP_ROUTES.tubos.subRoutes.tubos_edit(":id")]:
+    "Inventario de Tubos - Editar",
+  [APP_ROUTES.tubos.subRoutes.flejes]: "Inventario de Flejes",
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {

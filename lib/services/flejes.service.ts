@@ -216,3 +216,37 @@ export async function listarFiltrosFlejesService(
     espesores: resEspesores.recordset.map((row) => row.espesor),
   };
 }
+
+// Listar todos
+export interface FlejeSelectorOption {
+  id: number;
+  concepto: string;
+}
+
+export async function listarFlejesSelectorService(
+  pool: ConnectionPool,
+): Promise<FlejeSelectorOption[]> {
+  const req = pool.request();
+
+  const query = `
+    SELECT 
+        f.id,
+        f.concepto
+    FROM Flejes f
+    INNER JOIN Tipos_Calidad tc ON f.calidad_id = tc.id
+    WHERE f.activo = 1
+    ORDER BY 
+        tc.nombre ASC,
+        f.espesor ASC,
+        f.ancho ASC,
+        f.concepto ASC,
+        f.id ASC;
+  `;
+
+  const resultado = await req.query(query);
+
+  return resultado.recordset.map((row) => ({
+    id: row.id,
+    concepto: row.concepto,
+  }));
+}

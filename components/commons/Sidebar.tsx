@@ -55,26 +55,35 @@ export default function Sidebar({
   };
 
   const menuItems = [
-    { text: "Inicio Tubos", icon: <DashboardOutlined />, path: "/tubos" },
+    {
+      text: "Inicio Tubos",
+      icon: <DashboardOutlined />,
+      path: "/tubos",
+      paths: ["/tubos"],
+    },
     {
       text: "Planes de Corte",
       icon: <ContentCutOutlined />,
       path: APP_ROUTES.tubos.subRoutes.planes_corte,
+      paths: [APP_ROUTES.tubos.subRoutes.planes_corte],
     },
     {
       text: "Bobinas Cortadas",
       icon: <LayersOutlined />,
       path: APP_ROUTES.tubos.subRoutes.bobinas_cortadas,
+      paths: [APP_ROUTES.tubos.subRoutes.bobinas_cortadas],
     },
     {
       text: "Producción de Tubos",
       icon: <PrecisionManufacturingOutlined />,
       path: APP_ROUTES.tubos.subRoutes.produccion,
+      paths: [APP_ROUTES.tubos.subRoutes.produccion],
     },
     {
       text: "Salida de Paquetes",
       icon: <LocalShippingOutlined />,
       path: APP_ROUTES.tubos.subRoutes.salida_paquetes,
+      paths: [APP_ROUTES.tubos.subRoutes.salida_paquetes],
     },
   ];
 
@@ -83,26 +92,45 @@ export default function Sidebar({
       text: "Bobinas",
       icon: <AdjustOutlined />,
       path: APP_ROUTES.tubos.subRoutes.bobinas,
+      paths: [APP_ROUTES.tubos.subRoutes.bobinas],
     },
     {
       text: "Flejes",
       icon: <CalendarViewDayOutlined />,
       path: APP_ROUTES.tubos.subRoutes.flejes,
+      paths: [APP_ROUTES.tubos.subRoutes.flejes],
     },
     {
       text: "Tubos",
       icon: <TripOriginOutlined />,
       path: APP_ROUTES.tubos.subRoutes.tubos,
+      paths: [
+        APP_ROUTES.tubos.subRoutes.tubos,
+        APP_ROUTES.tubos.subRoutes.tubos_create,
+        APP_ROUTES.tubos.subRoutes.tubos_edit(":id"),
+      ],
     },
   ];
 
   // Renderiza directamente el botón como un div para evitar elementos li
   const renderListItemButton = (
-    item: { text: string; icon: React.ReactNode; path: string },
+    item: {
+      text: string;
+      icon: React.ReactNode;
+      path: string;
+      paths: string[];
+    },
     isSubItem = false,
   ) => {
-    const isActive = pathname === item.path;
-
+    const isActive = item.paths.some((p) => pathname === p);
+    console.log(
+      "isActive",
+      isActive,
+      "pathname",
+      pathname,
+      "item.path",
+      item.path,
+    );
     return (
       <ListItemButton
         component="div" // <-- Forzamos a que sea un DIV en el HTML

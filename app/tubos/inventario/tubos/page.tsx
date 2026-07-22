@@ -113,7 +113,6 @@ export default function TubosPage() {
     const response = await fetch(url.toString());
     if (!response.ok) throw new Error("Error al consultar los tubos");
     const result = await response.json();
-    console.log("result.data", result.data);
     return {
       calidad: result.data.calidades.map((c: Calidad) => ({
         label: c.nombre,
@@ -141,7 +140,6 @@ export default function TubosPage() {
     sortModel,
     handleSortModel,
     handlePageChange,
-    handleDetail,
     handleEdit,
     handleDelete,
     handleFilterChange,
@@ -188,6 +186,7 @@ export default function TubosPage() {
       }}
     >
       <TopCrud
+        newUrl={APP_ROUTES.tubos.subRoutes.tubos_create}
         searchTerm={searchTerm}
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
@@ -212,7 +211,7 @@ export default function TubosPage() {
           loading={loading}
           rows={data as Tubo[]}
           total={total}
-          columns={columns(handleDetail, handleEdit, handleDelete)}
+          columns={columns(handleEdit, handleDelete)}
           rowKeyExtractor={(row) => row.id}
           handlePageChange={handlePageChange}
         />
@@ -222,7 +221,6 @@ export default function TubosPage() {
 }
 
 const columns = (
-  handleDetail: (row: Tubo) => void,
   handleEdit: (row: Tubo) => void,
   handleDelete: (row: Tubo) => void,
 ): Column<Tubo>[] => [
@@ -255,27 +253,10 @@ const columns = (
   },
   {
     id: "num_paquetes",
-    label: "Cant. Paqs / Resto (uds)",
+    label: "Cant. Paqs",
     width: 250,
     align: "center",
     sortable: true,
-    format: (row) => (
-      <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
-        <Typography
-          variant="body2"
-          sx={{ color: "info.main", fontWeight: "bold" }}
-        >
-          {row.num_paquetes}
-        </Typography>
-        <span>/</span>
-        <Typography
-          variant="body2"
-          sx={{ color: "secondary.main", fontWeight: "bold" }}
-        >
-          {row.resto}
-        </Typography>
-      </Box>
-    ),
   },
   {
     id: "peso_total",
@@ -347,13 +328,6 @@ const columns = (
           width: "100%",
         }}
       >
-        <IconButton
-          size="small"
-          onClick={() => handleDetail(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Eye size={16} />
-        </IconButton>
         <IconButton
           size="small"
           onClick={() => handleEdit(row)}
