@@ -21,7 +21,7 @@ interface LayoutTitleContextType {
 }
 
 const LayoutTitleContext = createContext<LayoutTitleContextType>({
-  title: "Gestión de Tubos",
+  title: "Gestión de Flejes",
   subtitle: "",
   setTitleInfo: () => {},
 });
@@ -30,13 +30,13 @@ export const useLayoutTitle = () => {
   const context = useContext(LayoutTitleContext);
   if (!context) {
     throw new Error(
-      "useLayoutTitle debe ser utilizado dentro de un GestionTuboLayout",
+      "useLayoutTitle debe ser utilizado dentro de un GestionFlejesLayout",
     );
   }
   return context;
 };
 
-export default function GestionTuboLayout({
+export default function GestionFlejesLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -79,7 +79,7 @@ export default function GestionTuboLayout({
 
           <Button
             component={Link}
-            href={APP_ROUTES.tubos.subRoutes.tubos}
+            href={APP_ROUTES.tubos.subRoutes.flejes}
             variant="outlined"
             color="inherit"
             startIcon={<ArrowBackIcon />}
@@ -97,7 +97,6 @@ export default function GestionTuboLayout({
 
         <Divider sx={{ my: 1 }} />
 
-        {/* Zona donde se inyectan las páginas */}
         <Box component="main">{children}</Box>
       </Container>
     </LayoutTitleContext.Provider>

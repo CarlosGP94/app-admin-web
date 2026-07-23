@@ -501,7 +501,7 @@ export default function TuboForm({
                     name="longitud"
                     type="number"
                     control={control}
-                    label="Longitud (m)"
+                    label="Longitud (mm)"
                   />
                 </Grid>
               </Grid>

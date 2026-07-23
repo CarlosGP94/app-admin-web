@@ -209,7 +209,6 @@ const useDataTable = <T extends { id: string | number }>({
 
   const handleDeleteConfirm = async () => {
     try {
-      toast.info("Eliminando elemento...");
       setShowDeleteConfirm(false);
       setActionLoading(true);
       const resp = await onDeleteConfirm(selectedItem?.id || "");

@@ -22,6 +22,9 @@ const ROUTE_TITLES: Record<string, string> = {
   [APP_ROUTES.tubos.subRoutes.tubos_edit(":id")]:
     "Inventario de Tubos - Editar",
   [APP_ROUTES.tubos.subRoutes.flejes]: "Inventario de Flejes",
+  [APP_ROUTES.tubos.subRoutes.flejes_create]: "Inventario de Flejes - Nuevo",
+  [APP_ROUTES.tubos.subRoutes.flejes_edit(":id")]:
+    "Inventario de Flejes - Editar",
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
