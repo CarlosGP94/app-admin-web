@@ -7,11 +7,12 @@ import useDataTable, {
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton, Chip, Typography } from "@mui/material";
-import { Eye, Edit2, Trash2 } from "lucide-react";
+import { Box, IconButton, Chip, Typography, Tooltip } from "@mui/material";
+import { Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
+import { ConfirmDialog } from "@/components/commons/ConfirmDialog";
 
 interface Tubo {
   id: number;
@@ -129,6 +130,20 @@ export default function TubosPage() {
     };
   };
 
+  const onDeleteConfirm = async (
+    id: string | number,
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await fetch(APP_ROUTES.api.tubos.tubos_detalle(String(id)), {
+        method: "DELETE",
+      });
+      return { success: true };
+    } catch (error) {
+      console.error("Error al eliminar el tubo:", error);
+      return { success: false, error: (error as string) || String(error) };
+    }
+  };
+
   const {
     page,
     total,
@@ -137,7 +152,10 @@ export default function TubosPage() {
     filters,
     loadingFilters,
     loading,
+    actionLoading,
     sortModel,
+    showDeleteConfirm,
+    handleDeleteConfirm,
     handleSortModel,
     handlePageChange,
     handleEdit,
@@ -172,6 +190,7 @@ export default function TubosPage() {
         options: [],
       },
     ],
+    onDeleteConfirm: onDeleteConfirm,
     fetchData: fecthData,
     fetchFilters: fecthFilters,
   });
@@ -185,6 +204,18 @@ export default function TubosPage() {
         flexDirection: "column",
       }}
     >
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Confirmar eliminación"
+        message="¿Estás seguro de que deseas eliminar este tubo? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        color="error"
+        onConfirm={() => {
+          handleDeleteConfirm();
+        }}
+        onClose={() => handleDelete(null)}
+      />
       <TopCrud
         newUrl={APP_ROUTES.tubos.subRoutes.tubos_create}
         searchTerm={searchTerm}
@@ -208,10 +239,14 @@ export default function TubosPage() {
           sortModel={sortModel}
           onSortModelChange={handleSortModel}
           page={page}
-          loading={loading}
+          loading={loading || actionLoading}
           rows={data as Tubo[]}
           total={total}
-          columns={columns(handleEdit, handleDelete)}
+          columns={columns((row) => {
+            handleEdit(
+              `${APP_ROUTES.tubos.subRoutes.tubos_edit(row.id.toString())}`,
+            );
+          }, handleDelete)}
           rowKeyExtractor={(row) => row.id}
           handlePageChange={handlePageChange}
         />
@@ -285,8 +320,8 @@ const columns = (
 
   {
     id: "alto_paq",
-    label: "Alto / Ancho (mm)",
-    width: 200,
+    label: "Alto / Ancho Paquete (mm)",
+    width: 260,
     align: "center",
     sortable: true,
     format: (row) => (
@@ -328,20 +363,25 @@ const columns = (
           width: "100%",
         }}
       >
-        <IconButton
-          size="small"
-          onClick={() => handleEdit(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Edit2 size={16} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => handleDelete(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
-        >
-          <Trash2 size={16} />
-        </IconButton>
+        <Tooltip title="Editar tubo" arrow placement="top">
+          <IconButton
+            size="small"
+            onClick={() => handleEdit(row)}
+            sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
+          >
+            <Edit2 size={16} />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Eliminar tubo" arrow placement="top">
+          <IconButton
+            size="small"
+            onClick={() => handleDelete(row)}
+            sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
+          >
+            <Trash2 size={16} />
+          </IconButton>
+        </Tooltip>
       </Box>
     ),
   },

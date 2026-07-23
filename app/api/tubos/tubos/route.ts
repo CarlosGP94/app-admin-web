@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 import {
-  ListarTubosParams,
   listarTubosService,
-  TuboCreatePayload,
   crearTuboService,
+  actualizarTuboService,
+  ListarTubosParams,
+  TuboCreatePayload,
+  TuboUpdatePayload,
 } from "@/lib/services/tubos.service"; // Ajusta la ruta a donde guardaste el servicio de tubos
 
 /**
@@ -139,6 +141,49 @@ export async function POST(request: Request) {
         success: false,
         error: message,
       },
+      { status: 500 },
+    );
+  }
+}
+
+// ==========================================
+// PUT: Actualizar Tubo existente
+// ==========================================
+export async function PUT(request: Request) {
+  try {
+    const body: TuboUpdatePayload = await request.json();
+
+    if (!body.id || !body.art_concepto || !body.calidad_id || !body.tipo_id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "El 'id' y los campos 'art_concepto', 'calidad_id' y 'tipo_id' son obligatorios.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const pool = await getConnection("tubos");
+    const resultado = await actualizarTuboService(pool, body);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Tubo actualizado correctamente.",
+        data: resultado,
+      },
+      { status: 200 },
+    );
+  } catch (error: unknown) {
+    console.error("❌ Error en PUT /api/tubos:", error);
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Error interno del servidor al actualizar el tubo.";
+
+    return NextResponse.json(
+      { success: false, error: message },
       { status: 500 },
     );
   }

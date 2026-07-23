@@ -405,3 +405,305 @@ export async function crearTuboService(
     throw error;
   }
 }
+
+export interface TuboUpdatePayload extends TuboCreatePayload {
+  id: number;
+}
+
+export interface TuboUpdateResponse {
+  id: number;
+  art_concepto: string;
+  medida: string;
+  relacionesActualizadas: number;
+}
+
+export async function actualizarTuboService(
+  pool: ConnectionPool,
+  payload: TuboUpdatePayload,
+): Promise<TuboUpdateResponse> {
+  // 1. Transformación de campos según la lógica de negocio
+  const medidaInsertar = payload.art_concepto.trim();
+  const artConceptoInsertar = `Tubo ${medidaInsertar}`;
+
+  const transaction = new Transaction(pool);
+
+  try {
+    await transaction.begin();
+
+    // 2. Actualización de la cabecera en la tabla Tubos
+    const reqTubo = new Request(transaction);
+    reqTubo.input("id", payload.id);
+    reqTubo.input("calidad_id", payload.calidad_id);
+    reqTubo.input("tipo_id", payload.tipo_id);
+    reqTubo.input("activo", payload.activo);
+    reqTubo.input("art_concepto", artConceptoInsertar);
+    reqTubo.input("medida", medidaInsertar);
+    reqTubo.input("alto", payload.alto);
+    reqTubo.input("ancho", payload.ancho);
+    reqTubo.input("diametro", payload.diametro);
+    reqTubo.input("espesor", payload.espesor);
+    reqTubo.input("longitud", payload.longitud);
+    reqTubo.input("num_paquetes", payload.num_paquetes);
+    reqTubo.input("num_por_paq", payload.num_por_paq);
+    reqTubo.input("unidades", payload.unidades);
+    reqTubo.input("peso_unitario", payload.peso_unitario);
+    reqTubo.input("peso_total", payload.peso_total);
+    reqTubo.input("alto_paq", payload.alto_paq);
+    reqTubo.input("ancho_paq", payload.ancho_paq);
+
+    const queryUpdateTubo = `
+      UPDATE Tubos
+      SET 
+        calidad_id = @calidad_id,
+        tipo_id = @tipo_id,
+        activo = @activo,
+        art_concepto = @art_concepto,
+        medida = @medida,
+        alto = @alto,
+        ancho = @ancho,
+        diametro = @diametro,
+        espesor = @espesor,
+        longitud = @longitud,
+        num_paquetes = @num_paquetes,
+        num_por_paq = @num_por_paq,
+        unidades = @unidades,
+        peso_unitario = @peso_unitario,
+        peso_total = @peso_total,
+        alto_paq = @alto_paq,
+        ancho_paq = @ancho_paq
+      WHERE id = @id;
+    `;
+
+    await reqTubo.query(queryUpdateTubo);
+
+    // 3. Eliminar todas las relaciones anteriores en Tubos_Maquinas para este tubo
+    const reqDeleteRelaciones = new Request(transaction);
+    reqDeleteRelaciones.input("tubo_id", payload.id);
+
+    const queryDeleteRelaciones = `
+      DELETE FROM Tubos_Maquinas 
+      WHERE tubo_id = @tubo_id;
+    `;
+
+    await reqDeleteRelaciones.query(queryDeleteRelaciones);
+
+    // 4. Volver a reinsertar las configuraciones de máquinas y flejes válidas
+    let totalRelaciones = 0;
+
+    for (const config of payload.maquinasConfig) {
+      if (
+        config.habilitada &&
+        config.flejes_ids &&
+        config.flejes_ids.length > 0
+      ) {
+        for (const flejeId of config.flejes_ids) {
+          const reqMaquina = new Request(transaction);
+          reqMaquina.input("tubo_id", payload.id);
+          reqMaquina.input("maquina_id", config.maquina_id);
+          reqMaquina.input("fleje_id", flejeId);
+
+          const queryInsertMaquina = `
+            INSERT INTO Tubos_Maquinas (tubo_id, maquina_id, fleje_id, creado)
+            VALUES (@tubo_id, @maquina_id, @fleje_id, GETDATE());
+          `;
+
+          await reqMaquina.query(queryInsertMaquina);
+          totalRelaciones++;
+        }
+      }
+    }
+
+    // 5. Confirmar la transacción
+    await transaction.commit();
+
+    return {
+      id: payload.id,
+      art_concepto: artConceptoInsertar,
+      medida: medidaInsertar,
+      relacionesActualizadas: totalRelaciones,
+    };
+  } catch (error) {
+    // Si ocurre un error, revertimos todos los cambios
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+// Detalle del tubo
+export interface TuboDetalleResponse {
+  id: number;
+  calidad_id: number;
+  tipo_id: number;
+  activo: boolean;
+  art_concepto: string;
+  alto: number;
+  ancho: number;
+  diametro: number;
+  espesor: number;
+  longitud: number;
+  num_paquetes: number;
+  num_por_paq: number;
+  unidades: number;
+  peso_unitario: number;
+  peso_total: number;
+  alto_paq: number;
+  ancho_paq: number;
+  maquinasConfig: MaquinaConfigPayload[];
+}
+
+/**
+ * Servicio para obtener un tubo por su ID con sus configuraciones de máquinas/flejes agrupadas.
+ */
+export async function obtenerTuboPorIdService(
+  pool: ConnectionPool,
+  id: number,
+): Promise<TuboDetalleResponse | null> {
+  const reqTubo = pool.request();
+  reqTubo.input("id", id);
+
+  // 1. Consultar la cabecera del Tubo
+  const queryTubo = `
+    SELECT 
+      id, calidad_id, tipo_id, activo, art_concepto, medida,
+      alto, ancho, diametro, espesor, longitud,
+      num_paquetes, num_por_paq, unidades, peso_unitario,
+      peso_total, alto_paq, ancho_paq
+    FROM Tubos
+    WHERE id = @id;
+  `;
+
+  const resTubo = await reqTubo.query(queryTubo);
+  if (resTubo.recordset.length === 0) {
+    return null;
+  }
+
+  const tuboRow = resTubo.recordset[0];
+
+  // 2. Consultar las máquinas y flejes asociados
+  const reqMaquinas = pool.request();
+  reqMaquinas.input("tubo_id", id);
+
+  const queryMaquinas = `
+    SELECT 
+      tm.maquina_id,
+      m.nombre AS maquina_nombre,
+      tm.fleje_id
+    FROM Tubos_Maquinas tm
+    INNER JOIN Maquinas m ON tm.maquina_id = m.id
+    WHERE tm.tubo_id = @tubo_id;
+  `;
+
+  const resMaquinas = await reqMaquinas.query(queryMaquinas);
+
+  // 3. Agrupar los flejes por máquina para construir maquinasConfig
+  const maquinasMap = new Map<number, MaquinaConfigPayload>();
+
+  for (const row of resMaquinas.recordset) {
+    if (!maquinasMap.has(row.maquina_id)) {
+      maquinasMap.set(row.maquina_id, {
+        maquina_id: row.maquina_id,
+        maquina_nombre: row.maquina_nombre,
+        habilitada: true,
+        flejes_ids: [],
+      });
+    }
+    const config = maquinasMap.get(row.maquina_id)!;
+    if (row.fleje_id && !config.flejes_ids.includes(row.fleje_id)) {
+      config.flejes_ids.push(row.fleje_id);
+    }
+  }
+
+  const maquinasConfig = Array.from(maquinasMap.values());
+  const artConceptoLimpio = tuboRow.art_concepto.replace(/^Tubo\s+/i, "");
+
+  return {
+    id: tuboRow.id,
+    calidad_id: tuboRow.calidad_id,
+    tipo_id: tuboRow.tipo_id,
+    activo: tuboRow.activo,
+    art_concepto: artConceptoLimpio,
+    alto: tuboRow.alto,
+    ancho: tuboRow.ancho,
+    diametro: tuboRow.diametro,
+    espesor: tuboRow.espesor,
+    longitud: tuboRow.longitud,
+    num_paquetes: tuboRow.num_paquetes,
+    num_por_paq: tuboRow.num_por_paq,
+    unidades: tuboRow.unidades,
+    peso_unitario: tuboRow.peso_unitario,
+    peso_total: tuboRow.peso_total,
+    alto_paq: tuboRow.alto_paq,
+    ancho_paq: tuboRow.ancho_paq,
+    maquinasConfig,
+  };
+}
+
+// Interfaces para Eliminar Tubo
+export interface TuboDeleteResponse {
+  id: number;
+  eliminado: boolean;
+  relacionesEliminadas: number;
+}
+
+/**
+ * Servicio para eliminar un Tubo y sus configuraciones asociadas en Tubos_Maquinas.
+ */
+export async function eliminarTuboService(
+  pool: ConnectionPool,
+  id: number,
+): Promise<TuboDeleteResponse> {
+  const transaction = new Transaction(pool);
+
+  try {
+    await transaction.begin();
+
+    // 1. Eliminar relaciones asociadas en Tubos_Maquinas
+    const reqDeleteRelaciones = new Request(transaction);
+    reqDeleteRelaciones.input("tubo_id", id);
+
+    const queryDeleteRelaciones = `
+      DELETE FROM Tubos_Maquinas 
+      WHERE tubo_id = @tubo_id;
+    `;
+
+    const resRelaciones = await reqDeleteRelaciones.query(
+      queryDeleteRelaciones,
+    );
+    const relacionesEliminadas = resRelaciones.rowsAffected[0] || 0;
+
+    // 2. Eliminar el registro principal en la tabla Tubos
+    const reqDeleteTubo = new Request(transaction);
+    reqDeleteTubo.input("id", id);
+
+    const queryDeleteTubo = `
+      DELETE FROM Tubos 
+      WHERE id = @id;
+    `;
+
+    const resTubo = await reqDeleteTubo.query(queryDeleteTubo);
+    const tuboEliminado = (resTubo.rowsAffected[0] || 0) > 0;
+
+    // Si el registro no existía en la tabla Tubos, revertimos cambios por seguridad
+    if (!tuboEliminado) {
+      await transaction.rollback();
+      return {
+        id,
+        eliminado: false,
+        relacionesEliminadas: 0,
+      };
+    }
+
+    // 3. Confirmar la transacción
+    await transaction.commit();
+
+    return {
+      id,
+      eliminado: true,
+      relacionesEliminadas,
+    };
+  } catch (error) {
+    // Revertir ante cualquier fallo de base de datos
+    await transaction.rollback();
+    throw error;
+  }
+}

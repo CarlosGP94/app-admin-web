@@ -2,7 +2,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useForm, Controller, useFieldArray } from "react-hook-form";
+import {
+  useForm,
+  Controller,
+  useFieldArray,
+  FieldErrors,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Box,
@@ -24,12 +29,14 @@ import {
   CircularProgress,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
+import ErrorIcon from "@mui/icons-material/Error";
 import { tuboSchema, TuboFormValues } from "./TuboFormSchema";
 import { useTubosModule } from "@/app/tubos/layout";
 import { FormSelect } from "@/components/commons/FormSelect";
 import { FormTextField } from "@/components/commons/FormTextfield";
 import { APP_ROUTES } from "@/config/routes";
 import { FormAutocompleteMultiple } from "@/components/commons/FormAutocompleteMultiple";
+import { toast } from "react-toastify";
 
 interface TuboFormProps {
   initialData?: Partial<TuboFormValues>;
@@ -112,13 +119,37 @@ export default function TuboForm({
     defaultValues,
   });
 
-  // 1. Extraemos 'replace' para reemplazar el array de campos dinámicamente
   const { fields: maquinasFields, replace } = useFieldArray({
     control,
     name: "maquinasConfig",
   });
 
-  // 2. EFECTO CLAVE: Poblar maquinasConfig con las máquinas obtenidas del contexto
+  // Identificación de campos pertenecientes a cada pestaña para mostrar badges / redireccionar
+  const camposTab1: (keyof TuboFormValues)[] = [
+    "art_concepto",
+    "calidad_id",
+    "tipo_id",
+    "no_especial",
+    "activo",
+    "alto",
+    "ancho",
+    "diametro",
+    "espesor",
+    "longitud",
+    "num_paquetes",
+    "num_por_paq",
+    "unidades",
+    "peso_unitario",
+    "peso_total",
+    "masa_lineal",
+    "alto_paq",
+    "ancho_paq",
+  ];
+
+  const hasTab1Errors = camposTab1.some((field) => errors[field] !== undefined);
+  const hasTab2Errors = Boolean(errors.maquinasConfig);
+
+  // EFECTO CLAVE: Poblar maquinasConfig con las máquinas obtenidas del contexto
   useEffect(() => {
     if (!maquinas || maquinas.length === 0) return;
 
@@ -156,6 +187,8 @@ export default function TuboForm({
   const diametro = watch("diametro");
   const espesor = watch("espesor");
   const unidades = watch("unidades");
+
+  const maquinasConfigValues = watch("maquinasConfig");
 
   // Tipo 2 (Cuadrado) -> Copiar Ancho a Alto automáticamente
   useEffect(() => {
@@ -230,7 +263,6 @@ export default function TuboForm({
     }
   }, [pesoUnitario, longitud, setValue]);
 
-  // Recalcular Peso Total cuando cambian paquetes o peso unitario
   useEffect(() => {
     const unidadesTotales = (numPaquetes || 0) * (numPorPaq || 0);
     const calculadoTotal = unidadesTotales * (pesoUnitario || 0);
@@ -265,15 +297,39 @@ export default function TuboForm({
 
   const handleAplicarFlejesGlobales = () => {
     maquinasFields.forEach((_, index) => {
-      setValue(`maquinasConfig.${index}.flejes_ids`, flejeGlobal, {
-        shouldValidate: true,
-      });
+      const esHabilitada = maquinasConfigValues?.[index]?.habilitada;
+      if (esHabilitada) {
+        setValue(`maquinasConfig.${index}.flejes_ids`, flejeGlobal, {
+          shouldValidate: true,
+        });
+      }
     });
+    setFlejeGlobal([]);
   };
 
   const onSubmit = async (data: TuboFormValues) => {
     await onSubmitProp(data);
   };
+
+  // Callback ejecutado cuando la validación falla al intentar enviar
+  const onError = (formErrors: FieldErrors<TuboFormValues>) => {
+    const errorInTab1 = camposTab1.some(
+      (field) => formErrors[field] !== undefined,
+    );
+    const errorInTab2 = Boolean(formErrors.maquinasConfig);
+
+    toast.error(
+      "Hay errores en el formulario. Revisa los campos señalados antes de guardar.",
+    );
+
+    // Cambiar automáticamente al tab que contiene el primer error encontrado
+    if (activeTab === 0 && !errorInTab1 && errorInTab2) {
+      setActiveTab(1);
+    } else if (activeTab === 1 && !errorInTab2 && errorInTab1) {
+      setActiveTab(0);
+    }
+  };
+
   const renderDimensionesTexto = () => {
     if (tipoId === 3)
       return `Diámetro: ${diametro || 0}mm | Espesor: ${espesor || 0}mm`;
@@ -283,21 +339,34 @@ export default function TuboForm({
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-      {/* NAVEGACIÓN TAB */}
+    <Box component="form" onSubmit={handleSubmit(onSubmit, onError)} noValidate>
+      {/* NAVEGACIÓN TAB CON INDICADORES DE ERROR */}
       <Tabs
         value={activeTab}
         onChange={(_, newValue) => setActiveTab(newValue)}
         sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}
       >
-        <Tab label="1. Especificaciones y Pesos" />
-        <Tab label="2. Máquinas y Flejes" />
+        <Tab
+          label={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <span>1. Especificaciones y Pesos</span>
+              {hasTab1Errors && <ErrorIcon color="error" fontSize="small" />}
+            </Box>
+          }
+        />
+        <Tab
+          label={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <span>2. Máquinas y Flejes</span>
+              {hasTab2Errors && <ErrorIcon color="error" fontSize="small" />}
+            </Box>
+          }
+        />
       </Tabs>
 
       {/* ==================== TAB 1 ==================== */}
       {activeTab === 0 && (
         <Stack spacing={2}>
-          {/* CARACTERÍSTICAS BÁSICAS */}
           <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
@@ -367,7 +436,6 @@ export default function TuboForm({
             </CardContent>
           </Card>
 
-          {/* DIMENSIONES PERFIL */}
           <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
@@ -440,7 +508,6 @@ export default function TuboForm({
             </CardContent>
           </Card>
 
-          {/* INVENTARIO Y PAQUETES */}
           <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
@@ -478,7 +545,6 @@ export default function TuboForm({
             </CardContent>
           </Card>
 
-          {/* PESOS Y VOLUMEN */}
           <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
@@ -536,7 +602,6 @@ export default function TuboForm({
       {/* ==================== TAB 2: MÁQUINAS Y FLEJES ==================== */}
       {activeTab === 1 && (
         <Stack spacing={3}>
-          {/* TARJETA RESUMEN */}
           <Card
             variant="outlined"
             sx={{
@@ -629,7 +694,7 @@ export default function TuboForm({
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Seleccionar flejes para todas las máquinas"
+                        label="Seleccionar flejes para máquinas habilitadas"
                       />
                     )}
                     renderOption={(props, option) => {
@@ -661,7 +726,7 @@ export default function TuboForm({
                     onClick={handleAplicarFlejesGlobales}
                     disabled={loadingFlejes || flejeGlobal.length === 0}
                   >
-                    Aplicar a Todas
+                    Aplicar a Habilitadas
                   </Button>
                 </Grid>
               </Grid>
@@ -678,50 +743,68 @@ export default function TuboForm({
               No hay máquinas disponibles en la configuración.
             </Typography>
           ) : (
-            maquinasFields.map((item, index) => (
-              <Card key={item.id} variant="outlined" sx={{ borderRadius: 2 }}>
-                <CardContent>
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, sm: 4 }}>
-                      <Controller
-                        name={`maquinasConfig.${index}.habilitada`}
-                        control={control}
-                        render={({ field }) => (
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={field.value}
-                                onChange={(e) =>
-                                  field.onChange(e.target.checked)
-                                }
-                              />
-                            }
-                            label={
-                              <Typography sx={{ fontWeight: 600 }}>
-                                {item.maquina_nombre}
-                              </Typography>
-                            }
-                          />
-                        )}
-                      />
-                    </Grid>
+            maquinasFields.map((item, index) => {
+              const estaHabilitada =
+                maquinasConfigValues?.[index]?.habilitada ?? false;
 
-                    <Grid size={{ xs: 12, sm: 8 }}>
-                      <FormAutocompleteMultiple
-                        name={`maquinasConfig.${index}.flejes_ids`}
-                        control={control}
-                        label="Flejes Asignados"
-                        placeholder="Añadir fleje..."
-                        options={flejesDisponibles.map((f) => ({
-                          id: Number(f.id),
-                          label: f.concepto,
-                        }))}
-                      />
+              return (
+                <Card key={item.id} variant="outlined" sx={{ borderRadius: 2 }}>
+                  <CardContent>
+                    <Grid container spacing={2}>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <Controller
+                          name={`maquinasConfig.${index}.habilitada`}
+                          control={control}
+                          render={({ field }) => (
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={field.value}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    field.onChange(checked);
+                                    if (!checked) {
+                                      setValue(
+                                        `maquinasConfig.${index}.flejes_ids`,
+                                        [],
+                                        { shouldValidate: true },
+                                      );
+                                    }
+                                  }}
+                                />
+                              }
+                              label={
+                                <Typography sx={{ fontWeight: 600 }}>
+                                  {item.maquina_nombre}
+                                </Typography>
+                              }
+                            />
+                          )}
+                        />
+                      </Grid>
+
+                      <Grid size={{ xs: 12, sm: 8 }}>
+                        <FormAutocompleteMultiple
+                          disabled={!estaHabilitada}
+                          name={`maquinasConfig.${index}.flejes_ids`}
+                          control={control}
+                          label="Flejes Asignados"
+                          placeholder={
+                            estaHabilitada
+                              ? "Añadir fleje..."
+                              : "Máquina no habilitada"
+                          }
+                          options={flejesDisponibles.map((f) => ({
+                            id: Number(f.id),
+                            label: f.concepto,
+                          }))}
+                        />
+                      </Grid>
                     </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </Stack>
       )}

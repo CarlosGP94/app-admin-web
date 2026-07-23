@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { PAGE_SIZE } from "@/config/constants";
 import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 // ==========================================
 // TIPADO ESTRICTO DE FILTROS
@@ -114,6 +115,8 @@ const useDataTable = <T extends { id: string | number }>({
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
+  const router = useRouter();
+
   // Mutación limpia de mapeo de opciones devueltas de base de datos
   const mapRawOptions = (
     type: "select" | "daterangeStart" | "daterangeEnd" | "autocomplete",
@@ -206,6 +209,7 @@ const useDataTable = <T extends { id: string | number }>({
 
   const handleDeleteConfirm = async () => {
     try {
+      toast.info("Eliminando elemento...");
       setShowDeleteConfirm(false);
       setActionLoading(true);
       const resp = await onDeleteConfirm(selectedItem?.id || "");
@@ -259,9 +263,12 @@ const useDataTable = <T extends { id: string | number }>({
     setShowForm(!isCancel);
   };
 
-  const handleEdit = (item: T | null) => {
-    setSelectedItem(item);
-    setShowForm(!!item);
+  const handleEdit = (url: string | null) => {
+    if (!url) {
+      toast.error("URL de edición no proporcionada.");
+      return;
+    }
+    router.push(url || "");
   };
 
   const handleDetail = (item: T | null) => {

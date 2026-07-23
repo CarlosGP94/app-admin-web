@@ -22,7 +22,7 @@ export const APP_ROUTES = {
       flejes: "/tubos/inventario/flejes",
       tubos: "/tubos/inventario/tubos",
       tubos_create: "/tubos/inventario/tubos/nuevo",
-      tubos_edit: (id: string) => `/tubos/inventario/tubos/editar/${id}`,
+      tubos_edit: (id: string) => `/tubos/inventario/tubos/${id}/editar`,
     },
   },
   api: {
@@ -32,6 +32,7 @@ export const APP_ROUTES = {
       calidades: "/api/tubos/calidades",
       tubos: "/api/tubos/tubos",
       tubos_filtros: "/api/tubos/tubos/filtros",
+      tubos_detalle: (id: string) => `/api/tubos/tubos/${id}`,
       flejes: "/api/tubos/flejes",
       flejes_filtros: "/api/tubos/flejes/filtros",
       flejes_all: "/api/tubos/flejes/all",

@@ -123,14 +123,7 @@ export default function Sidebar({
     isSubItem = false,
   ) => {
     const isActive = item.paths.some((p) => pathname === p);
-    console.log(
-      "isActive",
-      isActive,
-      "pathname",
-      pathname,
-      "item.path",
-      item.path,
-    );
+
     return (
       <ListItemButton
         component="div" // <-- Forzamos a que sea un DIV en el HTML

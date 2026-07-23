@@ -73,6 +73,15 @@ export function FormAutocompleteMultiple<TFieldValues extends FieldValues>({
             disabled={disabled || loading}
             size={size}
             fullWidth={fullWidth}
+            // Limitamos la altura máxima del menú desplegable a 200px
+            slotProps={{
+              listbox: {
+                sx: {
+                  maxHeight: 200,
+                  overflow: "auto",
+                },
+              },
+            }}
             getOptionLabel={(option) =>
               typeof option === "string" ? option : option.label
             }
