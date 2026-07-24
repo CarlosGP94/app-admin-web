@@ -7,8 +7,8 @@ import useDataTable, {
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton, Chip, Tooltip } from "@mui/material";
-import { Eye, Edit2, Trash2 } from "lucide-react";
+import { Box, IconButton, Chip, Tooltip, Button } from "@mui/material";
+import { Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
@@ -117,6 +117,68 @@ export default function FlejesPage() {
     };
   };
 
+  const onGenerateReport = async (): Promise<{
+    success: boolean;
+    error?: string;
+  }> => {
+    let objectUrl: string | null = null;
+
+    try {
+      const response = await fetch(APP_ROUTES.api.tubos.flejes_informe, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        // Intentamos parsear el JSON de error que devuelve el endpoint
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error ||
+            errorData.message ||
+            "Error al generar el informe de flejes.",
+        );
+      }
+
+      // Extraer el nombre del archivo si la API envía la cabecera Content-Disposition
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let fileName = "informe_flejes.pdf";
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^";]+)"?/);
+        if (match && match[1]) {
+          fileName = match[1];
+        }
+      }
+
+      // Convertir a Blob y forzar la descarga en el navegador
+      const blob = await response.blob();
+      objectUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error al generar el informe:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Error desconocido al procesar el archivo.";
+
+      return { success: false, error: message };
+    } finally {
+      // Liberar memoria del navegador
+      if (objectUrl) {
+        window.URL.revokeObjectURL(objectUrl);
+      }
+    }
+  };
+
   const onDeleteConfirm = async (
     id: string | number,
   ): Promise<{ success: boolean; error?: string }> => {
@@ -200,6 +262,16 @@ export default function FlejesPage() {
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
         }}
+        actions={[
+          <Button
+            key="new-tubo"
+            variant="contained"
+            color="primary"
+            onClick={() => onGenerateReport()}
+          >
+            Informe Inventario
+          </Button>,
+        ]}
       />
       {filters.length > 0 && (
         <Box sx={{ mb: 2 }}>
