@@ -7,11 +7,12 @@ import useDataTable, {
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton, Chip } from "@mui/material";
+import { Box, IconButton, Chip, Tooltip } from "@mui/material";
 import { Eye, Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
+import { ConfirmDialog } from "@/components/commons/ConfirmDialog";
 
 interface Bobina {
   id: number;
@@ -124,6 +125,20 @@ export default function BobinasPage() {
     };
   };
 
+  const onDeleteConfirm = async (
+    id: string | number,
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await fetch(APP_ROUTES.api.tubos.bobinas_detalle(String(id)), {
+        method: "DELETE",
+      });
+      return { success: true };
+    } catch (error) {
+      console.error("Error al eliminar la bobina:", error);
+      return { success: false, error: (error as string) || String(error) };
+    }
+  };
+
   const {
     page,
     total,
@@ -133,14 +148,15 @@ export default function BobinasPage() {
     loadingFilters,
     loading,
     sortModel,
+    showDeleteConfirm,
     handleSortModel,
     handlePageChange,
-    handleDetail,
     handleEdit,
     handleDelete,
     handleFilterChange,
     handleClearAllFilters,
     handleFilter,
+    handleDeleteConfirm,
   } = useDataTable({
     initFilters: [
       {
@@ -168,6 +184,7 @@ export default function BobinasPage() {
         options: [],
       },
     ],
+    onDeleteConfirm: onDeleteConfirm,
     fetchData: fecthData,
     fetchFilters: fecthFilters,
   });
@@ -181,7 +198,20 @@ export default function BobinasPage() {
         flexDirection: "column",
       }}
     >
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Confirmar eliminación"
+        message="¿Estás seguro de que deseas eliminar este tubo? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        color="error"
+        onConfirm={() => {
+          handleDeleteConfirm();
+        }}
+        onClose={() => handleDelete(null)}
+      />
       <TopCrud
+        newUrl={APP_ROUTES.tubos.subRoutes.bobinas_create}
         searchTerm={searchTerm}
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
@@ -206,7 +236,11 @@ export default function BobinasPage() {
           loading={loading}
           rows={data as Bobina[]}
           total={total}
-          columns={columns(handleDetail, handleEdit, handleDelete)}
+          columns={columns((row) => {
+            handleEdit(
+              `${APP_ROUTES.tubos.subRoutes.bobinas_edit(row.id.toString())}`,
+            );
+          }, handleDelete)}
           rowKeyExtractor={(row) => row.id}
           handlePageChange={handlePageChange}
         />
@@ -216,7 +250,6 @@ export default function BobinasPage() {
 }
 
 const columns = (
-  handleDetail: (row: Bobina) => void,
   handleEdit: (row: Bobina) => void,
   handleDelete: (row: Bobina) => void,
 ): Column<Bobina>[] => [
@@ -282,27 +315,25 @@ const columns = (
           width: "100%",
         }}
       >
-        <IconButton
-          size="small"
-          onClick={() => handleDetail(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Eye size={16} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => handleEdit(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Edit2 size={16} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => handleDelete(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
-        >
-          <Trash2 size={16} />
-        </IconButton>
+        <Tooltip title="Editar bobina" arrow placement="top">
+          <IconButton
+            size="small"
+            onClick={() => handleEdit(row)}
+            sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
+          >
+            <Edit2 size={16} />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Eliminar bobina" arrow placement="top">
+          <IconButton
+            size="small"
+            onClick={() => handleDelete(row)}
+            sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
+          >
+            <Trash2 size={16} />
+          </IconButton>
+        </Tooltip>
       </Box>
     ),
   },

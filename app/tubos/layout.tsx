@@ -35,6 +35,11 @@ export interface MaquinaOption {
   maquina: string;
 }
 
+export interface FabricanteOption {
+  id: number;
+  nombre: string;
+}
+
 interface TubosModuleContextType {
   title: string;
   subtitle: string;
@@ -45,6 +50,8 @@ interface TubosModuleContextType {
   loadingTipos: boolean;
   maquinas: MaquinaOption[];
   loadingMaquinas: boolean;
+  fabricantes: FabricanteOption[];
+  loadingFabricantes: boolean;
 }
 
 const TubosModuleContext = createContext<TubosModuleContextType | undefined>(
@@ -80,6 +87,9 @@ export default function TubosProvider({
   const [maquinas, setMaquinas] = useState<MaquinaOption[]>([]);
   const [loadingMaquinas, setLoadingMaquinas] = useState<boolean>(true);
 
+  const [fabricantes, setFabricantes] = useState<FabricanteOption[]>([]);
+  const [loadingFabricantes, setLoadingFabricantes] = useState<boolean>(true);
+
   const handleSetTitleInfo = useCallback((title: string, subtitle: string) => {
     setTitleInfo({ title, subtitle });
   }, []);
@@ -100,12 +110,19 @@ export default function TubosProvider({
           window.location.origin,
         );
 
+        const urlFabricantes = new URL(
+          APP_ROUTES.api.tubos.fabricantes, // Asegúrate de tener la ruta en tu config de routes (o APP_ROUTES.api.fabricantes)
+          window.location.origin,
+        );
+
         // Consultamos los tres catálogos en paralelo
-        const [resCalidades, resTipos, resMaquinas] = await Promise.all([
-          fetch(urlCalidades.toString()),
-          fetch(urlTipos.toString()),
-          fetch(urlMaquinas.toString()),
-        ]);
+        const [resCalidades, resTipos, resMaquinas, resFabricantes] =
+          await Promise.all([
+            fetch(urlCalidades.toString()),
+            fetch(urlTipos.toString()),
+            fetch(urlMaquinas.toString()),
+            fetch(urlFabricantes.toString()),
+          ]);
 
         if (resCalidades.ok) {
           const resultCalidades = await resCalidades.json();
@@ -127,12 +144,20 @@ export default function TubosProvider({
         } else {
           console.error("Error al consultar las máquinas");
         }
+
+        if (resFabricantes.ok) {
+          const resultFabricantes = await resFabricantes.json();
+          setFabricantes(resultFabricantes.data || []);
+        } else {
+          console.error("Error al consultar los fabricantes");
+        }
       } catch (error) {
         console.error("Error al cargar los catálogos en TubosProvider:", error);
       } finally {
         setLoadingCalidades(false);
         setLoadingTipos(false);
         setLoadingMaquinas(false);
+        setLoadingFabricantes(false);
       }
     }
 
@@ -151,6 +176,8 @@ export default function TubosProvider({
         loadingTipos,
         maquinas,
         loadingMaquinas,
+        fabricantes,
+        loadingFabricantes,
       }}
     >
       <ToastContainer

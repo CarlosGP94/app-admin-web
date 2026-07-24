@@ -29,6 +29,7 @@ interface FormSelectProps<TFieldValues extends FieldValues> {
   fullWidth?: boolean;
   size?: "small" | "medium";
   required?: boolean;
+  maxMenuHeight?: number;
   formControlProps?: FormControlProps;
 }
 
@@ -42,6 +43,7 @@ export function FormSelect<TFieldValues extends FieldValues>({
   fullWidth = true,
   size = "small",
   required = false,
+  maxMenuHeight = 300,
   formControlProps,
 }: FormSelectProps<TFieldValues>) {
   const displayLabel = loading
@@ -72,6 +74,15 @@ export function FormSelect<TFieldValues extends FieldValues>({
                 </InputAdornment>
               ) : null
             }
+            MenuProps={{
+              slotProps: {
+                paper: {
+                  sx: {
+                    maxHeight: maxMenuHeight,
+                  },
+                },
+              },
+            }}
           >
             {loading ? (
               <MenuItem disabled value="">

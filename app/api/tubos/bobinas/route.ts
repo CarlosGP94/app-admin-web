@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 import {
+  ActualizarBobinaDTO,
+  actualizarBobinaService,
+  CrearBobinaDTO,
+  crearBobinaService,
   ListarBobinasParams,
   listarBobinasService,
 } from "@/lib/services/bobinas.service"; // Ajusta la ruta a donde guardaste el servicio anterior
@@ -77,6 +81,114 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST: Crea una nueva bobina en la base de datos
+ */
+export async function POST(request: Request) {
+  try {
+    // 1. Parsear el cuerpo de la petición
+    const body: CrearBobinaDTO = await request.json();
+
+    // 2. Validación básica de campos requeridos
+    if (
+      !body.concepto ||
+      !body.fabricante_id ||
+      !body.calidad_id ||
+      body.ancho === undefined ||
+      body.espesor === undefined
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Los campos 'concepto', 'fabricante_id', 'calidad_id', 'ancho' y 'espesor' son obligatorios.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // 3. Obtener la conexión a la base de datos
+    const pool = await getConnection("tubos");
+
+    // 4. Ejecutar el servicio de creación
+    const resultado = await crearBobinaService(pool, body);
+
+    // 5. Responder con el resultado del registro creado (HTTP 201 Created)
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Bobina creada correctamente.",
+        data: resultado,
+      },
+      { status: 201 },
+    );
+  } catch (error: unknown) {
+    console.error("❌ Error en POST /api/bobinas:", error);
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Error interno del servidor al crear la bobina.";
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: message,
+      },
+      { status: 500 },
+    );
+  }
+}
+
+// ==========================================
+// PUT: Actualizar Bobina existente
+// ==========================================
+export async function PUT(request: Request) {
+  try {
+    const body: ActualizarBobinaDTO = await request.json();
+
+    if (
+      !body.id ||
+      !body.concepto ||
+      !body.fabricante_id ||
+      !body.calidad_id ||
+      body.ancho === undefined ||
+      body.espesor === undefined
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "El 'id' y los campos 'concepto', 'fabricante_id', 'calidad_id', 'ancho' y 'espesor' son obligatorios.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const pool = await getConnection("tubos");
+    const resultado = await actualizarBobinaService(pool, body);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Bobina actualizada correctamente.",
+        data: resultado,
+      },
+      { status: 200 },
+    );
+  } catch (error: unknown) {
+    console.error("❌ Error en PUT /api/bobinas:", error);
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Error interno del servidor al actualizar la bobina.";
+
+    return NextResponse.json(
+      { success: false, error: message },
       { status: 500 },
     );
   }

@@ -1,4 +1,4 @@
-import { ConnectionPool, Request } from "mssql";
+import { ConnectionPool, Request, Transaction } from "mssql";
 
 export interface FiltrosBobinas {
   calidadId?: number;
@@ -247,4 +247,339 @@ export async function listarFiltrosBobinasService(
     })),
     espesores: resEspesores.recordset.map((row) => row.espesor),
   };
+}
+
+export interface CrearBobinaDTO {
+  fabricante_id: number;
+  calidad_id: number;
+  concepto: string;
+  art_concepto?: string; // Si no viene, se iguala a concepto
+  espesor: number;
+  ancho: number;
+  peso_medio: number;
+  activa: boolean;
+  unidades: number;
+  peso_total?: number; // Se recibe del Zod pero se ignora para la BD
+}
+
+export interface CrearBobinaResponse {
+  id: number;
+  fabricante_id: number;
+  calidad_id: number;
+  concepto: string;
+  art_concepto: string;
+  espesor: number;
+  ancho: number;
+  peso_medio: number;
+  activa: boolean;
+  unidades: number;
+  creado: string;
+}
+
+export async function crearBobinaService(
+  pool: ConnectionPool,
+  data: CrearBobinaDTO,
+): Promise<CrearBobinaResponse> {
+  // 1. Transformación de datos inicial
+  const conceptoLimpio = data.concepto.trim();
+  const artConceptoLimpio = data.art_concepto?.trim() || conceptoLimpio;
+
+  const transaction = new Transaction(pool);
+
+  try {
+    await transaction.begin();
+
+    // 2. Crear el Request en el contexto de la transacción
+    const reqBobina = new Request(transaction);
+
+    reqBobina.input("fabricante_id", data.fabricante_id);
+    reqBobina.input("calidad_id", data.calidad_id);
+    reqBobina.input("concepto", conceptoLimpio);
+    reqBobina.input("art_concepto", artConceptoLimpio);
+    reqBobina.input("espesor", data.espesor);
+    reqBobina.input("ancho", data.ancho);
+    reqBobina.input("peso_medio", data.peso_medio);
+    reqBobina.input("activa", data.activa);
+    reqBobina.input("unidades", data.unidades);
+
+    const queryInsertBobina = `
+      INSERT INTO bobinas (
+        fabricante_id,
+        calidad_id,
+        concepto,
+        art_concepto,
+        espesor,
+        ancho,
+        peso_medio,
+        activa,
+        unidades,
+        creado
+      )
+      OUTPUT 
+        INSERTED.id,
+        INSERTED.fabricante_id,
+        INSERTED.calidad_id,
+        INSERTED.concepto,
+        INSERTED.art_concepto,
+        INSERTED.espesor,
+        INSERTED.ancho,
+        INSERTED.peso_medio,
+        INSERTED.activa,
+        INSERTED.unidades,
+        INSERTED.creado
+      VALUES (
+        @fabricante_id,
+        @calidad_id,
+        @concepto,
+        @art_concepto,
+        @espesor,
+        @ancho,
+        @peso_medio,
+        @activa,
+        @unidades,
+        GETDATE()
+      );
+    `;
+
+    const resBobina = await reqBobina.query(queryInsertBobina);
+    const row = resBobina.recordset[0];
+
+    // 3. Confirmar la transacción
+    await transaction.commit();
+
+    return {
+      id: row.id,
+      fabricante_id: row.fabricante_id,
+      calidad_id: row.calidad_id,
+      concepto: row.concepto,
+      art_concepto: row.art_concepto,
+      espesor: row.espesor,
+      ancho: row.ancho,
+      peso_medio: row.peso_medio,
+      activa: Boolean(row.activa),
+      unidades: row.unidades,
+      creado: row.creado ? new Date(row.creado).toISOString() : "",
+    };
+  } catch (error) {
+    // Si ocurre un error, revertimos cualquier cambio en la BD
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+export interface ActualizarBobinaDTO {
+  id: number;
+  fabricante_id: number;
+  calidad_id: number;
+  concepto: string;
+  art_concepto?: string; // Si no viene, tomará el mismo valor que concepto
+  espesor: number;
+  ancho: number;
+  peso_medio: number;
+  activa: boolean;
+  unidades: number;
+  peso_total?: number; // Se recibe del DTO/Zod pero se ignora para la BD
+}
+
+export interface ActualizarBobinaResponse {
+  id: number;
+  fabricante_id: number;
+  calidad_id: number;
+  concepto: string;
+  art_concepto: string;
+  espesor: number;
+  ancho: number;
+  peso_medio: number;
+  activa: boolean;
+  unidades: number;
+  creado: string;
+}
+
+export async function actualizarBobinaService(
+  pool: ConnectionPool,
+  data: ActualizarBobinaDTO,
+): Promise<ActualizarBobinaResponse> {
+  const req = pool.request();
+
+  // 1. Transformación de datos inicial
+  const conceptoLimpio = data.concepto.trim();
+  const artConceptoLimpio = data.art_concepto?.trim() || conceptoLimpio;
+
+  // 2. Inyección de parámetros con sus tipos explícitos de MSSQL
+  req.input("id", data.id);
+  req.input("fabricante_id", data.fabricante_id);
+  req.input("calidad_id", data.calidad_id);
+  req.input("concepto", conceptoLimpio);
+  req.input("art_concepto", artConceptoLimpio);
+  req.input("espesor", data.espesor);
+  req.input("ancho", data.ancho);
+  req.input("peso_medio", data.peso_medio);
+  req.input("activa", data.activa);
+  req.input("unidades", data.unidades);
+
+  const query = `
+    UPDATE bobinas
+    SET 
+      fabricante_id = @fabricante_id,
+      calidad_id = @calidad_id,
+      concepto = @concepto,
+      art_concepto = @art_concepto,
+      espesor = @espesor,
+      ancho = @ancho,
+      peso_medio = @peso_medio,
+      activa = @activa,
+      unidades = @unidades
+    OUTPUT 
+      INSERTED.id,
+      INSERTED.fabricante_id,
+      INSERTED.calidad_id,
+      INSERTED.concepto,
+      INSERTED.art_concepto,
+      INSERTED.espesor,
+      INSERTED.ancho,
+      INSERTED.peso_medio,
+      INSERTED.activa,
+      INSERTED.unidades,
+      INSERTED.creado
+    WHERE id = @id;
+  `;
+
+  const resultado = await req.query(query);
+
+  if (resultado.recordset.length === 0) {
+    throw new Error(`No se encontró ninguna bobina con el ID ${data.id}.`);
+  }
+
+  const row = resultado.recordset[0];
+
+  return {
+    id: row.id,
+    fabricante_id: row.fabricante_id,
+    calidad_id: row.calidad_id,
+    concepto: row.concepto,
+    art_concepto: row.art_concepto,
+    espesor: row.espesor,
+    ancho: row.ancho,
+    peso_medio: row.peso_medio,
+    activa: Boolean(row.activa),
+    unidades: row.unidades,
+    creado: row.creado ? new Date(row.creado).toISOString() : "",
+  };
+}
+
+export interface DetalleBobinaResponse {
+  id: number;
+  fabricante_id: number;
+  calidad_id: number;
+  concepto: string;
+  art_concepto: string;
+  espesor: number;
+  ancho: number;
+  peso_medio: number;
+  unidades: number;
+  peso_total: number; // Calculado dinámicamente: unidades * peso_medio
+  activa: boolean;
+  creado: string;
+}
+
+export async function obtenerBobinaPorIdService(
+  pool: ConnectionPool,
+  id: number,
+): Promise<DetalleBobinaResponse> {
+  const req = pool.request();
+  req.input("id", id);
+
+  const query = `
+    SELECT 
+      id,
+      fabricante_id,
+      calidad_id,
+      concepto,
+      art_concepto,
+      espesor,
+      ancho,
+      peso_medio,
+      unidades,
+      activa,
+      creado
+    FROM bobinas
+    WHERE id = @id;
+  `;
+
+  const resultado = await req.query(query);
+
+  if (resultado.recordset.length === 0) {
+    throw new Error(`No se encontró ninguna bobina con el ID ${id}.`);
+  }
+
+  const row = resultado.recordset[0];
+  const pesoMedio = Number(row.peso_medio) || 0;
+  const unidades = Number(row.unidades) || 0;
+
+  return {
+    id: row.id,
+    fabricante_id: row.fabricante_id,
+    calidad_id: row.calidad_id,
+    concepto: row.concepto,
+    art_concepto: row.art_concepto,
+    espesor: Number(row.espesor),
+    ancho: Number(row.ancho),
+    peso_medio: pesoMedio,
+    unidades: unidades,
+    peso_total: Number((unidades * pesoMedio).toFixed(3)),
+    activa: Boolean(row.activa),
+    creado: row.creado ? new Date(row.creado).toISOString() : "",
+  };
+}
+
+export interface BobinaDeleteResponse {
+  id: number;
+  eliminado: boolean;
+}
+
+/**
+ * Servicio para eliminar una Bobina.
+ */
+export async function eliminarBobinaService(
+  pool: ConnectionPool,
+  id: number,
+): Promise<BobinaDeleteResponse> {
+  const transaction = new Transaction(pool);
+
+  try {
+    await transaction.begin();
+
+    // Eliminar el registro principal en la tabla Bobinas
+    const reqDeleteBobina = new Request(transaction);
+    reqDeleteBobina.input("id", id);
+
+    const queryDeleteBobina = `
+      DELETE FROM Bobinas 
+      WHERE id = @id;
+    `;
+
+    const resBobina = await reqDeleteBobina.query(queryDeleteBobina);
+    const bobinaEliminada = (resBobina.rowsAffected[0] || 0) > 0;
+
+    // Si el registro no existía, revertimos cambios
+    if (!bobinaEliminada) {
+      await transaction.rollback();
+      return {
+        id,
+        eliminado: false,
+      };
+    }
+
+    // Confirmar la transacción
+    await transaction.commit();
+
+    return {
+      id,
+      eliminado: true,
+    };
+  } catch (error) {
+    // Revertir ante cualquier fallo en la base de datos
+    await transaction.rollback();
+    throw error;
+  }
 }

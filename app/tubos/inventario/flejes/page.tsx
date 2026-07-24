@@ -300,7 +300,7 @@ const columns = (
           width: "100%",
         }}
       >
-        <Tooltip title="Editar tubo" arrow placement="top">
+        <Tooltip title="Editar fleje" arrow placement="top">
           <IconButton
             size="small"
             onClick={() => handleEdit(row)}
@@ -310,7 +310,7 @@ const columns = (
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Eliminar tubo" arrow placement="top">
+        <Tooltip title="Eliminar fleje" arrow placement="top">
           <IconButton
             size="small"
             onClick={() => handleDelete(row)}

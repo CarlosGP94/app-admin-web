@@ -36,6 +36,30 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+const isRouteActive = (currentPath: string, targetPattern: string): boolean => {
+  if (currentPath === targetPattern) return true;
+
+  const placeholder = "___DYNAMIC_PARAM___";
+  const cleanedPattern = targetPattern
+    .replace(/:[a-zA-Z0-9_]+/g, placeholder)
+    .replace(/\[.*?\]/g, placeholder);
+
+  const escapedPattern = cleanedPattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const finalRegexStr = escapedPattern.replace(
+    new RegExp(placeholder, "g"),
+    "[^/]+",
+  );
+
+  try {
+    const regex = new RegExp(`^${finalRegexStr}$`);
+    return regex.test(currentPath);
+  } catch (error) {
+    console.error("Error al evaluar expresión regular de ruta:", error);
+    return false;
+  }
+};
+
 export default function Sidebar({
   title = "",
   mobileOpen,
@@ -92,13 +116,21 @@ export default function Sidebar({
       text: "Bobinas",
       icon: <AdjustOutlined />,
       path: APP_ROUTES.tubos.subRoutes.bobinas,
-      paths: [APP_ROUTES.tubos.subRoutes.bobinas],
+      paths: [
+        APP_ROUTES.tubos.subRoutes.bobinas,
+        APP_ROUTES.tubos.subRoutes.bobinas_create,
+        APP_ROUTES.tubos.subRoutes.bobinas_edit(":id"),
+      ],
     },
     {
       text: "Flejes",
       icon: <CalendarViewDayOutlined />,
       path: APP_ROUTES.tubos.subRoutes.flejes,
-      paths: [APP_ROUTES.tubos.subRoutes.flejes],
+      paths: [
+        APP_ROUTES.tubos.subRoutes.flejes,
+        APP_ROUTES.tubos.subRoutes.flejes_create,
+        APP_ROUTES.tubos.subRoutes.flejes_edit(":id"),
+      ],
     },
     {
       text: "Tubos",
@@ -112,7 +144,6 @@ export default function Sidebar({
     },
   ];
 
-  // Renderiza directamente el botón como un div para evitar elementos li
   const renderListItemButton = (
     item: {
       text: string;
@@ -122,11 +153,12 @@ export default function Sidebar({
     },
     isSubItem = false,
   ) => {
-    const isActive = item.paths.some((p) => pathname === p);
+    // Usa la función de coincidencia con Regex en lugar de la igualdad estricta
+    const isActive = item.paths.some((p) => isRouteActive(pathname, p));
 
     return (
       <ListItemButton
-        component="div" // <-- Forzamos a que sea un DIV en el HTML
+        component="div"
         selected={isActive}
         onClick={() => {
           router.push(item.path);
@@ -206,7 +238,7 @@ export default function Sidebar({
 
       <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.12)", mx: 2 }} />
 
-      {/* Lista de Navegación usando tag <nav> */}
+      {/* Lista de Navegación */}
       <List component="nav" sx={{ px: 1.5, py: 2, flexGrow: 1 }}>
         {/* Menú Principal */}
         {menuItems.map((item) => (
@@ -215,9 +247,9 @@ export default function Sidebar({
           </React.Fragment>
         ))}
 
-        {/* Botón de Control del Desplegable (renderizado como div) */}
+        {/* Botón de Control del Desplegable */}
         <ListItemButton
-          component="div" // <-- Evita li
+          component="div"
           onClick={handleInventarioClick}
           sx={{
             borderRadius: theme.rounded.sm,
@@ -264,7 +296,7 @@ export default function Sidebar({
           )}
         </ListItemButton>
 
-        {/* Submenú de Inventario (renderizado como div) */}
+        {/* Submenú de Inventario */}
         <Collapse
           in={openInventario}
           timeout="auto"
@@ -286,7 +318,7 @@ export default function Sidebar({
       {/* Ajustes en la parte inferior */}
       <List component="nav" sx={{ px: 1.5, py: 2 }}>
         <ListItemButton
-          component="div" // <-- Evita li
+          component="div"
           onClick={() => router.push("/configuracion")}
           sx={{
             borderRadius: theme.rounded.sm,
@@ -328,7 +360,6 @@ export default function Sidebar({
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: "block", md: "none" },
-
           "& .MuiDrawer-paper": {
             boxSizing: "border-box",
             width: sidebarWidth,
