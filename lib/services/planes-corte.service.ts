@@ -1,4 +1,5 @@
 // lib/services/planes-corte.service.ts
+import { Transaction } from "mssql";
 import type { ConnectionPool } from "mssql";
 
 // 1. Interfaces para tipar la entrada y salida de datos
@@ -209,4 +210,388 @@ export async function listarFiltrosPlanesCorteService(
       maxFecha: resFechas.recordset[0]?.maxFecha || null,
     },
   };
+}
+
+// --- Interfaces para la creación ---
+
+export interface FlejePlanCorteInput {
+  fleje_id: number;
+  num_flejes: number;
+  peso_unit_definido: number;
+  factor_proporcional_peso: number;
+  orden: number;
+}
+
+export interface CrearPlanCorteInput {
+  ancho_estipulado: number;
+  flejes: FlejePlanCorteInput[];
+}
+
+export interface CrearPlanCorteResponse {
+  id: number;
+  ancho_estipulado: number;
+  creado: Date;
+  flejesInsertados: number;
+}
+
+/**
+ * Servicio para crear un nuevo Plan de Corte e insertar sus flejes asociados
+ * Utiliza una transacción para garantizar consistencia atómica.
+ */
+export async function crearPlanCorteService(
+  pool: ConnectionPool,
+  data: CrearPlanCorteInput,
+): Promise<CrearPlanCorteResponse> {
+  const { ancho_estipulado, flejes } = data;
+
+  if (!flejes || flejes.length === 0) {
+    throw new Error("El plan de corte debe incluir al menos un fleje.");
+  }
+
+  // 1. Iniciar la transacción
+  const transaction = new Transaction(pool);
+  await transaction.begin();
+
+  try {
+    // 2. Insertar el registro principal en Planes_Corte y obtener el ID generado
+    const reqPlan = transaction.request();
+    reqPlan.input("ancho_estipulado", ancho_estipulado);
+
+    const queryPlan = `
+      INSERT INTO Planes_Corte (ancho_estipulado, creado)
+      OUTPUT INSERTED.id, INSERTED.ancho_estipulado, INSERTED.creado
+      VALUES (@ancho_estipulado, GETDATE());
+    `;
+
+    const resPlan = await reqPlan.query(queryPlan);
+    const planCreado = resPlan.recordset[0];
+    const planCorteId: number = planCreado.id;
+
+    // 3. Insertar los flejes asociados dentro de la misma transacción
+    for (const fleje of flejes) {
+      const reqFleje = transaction.request();
+      reqFleje.input("plan_corte_id", planCorteId);
+      reqFleje.input("fleje_id", fleje.fleje_id);
+      reqFleje.input("num_flejes", fleje.num_flejes);
+      reqFleje.input("orden", fleje.orden);
+      reqFleje.input("peso_unit_definido", fleje.peso_unit_definido);
+      reqFleje.input(
+        "factor_proporcional_peso",
+        fleje.factor_proporcional_peso,
+      );
+
+      const queryFleje = `
+        INSERT INTO Flejes_Plan_Corte (
+          plan_corte_id, 
+          fleje_id, 
+          num_flejes, 
+          peso_unit_definido, 
+          orden,
+          creado, 
+          factor_proporcional_peso
+        )
+        VALUES (
+          @plan_corte_id, 
+          @fleje_id, 
+          @num_flejes,
+          @orden,
+          @peso_unit_definido, 
+          GETDATE(), 
+          @factor_proporcional_peso
+        );
+      `;
+
+      await reqFleje.query(queryFleje);
+    }
+
+    // 4. Confirmar los cambios
+    await transaction.commit();
+
+    return {
+      id: planCorteId,
+      ancho_estipulado: Number(planCreado.ancho_estipulado),
+      creado: planCreado.creado,
+      flejesInsertados: flejes.length,
+    };
+  } catch (error) {
+    // Si algo falla, revertimos todos los cambios
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+export interface FlejePlanCorteDetalle {
+  id: number;
+  plan_corte_id: number;
+  fleje_id: number;
+  num_flejes: number;
+  peso_unit_definido: number;
+  factor_proporcional_peso: number;
+  orden: number;
+  // Campos complementarios opcionales del fleje para renderizar en UI
+  concepto?: string;
+  ancho?: number;
+  espesor?: number;
+}
+
+export interface PlanCorteDetalleResponse {
+  id: number;
+  ancho_estipulado: number;
+  calidad_id: number;
+  creado: Date;
+  flejes: FlejePlanCorteDetalle[];
+}
+
+/**
+ * Servicio para obtener la información detallada de un Plan de Corte
+ * junto con la lista de sus flejes asociados ordenados por posición.
+ */
+export async function obtenerPlanCorteDetalleService(
+  pool: ConnectionPool,
+  planCorteId: number,
+): Promise<PlanCorteDetalleResponse | null> {
+  const request = pool.request();
+  request.input("planCorteId", planCorteId);
+
+  // Consulta que obtiene el plan principal y hace JOIN con los flejes y sus catálogos
+  const query = `
+    SELECT 
+      pc.id AS plan_id,
+      pc.ancho_estipulado,
+      pc.creado,
+      fpc.id AS fpc_id,
+      fpc.fleje_id,
+      fpc.num_flejes,
+      fpc.peso_unit_definido,
+      fpc.factor_proporcional_peso,
+      fpc.orden,
+      f.concepto,
+      f.ancho,
+      f.espesor,
+      f.calidad_id
+    FROM Planes_Corte pc
+    LEFT JOIN Flejes_Plan_Corte fpc ON pc.id = fpc.plan_corte_id
+    LEFT JOIN Flejes f ON fpc.fleje_id = f.id
+    WHERE pc.id = @planCorteId
+    ORDER BY fpc.orden ASC;
+  `;
+
+  const result = await request.query(query);
+
+  // Si no se encuentra el plan de corte
+  if (result.recordset.length === 0) {
+    return null;
+  }
+
+  const primerRegistro = result.recordset[0];
+
+  // Mapeamos los flejes (controlando si el plan no tiene ninguno aún registrado)
+  const flejes: FlejePlanCorteDetalle[] = result.recordset
+    .filter((row) => row.fpc_id !== null)
+    .map((row) => ({
+      id: Number(row.fpc_id),
+      plan_corte_id: Number(row.plan_id),
+      fleje_id: Number(row.fleje_id),
+      num_flejes: Number(row.num_flejes),
+      peso_unit_definido: Number(row.peso_unit_definido),
+      factor_proporcional_peso: Number(row.factor_proporcional_peso),
+      orden: Number(row.orden),
+      concepto: row.concepto ?? "",
+      ancho: row.ancho ? Number(row.ancho) : undefined,
+      espesor: row.espesor ? Number(row.espesor) : undefined,
+      calidad_id: row.calidad_id ? Number(row.calidad_id) : undefined,
+    }));
+
+  return {
+    id: Number(primerRegistro.plan_id),
+    ancho_estipulado: Number(primerRegistro.ancho_estipulado),
+    calidad_id: Number(primerRegistro.calidad_id),
+    creado: primerRegistro.creado,
+    flejes,
+  };
+}
+
+export interface FlejePlanCorteInput {
+  fleje_id: number;
+  num_flejes: number;
+  peso_unit_definido: number;
+  factor_proporcional_peso: number;
+  orden: number;
+}
+
+export interface ActualizarPlanCorteInput {
+  id: number;
+  ancho_estipulado: number;
+  calidad_id: number;
+  flejes: FlejePlanCorteInput[];
+}
+
+export interface ActualizarPlanCorteResponse {
+  id: number;
+  ancho_estipulado: number;
+  calidad_id: number;
+  flejesActualizados: number;
+}
+
+/**
+ * Servicio para actualizar un Plan de Corte existente y reemplazar sus flejes asociados.
+ * Utiliza una transacción para garantizar atomicidad en la actualización y reemplazo.
+ */
+export async function actualizarPlanCorteService(
+  pool: ConnectionPool,
+  data: ActualizarPlanCorteInput,
+): Promise<ActualizarPlanCorteResponse> {
+  const { id, ancho_estipulado, calidad_id, flejes } = data;
+
+  if (!flejes || flejes.length === 0) {
+    throw new Error("El plan de corte debe incluir al menos un fleje.");
+  }
+
+  // 1. Iniciar la transacción
+  const transaction = new Transaction(pool);
+  await transaction.begin();
+
+  try {
+    // 2. Actualizar el registro cabecera en Planes_Corte
+    const reqPlan = transaction.request();
+    reqPlan.input("id", id);
+    reqPlan.input("ancho_estipulado", ancho_estipulado);
+
+    const queryPlan = `
+      UPDATE Planes_Corte
+      SET 
+        ancho_estipulado = @ancho_estipulado
+      WHERE id = @id;
+    `;
+
+    const resPlan = await reqPlan.query(queryPlan);
+
+    // Si no afectó filas, significa que el Plan de Corte con ese ID no existe
+    if (resPlan.rowsAffected[0] === 0) {
+      throw new Error(`El Plan de Corte con ID ${id} no existe.`);
+    }
+
+    // 3. Eliminar los flejes anteriores vinculados a este plan
+    const reqDeleteFlejes = transaction.request();
+    reqDeleteFlejes.input("plan_corte_id", id);
+
+    await reqDeleteFlejes.query(`
+      DELETE FROM Flejes_Plan_Corte
+      WHERE plan_corte_id = @plan_corte_id;
+    `);
+
+    // 4. Insertar la nueva lista de flejes actualizada
+    for (const fleje of flejes) {
+      const reqFleje = transaction.request();
+      reqFleje.input("plan_corte_id", id);
+      reqFleje.input("fleje_id", fleje.fleje_id);
+      reqFleje.input("num_flejes", fleje.num_flejes);
+      reqFleje.input("orden", fleje.orden);
+      reqFleje.input("peso_unit_definido", fleje.peso_unit_definido);
+      reqFleje.input(
+        "factor_proporcional_peso",
+        fleje.factor_proporcional_peso,
+      );
+
+      const queryFleje = `
+        INSERT INTO Flejes_Plan_Corte (
+          plan_corte_id, 
+          fleje_id, 
+          num_flejes, 
+          peso_unit_definido, 
+          orden,
+          creado, 
+          factor_proporcional_peso
+        )
+        VALUES (
+          @plan_corte_id, 
+          @fleje_id, 
+          @num_flejes, 
+          @peso_unit_definido, 
+          @orden,
+          GETDATE(), 
+          @factor_proporcional_peso
+        );
+      `;
+
+      await reqFleje.query(queryFleje);
+    }
+
+    // 5. Confirmar la transacción
+    await transaction.commit();
+
+    return {
+      id,
+      ancho_estipulado: Number(ancho_estipulado),
+      calidad_id: Number(calidad_id),
+      flejesActualizados: flejes.length,
+    };
+  } catch (error) {
+    // Si algo falla, se revierten la actualización y los cambios en los flejes
+    await transaction.rollback();
+    throw error;
+  }
+}
+
+export interface EliminarPlanCorteResponse {
+  id: number;
+  flejesEliminados: number;
+  message: string;
+}
+
+/**
+ * Servicio para eliminar un Plan de Corte y todos sus flejes asociados.
+ * Utiliza una transacción para garantizar que no queden registros huérfanos.
+ */
+export async function eliminarPlanCorteService(
+  pool: ConnectionPool,
+  id: number,
+): Promise<EliminarPlanCorteResponse> {
+  if (!id || typeof id !== "number") {
+    throw new Error("Se debe proporcionar un ID de plan de corte válido.");
+  }
+
+  // 1. Iniciar la transacción
+  const transaction = new Transaction(pool);
+  await transaction.begin();
+
+  try {
+    // 2. Eliminar primero los flejes asociados (hijos)
+    const reqDeleteFlejes = transaction.request();
+    reqDeleteFlejes.input("plan_corte_id", id);
+
+    const resFlejes = await reqDeleteFlejes.query(`
+      DELETE FROM Flejes_Plan_Corte
+      WHERE plan_corte_id = @plan_corte_id;
+    `);
+
+    // 3. Eliminar la cabecera del plan de corte (padre)
+    const reqDeletePlan = transaction.request();
+    reqDeletePlan.input("id", id);
+
+    const resPlan = await reqDeletePlan.query(`
+      DELETE FROM Planes_Corte
+      WHERE id = @id;
+    `);
+
+    // Si no se afectó ninguna fila en la cabecera, el registro no existía
+    if (resPlan.rowsAffected[0] === 0) {
+      throw new Error(`El Plan de Corte con ID ${id} no existe.`);
+    }
+
+    // 4. Confirmar la transacción
+    await transaction.commit();
+
+    const flejesEliminados = resFlejes.rowsAffected[0] || 0;
+
+    return {
+      id,
+      flejesEliminados,
+      message: `Plan de corte ${id} y sus ${flejesEliminados} flejes asociados fueron eliminados correctamente.`,
+    };
+  } catch (error) {
+    // Si falla la eliminación del padre o del hijo, revertimos los cambios
+    await transaction.rollback();
+    throw error;
+  }
 }

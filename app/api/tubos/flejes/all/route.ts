@@ -1,19 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 import { listarFlejesSelectorService } from "@/lib/services/flejes.service"; // Ajusta la ruta a tu servicio
 
 /**
  * GET: Obtiene la lista simplificada de flejes activos para selectores (id, concepto)
+ * Acepta el query param opcional: ?calidad_id=123
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // 1. Obtención de la conexión a la base de datos
+    // 1. Extraer los parámetros de búsqueda de la URL
+    const { searchParams } = new URL(request.url);
+    const calidadIdParam = searchParams.get("calidad_id");
+
+    // Convertir a número si existe y es un valor numérico válido
+    const calidadId = calidadIdParam ? Number(calidadIdParam) : null;
+    const calidadIdValido = calidadId && !isNaN(calidadId) ? calidadId : null;
+
+    // 2. Obtención de la conexión a la base de datos
     const pool = await getConnection("tubos");
 
-    // 2. Llamada al servicio simplificado para el selector
-    const data = await listarFlejesSelectorService(pool);
+    // 3. Llamada al servicio pasando el filtro de calidad si existe
+    const data = await listarFlejesSelectorService(pool, calidadIdValido);
 
-    // 3. Respuesta estructurada
+    // 4. Respuesta estructurada
     return NextResponse.json({
       success: true,
       data,

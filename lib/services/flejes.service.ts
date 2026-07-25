@@ -233,16 +233,26 @@ export interface FlejeSelectorOption {
 
 export async function listarFlejesSelectorService(
   pool: ConnectionPool,
+  calidadId?: number | null,
 ): Promise<FlejeSelectorOption[]> {
   const req = pool.request();
+
+  let whereClause = "WHERE f.activo = 1";
+
+  if (calidadId !== undefined && calidadId !== null) {
+    req.input("calidadId", calidadId);
+    whereClause += " AND f.calidad_id = @calidadId";
+  }
 
   const query = `
     SELECT 
         f.id,
-        f.concepto
+        f.concepto,
+        f.peso_medio,
+        f.ancho
     FROM Flejes f
     INNER JOIN Tipos_Calidad tc ON f.calidad_id = tc.id
-    WHERE f.activo = 1
+    ${whereClause}
     ORDER BY 
         tc.nombre ASC,
         f.espesor ASC,
@@ -256,6 +266,8 @@ export async function listarFlejesSelectorService(
   return resultado.recordset.map((row) => ({
     id: row.id,
     concepto: row.concepto,
+    peso_medio: row.peso_medio,
+    ancho: row.ancho,
   }));
 }
 

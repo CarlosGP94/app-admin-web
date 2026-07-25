@@ -7,11 +7,12 @@ import useDataTable, {
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton } from "@mui/material";
+import { Box, IconButton, Tooltip } from "@mui/material";
 import { Eye, Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
+import { ConfirmDialog } from "@/components/commons/ConfirmDialog";
 
 interface PlanCorte {
   id: number;
@@ -118,6 +119,20 @@ export default function PlanesCortePage() {
     };
   };
 
+  const onDeleteConfirm = async (
+    id: string | number,
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await fetch(APP_ROUTES.api.tubos.planes_corte_detalle(String(id)), {
+        method: "DELETE",
+      });
+      return { success: true };
+    } catch (error) {
+      console.error("Error al eliminar el plan de corte:", error);
+      return { success: false, error: (error as string) || String(error) };
+    }
+  };
+
   const {
     page,
     total,
@@ -127,6 +142,7 @@ export default function PlanesCortePage() {
     loadingFilters,
     loading,
     sortModel,
+    showDeleteConfirm,
     handleSortModel,
     handlePageChange,
     handleDetail,
@@ -135,6 +151,7 @@ export default function PlanesCortePage() {
     handleFilterChange,
     handleClearAllFilters,
     handleFilter,
+    handleDeleteConfirm,
   } = useDataTable({
     initFilters: [
       {
@@ -152,6 +169,7 @@ export default function PlanesCortePage() {
         valueEnd: null,
       },
     ],
+    onDeleteConfirm: onDeleteConfirm,
     fetchData: fecthData,
     fetchFilters: fecthFilters,
   });
@@ -165,7 +183,20 @@ export default function PlanesCortePage() {
         flexDirection: "column",
       }}
     >
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Confirmar eliminación"
+        message="¿Estás seguro de que deseas eliminar este tubo? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        color="error"
+        onConfirm={() => {
+          handleDeleteConfirm();
+        }}
+        onClose={() => handleDelete(null)}
+      />
       <TopCrud
+        newUrl={APP_ROUTES.tubos.subRoutes.planes_corte_nuevo}
         searchTerm={searchTerm}
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
@@ -190,7 +221,11 @@ export default function PlanesCortePage() {
           loading={loading}
           rows={data as PlanCorte[]}
           total={total}
-          columns={columns(handleDetail, handleEdit, handleDelete)}
+          columns={columns((row) => {
+            handleEdit(
+              `${APP_ROUTES.tubos.subRoutes.planes_corte_editar(row.id.toString())}`,
+            );
+          }, handleDelete)}
           rowKeyExtractor={(row) => row.id}
           handlePageChange={handlePageChange}
         />
@@ -200,7 +235,6 @@ export default function PlanesCortePage() {
 }
 
 const columns = (
-  handleDetail: (row: PlanCorte) => void,
   handleEdit: (row: PlanCorte) => void,
   handleDelete: (row: PlanCorte) => void,
 ): Column<PlanCorte>[] => [
@@ -237,27 +271,25 @@ const columns = (
           width: "100%",
         }}
       >
-        <IconButton
-          size="small"
-          onClick={() => handleDetail(row as unknown as PlanCorte)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Eye size={16} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => handleEdit(row as unknown as PlanCorte)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Edit2 size={16} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => handleDelete(row as unknown as PlanCorte)}
-          sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
-        >
-          <Trash2 size={16} />
-        </IconButton>
+        <Tooltip title="Editar fleje" arrow placement="top">
+          <IconButton
+            size="small"
+            onClick={() => handleEdit(row)}
+            sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
+          >
+            <Edit2 size={16} />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Eliminar fleje" arrow placement="top">
+          <IconButton
+            size="small"
+            onClick={() => handleDelete(row)}
+            sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
+          >
+            <Trash2 size={16} />
+          </IconButton>
+        </Tooltip>
       </Box>
     ),
   },

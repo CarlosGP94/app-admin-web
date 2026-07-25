@@ -54,14 +54,35 @@ export function FormAutocomplete<TFieldValues extends FieldValues>({
 
         return (
           <Autocomplete
+            {...autocompleteProps}
             options={options}
             value={selectedOption}
             loading={loading}
             disabled={disabled || loading}
             size={size}
             fullWidth={fullWidth}
-            getOptionLabel={(option) => option.label}
+            // Limitamos la altura máxima del menú desplegable a 200px
+            slotProps={{
+              listbox: {
+                sx: {
+                  maxHeight: 200,
+                  overflow: "auto",
+                },
+              },
+            }}
+            getOptionLabel={(option) =>
+              typeof option === "string" ? option : option.label
+            }
             isOptionEqualToValue={(option, value) => option.id === value.id}
+            // Unicidad de keys garantizada usando el ID único de la opción
+            renderOption={(props, option) => {
+              const { key, ...optionProps } = props;
+              return (
+                <li key={option.id} {...optionProps}>
+                  {option.label}
+                </li>
+              );
+            }}
             onChange={(_, selected) => {
               field.onChange(selected ? selected.id : null);
             }}
@@ -88,7 +109,6 @@ export function FormAutocomplete<TFieldValues extends FieldValues>({
                 }}
               />
             )}
-            {...autocompleteProps}
           />
         );
       }}

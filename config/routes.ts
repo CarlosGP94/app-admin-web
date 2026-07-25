@@ -16,6 +16,8 @@ export const APP_ROUTES = {
       dashboard: "/tubos",
       salida_paquetes: "/tubos/salida-paquetes",
       planes_corte: "/tubos/planes-corte",
+      planes_corte_nuevo: "/tubos/planes-corte/nuevo",
+      planes_corte_editar: (id: string) => `/tubos/planes-corte/${id}/editar`,
       produccion: "/tubos/produccion",
       bobinas_cortadas: "/tubos/bobinas-cortadas",
       bobinas: "/tubos/inventario/bobinas",
@@ -56,6 +58,7 @@ export const APP_ROUTES = {
       bobinas_cortadas_filtros: "/api/tubos/bobinas_cortadas/filtros",
       planes_corte: "/api/tubos/planes_corte",
       planes_corte_filtros: "/api/tubos/planes_corte/filtros",
+      planes_corte_detalle: (id: string) => `/api/tubos/planes_corte/${id}`,
     },
   },
 };
