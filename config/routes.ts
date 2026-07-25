@@ -18,6 +18,7 @@ export const APP_ROUTES = {
       planes_corte: "/tubos/planes-corte",
       planes_corte_nuevo: "/tubos/planes-corte/nuevo",
       planes_corte_editar: (id: string) => `/tubos/planes-corte/${id}/editar`,
+      planes_corte_bobinas: (id: string) => `/tubos/planes-corte/${id}/bobinas`,
       produccion: "/tubos/produccion",
       bobinas_cortadas: "/tubos/bobinas-cortadas",
       bobinas: "/tubos/inventario/bobinas",

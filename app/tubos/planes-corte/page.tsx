@@ -13,6 +13,7 @@ import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
 import { ConfirmDialog } from "@/components/commons/ConfirmDialog";
+import { useRouter } from "next/navigation";
 
 interface PlanCorte {
   id: number;
@@ -22,6 +23,7 @@ interface PlanCorte {
 }
 
 export default function PlanesCortePage() {
+  const router = useRouter();
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
@@ -145,7 +147,6 @@ export default function PlanesCortePage() {
     showDeleteConfirm,
     handleSortModel,
     handlePageChange,
-    handleDetail,
     handleEdit,
     handleDelete,
     handleFilterChange,
@@ -173,6 +174,12 @@ export default function PlanesCortePage() {
     fetchData: fecthData,
     fetchFilters: fecthFilters,
   });
+
+  const handleShowBobinas = (row: PlanCorte) => {
+    router.push(
+      `${APP_ROUTES.tubos.subRoutes.planes_corte_bobinas(row.id.toString())}`,
+    );
+  };
 
   return (
     <Box
@@ -221,11 +228,15 @@ export default function PlanesCortePage() {
           loading={loading}
           rows={data as PlanCorte[]}
           total={total}
-          columns={columns((row) => {
-            handleEdit(
-              `${APP_ROUTES.tubos.subRoutes.planes_corte_editar(row.id.toString())}`,
-            );
-          }, handleDelete)}
+          columns={columns(
+            handleShowBobinas,
+            (row) => {
+              handleEdit(
+                `${APP_ROUTES.tubos.subRoutes.planes_corte_editar(row.id.toString())}`,
+              );
+            },
+            handleDelete,
+          )}
           rowKeyExtractor={(row) => row.id}
           handlePageChange={handlePageChange}
         />
@@ -235,6 +246,7 @@ export default function PlanesCortePage() {
 }
 
 const columns = (
+  handleShowBobinas: (row: PlanCorte) => void,
   handleEdit: (row: PlanCorte) => void,
   handleDelete: (row: PlanCorte) => void,
 ): Column<PlanCorte>[] => [
@@ -271,6 +283,15 @@ const columns = (
           width: "100%",
         }}
       >
+        <Tooltip title="Bobinas Cortaras con este plan" arrow placement="top">
+          <IconButton
+            size="small"
+            onClick={() => handleShowBobinas(row)}
+            sx={{ color: "#64748b", "&:hover": { color: "#4386f1" } }}
+          >
+            <Eye size={16} />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Editar fleje" arrow placement="top">
           <IconButton
             size="small"
