@@ -26,10 +26,6 @@ export const APP_ROUTES = {
     path: "/tubos",
     label: "Línea de Producción de Tubos",
     subRoutes: {
-      dashboard: {
-        path: "/tubos/dashboard",
-        permission: "tubos:dashboard:ver",
-      },
       salida_paquetes: {
         path: "/tubos/salida-paquetes",
         permission: "tubos:salida-paquetes:ver",

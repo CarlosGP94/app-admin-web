@@ -29,11 +29,22 @@ import {
   SettingsOutlined,
 } from "@mui/icons-material";
 import { APP_ROUTES } from "@/config/routes";
+import { useAuth } from "@/context/AuthContext";
+import { hasPermission } from "@/lib/services/auth.service";
+import { PermissionCode } from "@/types/auth";
 
 interface SidebarProps {
   title?: string;
   mobileOpen: boolean;
   onClose: () => void;
+}
+
+interface MenuItem {
+  text: string;
+  icon: React.ReactNode;
+  path: string;
+  paths: string[];
+  permission?: PermissionCode;
 }
 
 const isRouteActive = (currentPath: string, targetPattern: string): boolean => {
@@ -45,7 +56,6 @@ const isRouteActive = (currentPath: string, targetPattern: string): boolean => {
     .replace(/\[.*?\]/g, placeholder);
 
   const escapedPattern = cleanedPattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
   const finalRegexStr = escapedPattern.replace(
     new RegExp(placeholder, "g"),
     "[^/]+",
@@ -65,6 +75,7 @@ export default function Sidebar({
   mobileOpen,
   onClose,
 }: SidebarProps) {
+  const { user } = useAuth();
   const theme = useTheme();
   const pathname = usePathname();
   const router = useRouter();
@@ -78,7 +89,8 @@ export default function Sidebar({
     setOpenInventario(!openInventario);
   };
 
-  const menuItems = [
+  // 1. Definimos los elementos asignándoles su permiso correspondiente desde APP_ROUTES
+  const rawMenuItems: MenuItem[] = [
     {
       text: "Inicio Tubos",
       icon: <DashboardOutlined />,
@@ -95,28 +107,36 @@ export default function Sidebar({
         APP_ROUTES.tubos.subRoutes.planes_corte_editar.path(":id"),
         APP_ROUTES.tubos.subRoutes.planes_corte_bobinas.path(":id"),
       ],
+      permission: APP_ROUTES.tubos.subRoutes.planes_corte
+        .permission as PermissionCode,
     },
     {
       text: "Bobinas Cortadas",
       icon: <LayersOutlined />,
       path: APP_ROUTES.tubos.subRoutes.bobinas_cortadas.path,
       paths: [APP_ROUTES.tubos.subRoutes.bobinas_cortadas.path],
+      permission: APP_ROUTES.tubos.subRoutes.bobinas_cortadas
+        .permission as PermissionCode,
     },
     {
       text: "Producción de Tubos",
       icon: <PrecisionManufacturingOutlined />,
       path: APP_ROUTES.tubos.subRoutes.produccion.path,
       paths: [APP_ROUTES.tubos.subRoutes.produccion.path],
+      permission: APP_ROUTES.tubos.subRoutes.produccion
+        .permission as PermissionCode,
     },
     {
       text: "Salida de Paquetes",
       icon: <LocalShippingOutlined />,
       path: APP_ROUTES.tubos.subRoutes.salida_paquetes.path,
       paths: [APP_ROUTES.tubos.subRoutes.salida_paquetes.path],
+      permission: APP_ROUTES.tubos.subRoutes.salida_paquetes
+        .permission as PermissionCode,
     },
   ];
 
-  const inventarioItems = [
+  const rawInventarioItems: MenuItem[] = [
     {
       text: "Bobinas",
       icon: <AdjustOutlined />,
@@ -126,6 +146,8 @@ export default function Sidebar({
         APP_ROUTES.tubos.subRoutes.bobinas_create.path,
         APP_ROUTES.tubos.subRoutes.bobinas_edit.path(":id"),
       ],
+      permission: APP_ROUTES.tubos.subRoutes.bobinas
+        .permission as PermissionCode,
     },
     {
       text: "Flejes",
@@ -136,6 +158,8 @@ export default function Sidebar({
         APP_ROUTES.tubos.subRoutes.flejes_create.path,
         APP_ROUTES.tubos.subRoutes.flejes_edit.path(":id"),
       ],
+      permission: APP_ROUTES.tubos.subRoutes.flejes
+        .permission as PermissionCode,
     },
     {
       text: "Tubos",
@@ -146,23 +170,26 @@ export default function Sidebar({
         APP_ROUTES.tubos.subRoutes.tubos_create.path,
         APP_ROUTES.tubos.subRoutes.tubos_edit.path(":id"),
       ],
+      permission: APP_ROUTES.tubos.subRoutes.tubos.permission as PermissionCode,
     },
   ];
 
-  const renderListItemButton = (
-    item: {
-      text: string;
-      icon: React.ReactNode;
-      path: string;
-      paths: string[];
-    },
-    isSubItem = false,
-  ) => {
-    // Usa la función de coincidencia con Regex en lugar de la igualdad estricta
+  // 2. Función helper para saber si el usuario posee permiso sobre un ítem
+  const canAccess = (item: MenuItem) => {
+    if (!item.permission) return true;
+    return hasPermission(user, item.permission);
+  };
+
+  // 3. Filtrar ítems principales e inventario según los permisos del usuario
+  const menuItems = rawMenuItems.filter(canAccess);
+  const inventarioItems = rawInventarioItems.filter(canAccess);
+
+  const renderListItemButton = (item: MenuItem, isSubItem = false) => {
     const isActive = item.paths.some((p) => isRouteActive(pathname, p));
 
     return (
       <ListItemButton
+        key={item.text}
         component="div"
         selected={isActive}
         onClick={() => {
@@ -245,77 +272,75 @@ export default function Sidebar({
 
       {/* Lista de Navegación */}
       <List component="nav" sx={{ px: 1.5, py: 2, flexGrow: 1 }}>
-        {/* Menú Principal */}
-        {menuItems.map((item) => (
-          <React.Fragment key={item.text}>
-            {renderListItemButton(item)}
-          </React.Fragment>
-        ))}
+        {/* Menú Principal (Solo los permitidos) */}
+        {menuItems.map((item) => renderListItemButton(item))}
 
-        {/* Botón de Control del Desplegable */}
-        <ListItemButton
-          component="div"
-          onClick={handleInventarioClick}
-          sx={{
-            borderRadius: theme.rounded.sm,
-            py: 1.2,
-            mb: 0.5,
-            color: pathname.startsWith("/tubos/inventario")
-              ? "#ffffff"
-              : "rgba(255, 255, 255, 0.7)",
-            "&:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.04)",
-              color: "#ffffff",
-              "& .MuiListItemIcon-root": { color: "#ffffff" },
-            },
-          }}
-        >
-          <ListItemIcon
-            sx={{
-              color: pathname.startsWith("/tubos/inventario")
-                ? "#ffffff"
-                : "rgba(255, 255, 255, 0.5)",
-              minWidth: 40,
-            }}
-          >
-            <Inventory2Outlined />
-          </ListItemIcon>
-          <ListItemText
-            primary={
-              <Typography
-                variant="body2"
+        {/* Muestra el grupo 'Inventario' únicamente si tiene permiso en al menos una subruta */}
+        {inventarioItems.length > 0 && (
+          <>
+            <ListItemButton
+              component="div"
+              onClick={handleInventarioClick}
+              sx={{
+                borderRadius: theme.rounded.sm,
+                py: 1.2,
+                mb: 0.5,
+                color: pathname.startsWith("/tubos/inventario")
+                  ? "#ffffff"
+                  : "rgba(255, 255, 255, 0.7)",
+                "&:hover": {
+                  backgroundColor: "rgba(255, 255, 255, 0.04)",
+                  color: "#ffffff",
+                  "& .MuiListItemIcon-root": { color: "#ffffff" },
+                },
+              }}
+            >
+              <ListItemIcon
                 sx={{
-                  fontWeight: pathname.startsWith("/tubos/inventario")
-                    ? 600
-                    : 500,
+                  color: pathname.startsWith("/tubos/inventario")
+                    ? "#ffffff"
+                    : "rgba(255, 255, 255, 0.5)",
+                  minWidth: 40,
                 }}
               >
-                Inventario
-              </Typography>
-            }
-          />
-          {openInventario ? (
-            <ExpandLess sx={{ color: "rgba(255, 255, 255, 0.5)" }} />
-          ) : (
-            <ExpandMore sx={{ color: "rgba(255, 255, 255, 0.5)" }} />
-          )}
-        </ListItemButton>
+                <Inventory2Outlined />
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: pathname.startsWith("/tubos/inventario")
+                        ? 600
+                        : 500,
+                    }}
+                  >
+                    Inventario
+                  </Typography>
+                }
+              />
+              {openInventario ? (
+                <ExpandLess sx={{ color: "rgba(255, 255, 255, 0.5)" }} />
+              ) : (
+                <ExpandMore sx={{ color: "rgba(255, 255, 255, 0.5)" }} />
+              )}
+            </ListItemButton>
 
-        {/* Submenú de Inventario */}
-        <Collapse
-          in={openInventario}
-          timeout="auto"
-          unmountOnExit
-          component="div"
-        >
-          <List component="div" disablePadding sx={{ mt: 0.5 }}>
-            {inventarioItems.map((subItem) => (
-              <React.Fragment key={subItem.text}>
-                {renderListItemButton(subItem, true)}
-              </React.Fragment>
-            ))}
-          </List>
-        </Collapse>
+            {/* Submenú de Inventario (Solo subrutas permitidas) */}
+            <Collapse
+              in={openInventario}
+              timeout="auto"
+              unmountOnExit
+              component="div"
+            >
+              <List component="div" disablePadding sx={{ mt: 0.5 }}>
+                {inventarioItems.map((subItem) =>
+                  renderListItemButton(subItem, true),
+                )}
+              </List>
+            </Collapse>
+          </>
+        )}
       </List>
 
       <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.12)", mx: 2 }} />
