@@ -8,8 +8,22 @@ import { APP_ROUTES } from "@/config/routes";
 import { Box, Alert } from "@mui/material";
 import BobinaForm from "@/components/tubos/bobinas/BobinaForm";
 import { BobinaFormValues } from "@/components/tubos/bobinas/BobinaFormSchema";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 export default function NuevaBobinaPage() {
+  const permission = APP_ROUTES.tubos.subRoutes.bobinas_create
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <NuevaBobinaView />
+    </ProtectedRoute>
+  );
+}
+
+export function NuevaBobinaView() {
   const { setTitleInfo } = useLayoutTitle();
   const router = useRouter();
 

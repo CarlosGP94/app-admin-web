@@ -16,11 +16,15 @@ interface MantenimientoProps {
    * @default 'Panel Principal'
    */
   buttonText?: string;
+  hidebar?: boolean;
+  hideButton?: boolean;
 }
 
 export default function Mantenimiento({
   redirectUrl = "/",
   buttonText = "Inicio",
+  hidebar = false,
+  hideButton = false,
 }: MantenimientoProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -32,7 +36,7 @@ export default function Mantenimiento({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        minHeight: "100vh",
+        height: "100%",
         backgroundColor: "background.default",
         px: 3,
         textAlign: "center",
@@ -41,22 +45,24 @@ export default function Mantenimiento({
       }}
     >
       {/* Detalle estético industrial: Línea superior de advertencia técnica */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: "6px",
-          background: `repeating-linear-gradient(
+      {!hidebar && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "6px",
+            background: `repeating-linear-gradient(
             -45deg,
             ${theme.palette.warning?.main || "#f57c00"},
             ${theme.palette.warning?.main || "#f57c00"} 10px,
             ${theme.palette.primary.main} 10px,
             ${theme.palette.primary.main} 20px
           )`,
-        }}
-      />
+          }}
+        />
+      )}
 
       <Container maxWidth="sm">
         {/* Contenedor del Icono animado */}
@@ -109,31 +115,33 @@ export default function Mantenimiento({
         </Typography>
 
         {/* Acciones del Operador */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 2,
-            flexWrap: "wrap",
-          }}
-        >
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => router.push(redirectUrl)}
+        {!hideButton && (
+          <Box
             sx={{
-              px: 3,
-              py: 1.2,
-              borderRadius: theme.rounded?.sm || "4px",
-              boxShadow: "none",
-              "&:hover": {
-                boxShadow: "none",
-              },
+              display: "flex",
+              justifyContent: "center",
+              gap: 2,
+              flexWrap: "wrap",
             }}
           >
-            {buttonText}
-          </Button>
-        </Box>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => router.push(redirectUrl)}
+              sx={{
+                px: 3,
+                py: 1.2,
+                borderRadius: theme.rounded?.sm || "4px",
+                boxShadow: "none",
+                "&:hover": {
+                  boxShadow: "none",
+                },
+              }}
+            >
+              {buttonText}
+            </Button>
+          </Box>
+        )}
       </Container>
     </Box>
   );

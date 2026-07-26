@@ -8,6 +8,7 @@ import TuboForm from "@/components/tubos/tubos/TubosForm";
 import { TuboFormValues } from "@/components/tubos/tubos/TuboFormSchema";
 import { APP_ROUTES } from "@/config/routes";
 import { Box, Alert, CircularProgress } from "@mui/material";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 interface ActualizarTuboPageProps {
   params: Promise<{ id: string }>;
@@ -16,6 +17,19 @@ interface ActualizarTuboPageProps {
 export default function ActualizarTuboPage({
   params,
 }: ActualizarTuboPageProps) {
+  const permission = APP_ROUTES.tubos.subRoutes.tubos_edit
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <ActualizarTuboView params={params} />
+    </ProtectedRoute>
+  );
+}
+
+export function ActualizarTuboView({ params }: ActualizarTuboPageProps) {
   // Desenredamos los params de Next.js
   const { id } = use(params);
   const { setTitleInfo } = useLayoutTitle();

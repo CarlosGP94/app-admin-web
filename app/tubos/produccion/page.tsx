@@ -12,8 +12,8 @@ import { Eye, Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
-import { Add } from "@mui/icons-material";
 import FormatListBulletedAddIcon from "@mui/icons-material/FormatListBulletedAdd";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 interface Prod {
   id: number;
@@ -46,6 +46,19 @@ interface Turno {
 }
 
 export default function ProduccionPage() {
+  const permission = APP_ROUTES.tubos.subRoutes.produccion
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <ProduccionView />
+    </ProtectedRoute>
+  );
+}
+
+export function ProduccionView() {
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,

@@ -13,6 +13,7 @@ import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
 import { ConfirmDialog } from "@/components/commons/ConfirmDialog";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 interface Bobina {
   id: number;
@@ -35,6 +36,19 @@ interface Fabricante {
 }
 
 export default function BobinasPage() {
+  const permission = APP_ROUTES.tubos.subRoutes.bobinas
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <BobinasView />
+    </ProtectedRoute>
+  );
+}
+
+export function BobinasView() {
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,

@@ -1,3 +1,5 @@
+import Mantenimiento from "@/views/maintance/Maintance";
+
 export default function TubosPage() {
   //   const {} = useDataTable({
   //     initFilters: [],
@@ -12,5 +14,7 @@ export default function TubosPage() {
   //     },
   //   });
 
-  return <>hola</>;
+  return (
+    <Mantenimiento hideButton hidebar redirectUrl="/" buttonText="Inicio" />
+  );
 }

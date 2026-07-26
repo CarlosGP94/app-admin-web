@@ -4,18 +4,33 @@
 import React, { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useLayoutTitle } from "../../layout";
-import { FlejeFormValues } from "@/components/tubos/flejes/FlejeFormSchema";
 import { APP_ROUTES } from "@/config/routes";
 import { Box, Alert, CircularProgress } from "@mui/material";
 import PlanesCorteForm from "@/components/tubos/planesCorte/PlanesCorteForm";
 import { PlanCorteFormValues } from "@/components/tubos/planesCorte/PlanesCorteFormSchema";
 import { toast } from "react-toastify";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 interface ActualizarPlanesCortePageProps {
   params: Promise<{ id: string }>;
 }
 
 export default function ActualizarPlanesCortePage({
+  params,
+}: ActualizarPlanesCortePageProps) {
+  const permission = APP_ROUTES.tubos.subRoutes.planes_corte_editar
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <ActualizarPlanesCorteView params={params} />
+    </ProtectedRoute>
+  );
+}
+
+export function ActualizarPlanesCorteView({
   params,
 }: ActualizarPlanesCortePageProps) {
   // Desenredamos los params de Next.js

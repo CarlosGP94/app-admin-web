@@ -7,9 +7,23 @@ import { useLayoutTitle } from "../layout";
 import TuboForm from "@/components/tubos/tubos/TubosForm";
 import { TuboFormValues } from "@/components/tubos/tubos/TuboFormSchema";
 import { APP_ROUTES } from "@/config/routes";
-import { Box, Alert, Snackbar } from "@mui/material";
+import { Box, Alert } from "@mui/material";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 export default function NuevoTuboPage() {
+  const permission = APP_ROUTES.tubos.subRoutes.tubos_create
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <NuevoTuboView />
+    </ProtectedRoute>
+  );
+}
+
+export function NuevoTuboView() {
   const { setTitleInfo } = useLayoutTitle();
   const router = useRouter();
 

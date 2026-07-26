@@ -9,6 +9,7 @@ import { APP_ROUTES } from "@/config/routes";
 import { Box, Alert, CircularProgress } from "@mui/material";
 import FlejeForm from "@/components/tubos/flejes/FlejeForm";
 import { toast } from "react-toastify";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 interface ActualizarFlejePageProps {
   params: Promise<{ id: string }>;
@@ -17,6 +18,19 @@ interface ActualizarFlejePageProps {
 export default function ActualizarFlejePage({
   params,
 }: ActualizarFlejePageProps) {
+  const permission = APP_ROUTES.tubos.subRoutes.flejes_edit
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <ActualizarFlejeView params={params} />
+    </ProtectedRoute>
+  );
+}
+
+export function ActualizarFlejeView({ params }: ActualizarFlejePageProps) {
   // Desenredamos los params de Next.js
   const { id } = use(params);
   const { setTitleInfo } = useLayoutTitle();

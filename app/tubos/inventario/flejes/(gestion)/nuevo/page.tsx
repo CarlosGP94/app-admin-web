@@ -9,8 +9,22 @@ import { Box, Alert } from "@mui/material";
 import FlejeForm from "@/components/tubos/flejes/FlejeForm";
 import { FlejeFormValues } from "@/components/tubos/flejes/FlejeFormSchema";
 import { toast } from "react-toastify";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 export default function NuevoFlejePage() {
+  const permission = APP_ROUTES.tubos.subRoutes.flejes_create
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <NuevoFlejeView />
+    </ProtectedRoute>
+  );
+}
+
+export function NuevoFlejeView() {
   const { setTitleInfo } = useLayoutTitle();
   const router = useRouter();
 

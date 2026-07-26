@@ -10,6 +10,7 @@ import useDataTable, {
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES } from "@/config/routes";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 interface BobinaCortada {
   id: number;
@@ -22,6 +23,23 @@ interface BobinaCortada {
 }
 
 export default function PlanesCorteBobinasPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const permission = APP_ROUTES.tubos.subRoutes.planes_corte_bobinas
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <PlanesCorteBobinasView params={params} />
+    </ProtectedRoute>
+  );
+}
+
+export function PlanesCorteBobinasView({
   params,
 }: {
   params: Promise<{ id: string }>;
