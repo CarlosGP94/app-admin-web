@@ -1,4 +1,5 @@
 import MUIThemeProvider from "@/theme/ThemeProvider";
+import { AuthProvider } from "@/context/AuthContext";
 
 export default function RootLayout({
   children,
@@ -8,7 +9,9 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <MUIThemeProvider>{children}</MUIThemeProvider>
+        <AuthProvider>
+          <MUIThemeProvider>{children}</MUIThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

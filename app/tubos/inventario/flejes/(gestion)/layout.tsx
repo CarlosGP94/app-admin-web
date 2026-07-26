@@ -79,7 +79,7 @@ export default function GestionFlejesLayout({
 
           <Button
             component={Link}
-            href={APP_ROUTES.tubos.subRoutes.flejes}
+            href={APP_ROUTES.tubos.subRoutes.flejes.path}
             variant="outlined"
             color="inherit"
             startIcon={<ArrowBackIcon />}

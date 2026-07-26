@@ -42,7 +42,7 @@ export default function NuevaBobinaPage() {
         );
       }
 
-      router.push(APP_ROUTES.tubos.subRoutes.bobinas);
+      router.push(APP_ROUTES.tubos.subRoutes.bobinas.path);
       router.refresh();
     } catch (error) {
       console.error("Error al guardar el tubo:", error);

@@ -93,7 +93,7 @@ export default function ActualizarPlanesCortePage({
         );
       }
       toast.success("Plan de corte actualizado exitosamente.");
-      router.push(APP_ROUTES.tubos.subRoutes.planes_corte);
+      router.push(APP_ROUTES.tubos.subRoutes.planes_corte.path);
       router.refresh();
     } catch (error) {
       console.error("Error al guardar el plan de corte:", error);

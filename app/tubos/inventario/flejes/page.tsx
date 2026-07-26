@@ -257,7 +257,7 @@ export default function FlejesPage() {
         onClose={() => handleDelete(null)}
       />
       <TopCrud
-        newUrl={APP_ROUTES.tubos.subRoutes.flejes_create}
+        newUrl={APP_ROUTES.tubos.subRoutes.flejes_create.path}
         searchTerm={searchTerm}
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
@@ -295,7 +295,7 @@ export default function FlejesPage() {
           columns={columns((row) => {
             console.log("Editando fleje con ID:", row.id);
             handleEdit(
-              `${APP_ROUTES.tubos.subRoutes.flejes_edit(row.id.toString())}`,
+              `${APP_ROUTES.tubos.subRoutes.flejes_edit.path(row.id.toString())}`,
             );
           }, handleDelete)}
           rowKeyExtractor={(row) => row.id}

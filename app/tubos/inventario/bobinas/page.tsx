@@ -273,7 +273,7 @@ export default function BobinasPage() {
         onClose={() => handleDelete(null)}
       />
       <TopCrud
-        newUrl={APP_ROUTES.tubos.subRoutes.bobinas_create}
+        newUrl={APP_ROUTES.tubos.subRoutes.bobinas_create.path}
         searchTerm={searchTerm}
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
@@ -310,7 +310,7 @@ export default function BobinasPage() {
           total={total}
           columns={columns((row) => {
             handleEdit(
-              `${APP_ROUTES.tubos.subRoutes.bobinas_edit(row.id.toString())}`,
+              `${APP_ROUTES.tubos.subRoutes.bobinas_edit.path(row.id.toString())}`,
             );
           }, handleDelete)}
           rowKeyExtractor={(row) => row.id}

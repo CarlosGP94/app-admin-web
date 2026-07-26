@@ -27,14 +27,14 @@ export default function SelectorLineaPage() {
       descripcion:
         "Monitoreo de conformado de perfiles, extrusión, bobinas de acero y control de dimensiones en tiempo real.",
       icono: <BlurCircularOutlined sx={{ fontSize: "4.5rem" }} />,
-      ruta: APP_ROUTES.tubos.root,
+      ruta: APP_ROUTES.tubos.path,
     },
     {
       titulo: "Línea de Mallas",
       descripcion:
         "Supervisión de electrosoldado, control de mallas standard y especiales, y estado de la maquinaria activa.",
       icono: <GridOnOutlined sx={{ fontSize: "4.5rem" }} />,
-      ruta: APP_ROUTES.mantenimiento,
+      ruta: APP_ROUTES.mantenimiento.path,
     },
   ];
 

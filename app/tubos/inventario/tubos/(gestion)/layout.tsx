@@ -79,7 +79,7 @@ export default function GestionTuboLayout({
 
           <Button
             component={Link}
-            href={APP_ROUTES.tubos.subRoutes.tubos}
+            href={APP_ROUTES.tubos.subRoutes.tubos.path}
             variant="outlined"
             color="inherit"
             startIcon={<ArrowBackIcon />}

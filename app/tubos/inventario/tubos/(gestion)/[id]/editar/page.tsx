@@ -89,7 +89,7 @@ export default function ActualizarTuboPage({
         );
       }
 
-      router.push(APP_ROUTES.tubos.subRoutes.tubos);
+      router.push(APP_ROUTES.tubos.subRoutes.tubos.path);
       router.refresh();
     } catch (error) {
       console.error("Error al guardar el tubo:", error);

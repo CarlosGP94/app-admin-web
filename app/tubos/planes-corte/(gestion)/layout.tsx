@@ -79,7 +79,7 @@ export default function GestionPlanesCorteLayout({
 
           <Button
             component={Link}
-            href={APP_ROUTES.tubos.subRoutes.planes_corte}
+            href={APP_ROUTES.tubos.subRoutes.planes_corte.path}
             variant="outlined"
             color="inherit"
             startIcon={<ArrowBackIcon />}

@@ -89,7 +89,7 @@ export default function ActualizarBobinaPage({
         );
       }
       toast.success("Bobina actualizada exitosamente.");
-      router.push(APP_ROUTES.tubos.subRoutes.bobinas);
+      router.push(APP_ROUTES.tubos.subRoutes.bobinas.path);
       router.refresh();
     } catch (error) {
       console.error("Error al guardar la bobina:", error);

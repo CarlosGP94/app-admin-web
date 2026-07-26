@@ -9,8 +9,10 @@ import {
   Box,
   Avatar,
   useTheme,
+  Skeleton,
 } from "@mui/material";
 import { MenuOutlined, AccountCircleOutlined } from "@mui/icons-material";
+import { useAuth } from "@/context/AuthContext";
 
 interface HeaderProps {
   title?: string;
@@ -19,6 +21,7 @@ interface HeaderProps {
 
 export default function Header({ title = "", onDrawerToggle }: HeaderProps) {
   const theme = useTheme();
+  const { isLoading, user, isAuthenticated } = useAuth(); // Aquí asumimos que tienes un hook useAuth para obtener la sesión del usuario
 
   return (
     <AppBar
@@ -56,28 +59,53 @@ export default function Header({ title = "", onDrawerToggle }: HeaderProps) {
         </Box>
 
         {/* Sección del perfil de usuario */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-            }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              Marcelo Llanes
-            </Typography>
-            <Typography
-              variant="labelBold"
-              sx={{ fontSize: "0.65rem", color: "text.secondary" }}
+        {isLoading ? (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            {/* Mimic de los textos alineados a la derecha */}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+              }}
             >
-              Ing. Automatización
-            </Typography>
+              <Skeleton variant="text" width={90} height={18} />
+              <Skeleton
+                variant="text"
+                width={110}
+                height={12}
+                sx={{ mt: 0.5 }}
+              />
+            </Box>
+            {/* Mimic del Avatar circular */}
+            <Skeleton variant="circular" width={36} height={36} />
           </Box>
-          <Avatar sx={{ bgcolor: "primary.container", width: 36, height: 36 }}>
-            <AccountCircleOutlined sx={{ color: "primary.onContainer" }} />
-          </Avatar>
-        </Box>
+        ) : (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+              }}
+            >
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {user?.nombre || "Usuario"}
+              </Typography>
+              <Typography
+                variant="labelBold"
+                sx={{ fontSize: "0.65rem", color: "text.secondary" }}
+              >
+                {user?.cargo || "Cargo"}
+              </Typography>
+            </Box>
+            <Avatar
+              sx={{ bgcolor: "primary.container", width: 36, height: 36 }}
+            >
+              <AccountCircleOutlined sx={{ color: "primary.onContainer" }} />
+            </Avatar>
+          </Box>
+        )}
       </Toolbar>
     </AppBar>
   );

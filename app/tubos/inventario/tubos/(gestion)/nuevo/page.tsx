@@ -42,7 +42,7 @@ export default function NuevoTuboPage() {
         );
       }
 
-      router.push(APP_ROUTES.tubos.subRoutes.tubos);
+      router.push(APP_ROUTES.tubos.subRoutes.tubos.path);
       router.refresh(); // Opcional: fuerza la revalidación de datos en la vista del listado
     } catch (error) {
       console.error("Error al guardar el tubo:", error);

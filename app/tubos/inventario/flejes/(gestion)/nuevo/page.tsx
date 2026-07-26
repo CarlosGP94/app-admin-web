@@ -44,7 +44,7 @@ export default function NuevoFlejePage() {
         );
       }
       toast.success("Fleje creado exitosamente.");
-      router.push(APP_ROUTES.tubos.subRoutes.flejes);
+      router.push(APP_ROUTES.tubos.subRoutes.flejes.path);
       router.refresh();
     } catch (error) {
       console.error("Error al guardar el fleje:", error);

@@ -13,27 +13,38 @@ interface DashboardLayoutProps {
 
 // 🗺️ Diccionario de títulos mapeados por sus rutas
 const ROUTE_TITLES: Record<string, string> = {
-  [APP_ROUTES.tubos.subRoutes.planes_corte]: "Planes de Corte",
-  [APP_ROUTES.tubos.subRoutes.planes_corte_nuevo]: "Planes de Corte - Nuevo",
-  [APP_ROUTES.tubos.subRoutes.planes_corte_editar(":id")]:
-    "Planes de Corte - Editar",
-  [APP_ROUTES.tubos.subRoutes.planes_corte_bobinas(":id")]:
-    "Planes de Corte - Bobinas",
-  [APP_ROUTES.tubos.subRoutes.bobinas_cortadas]: "Bobinas Cortadas",
-  [APP_ROUTES.tubos.subRoutes.produccion]: "Producción de Tubos",
-  [APP_ROUTES.tubos.subRoutes.salida_paquetes]: "Salidas de Paquetes",
-  [APP_ROUTES.tubos.subRoutes.tubos]: "Inventario de Tubos",
-  [APP_ROUTES.tubos.subRoutes.tubos_create]: "Inventario de Tubos - Nuevo",
-  [APP_ROUTES.tubos.subRoutes.tubos_edit(":id")]:
-    "Inventario de Tubos - Editar",
-  [APP_ROUTES.tubos.subRoutes.flejes]: "Inventario de Flejes",
-  [APP_ROUTES.tubos.subRoutes.flejes_create]: "Inventario de Flejes - Nuevo",
-  [APP_ROUTES.tubos.subRoutes.flejes_edit(":id")]:
-    "Inventario de Flejes - Editar",
-  [APP_ROUTES.tubos.subRoutes.bobinas]: "Inventario de Bobinas",
-  [APP_ROUTES.tubos.subRoutes.bobinas_create]: "Inventario de Bobinas - Nuevo",
-  [APP_ROUTES.tubos.subRoutes.bobinas_edit(":id")]:
-    "Inventario de Bobinas - Editar",
+  [APP_ROUTES.tubos.subRoutes.planes_corte.path]:
+    APP_ROUTES.tubos.subRoutes.planes_corte.label,
+  [APP_ROUTES.tubos.subRoutes.planes_corte_nuevo.path]:
+    APP_ROUTES.tubos.subRoutes.planes_corte_nuevo.label,
+  [APP_ROUTES.tubos.subRoutes.planes_corte_editar.path(":id")]:
+    APP_ROUTES.tubos.subRoutes.planes_corte_editar.label,
+  [APP_ROUTES.tubos.subRoutes.planes_corte_bobinas.path(":id")]:
+    APP_ROUTES.tubos.subRoutes.planes_corte_bobinas.label,
+  [APP_ROUTES.tubos.subRoutes.bobinas_cortadas.path]:
+    APP_ROUTES.tubos.subRoutes.bobinas_cortadas.label,
+  [APP_ROUTES.tubos.subRoutes.produccion.path]:
+    APP_ROUTES.tubos.subRoutes.produccion.label,
+  [APP_ROUTES.tubos.subRoutes.salida_paquetes.path]:
+    APP_ROUTES.tubos.subRoutes.salida_paquetes.label,
+  [APP_ROUTES.tubos.subRoutes.tubos.path]:
+    APP_ROUTES.tubos.subRoutes.tubos.label,
+  [APP_ROUTES.tubos.subRoutes.tubos_create.path]:
+    APP_ROUTES.tubos.subRoutes.tubos_create.label,
+  [APP_ROUTES.tubos.subRoutes.tubos_edit.path(":id")]:
+    APP_ROUTES.tubos.subRoutes.tubos_edit.label,
+  [APP_ROUTES.tubos.subRoutes.flejes.path]:
+    APP_ROUTES.tubos.subRoutes.flejes.label,
+  [APP_ROUTES.tubos.subRoutes.flejes_create.path]:
+    APP_ROUTES.tubos.subRoutes.flejes_create.label,
+  [APP_ROUTES.tubos.subRoutes.flejes_edit.path(":id")]:
+    APP_ROUTES.tubos.subRoutes.flejes_edit.label,
+  [APP_ROUTES.tubos.subRoutes.bobinas.path]:
+    APP_ROUTES.tubos.subRoutes.bobinas.label,
+  [APP_ROUTES.tubos.subRoutes.bobinas_create.path]:
+    APP_ROUTES.tubos.subRoutes.bobinas_create.label,
+  [APP_ROUTES.tubos.subRoutes.bobinas_edit.path(":id")]:
+    APP_ROUTES.tubos.subRoutes.bobinas_edit.label,
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {

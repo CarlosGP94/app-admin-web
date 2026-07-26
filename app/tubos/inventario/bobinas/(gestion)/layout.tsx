@@ -79,7 +79,7 @@ export default function GestionBobinasLayout({
 
           <Button
             component={Link}
-            href={APP_ROUTES.tubos.subRoutes.bobinas}
+            href={APP_ROUTES.tubos.subRoutes.bobinas.path}
             variant="outlined"
             color="inherit"
             startIcon={<ArrowBackIcon />}

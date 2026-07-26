@@ -20,7 +20,7 @@ interface MantenimientoProps {
 
 export default function Mantenimiento({
   redirectUrl = "/",
-  buttonText = "Panel Principal",
+  buttonText = "Inicio",
 }: MantenimientoProps) {
   const theme = useTheme();
   const router = useRouter();

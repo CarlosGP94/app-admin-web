@@ -286,7 +286,7 @@ export default function TubosPage() {
         onClose={() => handleDelete(null)}
       />
       <TopCrud
-        newUrl={APP_ROUTES.tubos.subRoutes.tubos_create}
+        newUrl={APP_ROUTES.tubos.subRoutes.tubos_create.path}
         searchTerm={searchTerm}
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
@@ -323,7 +323,7 @@ export default function TubosPage() {
           total={total}
           columns={columns((row) => {
             handleEdit(
-              `${APP_ROUTES.tubos.subRoutes.tubos_edit(row.id.toString())}`,
+              `${APP_ROUTES.tubos.subRoutes.tubos_edit.path(row.id.toString())}`,
             );
           }, handleDelete)}
           rowKeyExtractor={(row) => row.id}

@@ -9,7 +9,7 @@ const commonOptions = {
 };
 
 // 1. Definición clara de tus líneas de producción
-export type LineaProduccion = "tubos" | "mallas";
+export type LineaProduccion = "tubos" | "mallas" | "seguridad";
 
 // 2. Configuraciones por línea de negocio adaptadas para instancias como SQLEXPRESS
 const configs: Record<LineaProduccion, mssql.config> = {
@@ -42,6 +42,20 @@ const configs: Record<LineaProduccion, mssql.config> = {
     },
     pool: { max: 10, min: 0, idleTimeoutMillis: 30000 },
   },
+  seguridad: {
+    user: process.env.DB_SEGURIDAD_USER,
+    password: process.env.DB_SEGURIDAD_PASSWORD,
+    server: process.env.DB_SEGURIDAD_SERVER || "localhost",
+    database: process.env.DB_SEGURIDAD_DATABASE,
+    port: Number(process.env.DB_SEGURIDAD_PORT) || 1433,
+    options: {
+      ...commonOptions,
+      ...(process.env.DB_SEGURIDAD_INSTANCE
+        ? { instanceName: process.env.DB_SEGURIDAD_INSTANCE }
+        : {}),
+    },
+    pool: { max: 10, min: 0, idleTimeoutMillis: 30000 },
+  },
 };
 
 // Evitamos que Next.js duplique conexiones en desarrollo al recargar archivos (Hot Reload)
@@ -59,7 +73,7 @@ const pools = globalRef._mssqlPools;
 
 /**
  * Obtiene el Connection Pool correspondiente a la línea de producción solicitada.
- * @param linea 'tubos' o 'mallas'
+ * @param linea 'tubos' o 'mallas' o 'seguridad'
  */
 export const getConnection = (
   linea: LineaProduccion,

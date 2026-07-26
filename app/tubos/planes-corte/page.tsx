@@ -14,6 +14,7 @@ import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
 import { ConfirmDialog } from "@/components/commons/ConfirmDialog";
 import { useRouter } from "next/navigation";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 interface PlanCorte {
   id: number;
@@ -23,6 +24,18 @@ interface PlanCorte {
 }
 
 export default function PlanesCortePage() {
+  const permission =
+    APP_ROUTES.tubos.subRoutes.planes_corte
+      .permission as React.ComponentProps<typeof ProtectedRoute>["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <PlanesCorteView />
+    </ProtectedRoute>
+  );
+}
+
+export function PlanesCorteView() {
   const router = useRouter();
   const fecthData = async (
     currentPage: number,
@@ -177,7 +190,7 @@ export default function PlanesCortePage() {
 
   const handleShowBobinas = (row: PlanCorte) => {
     router.push(
-      `${APP_ROUTES.tubos.subRoutes.planes_corte_bobinas(row.id.toString())}`,
+      `${APP_ROUTES.tubos.subRoutes.planes_corte_bobinas.path(row.id.toString())}`,
     );
   };
 
@@ -203,7 +216,7 @@ export default function PlanesCortePage() {
         onClose={() => handleDelete(null)}
       />
       <TopCrud
-        newUrl={APP_ROUTES.tubos.subRoutes.planes_corte_nuevo}
+        newUrl={APP_ROUTES.tubos.subRoutes.planes_corte_nuevo.path}
         searchTerm={searchTerm}
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
@@ -232,7 +245,7 @@ export default function PlanesCortePage() {
             handleShowBobinas,
             (row) => {
               handleEdit(
-                `${APP_ROUTES.tubos.subRoutes.planes_corte_editar(row.id.toString())}`,
+                `${APP_ROUTES.tubos.subRoutes.planes_corte_editar.path(row.id.toString())}`,
               );
             },
             handleDelete,
