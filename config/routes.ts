@@ -24,7 +24,7 @@ export const APP_ROUTES = {
   // Módulo completo para la Línea de Tubos
   tubos: {
     path: "/tubos",
-    label: "Línea de Tubos",
+    label: "Línea de Producción de Tubos",
     subRoutes: {
       dashboard: {
         path: "/tubos/dashboard",

@@ -13,6 +13,7 @@ interface DashboardLayoutProps {
 
 // 🗺️ Diccionario de títulos mapeados por sus rutas
 const ROUTE_TITLES: Record<string, string> = {
+  [APP_ROUTES.tubos.path]: APP_ROUTES.tubos.label,
   [APP_ROUTES.tubos.subRoutes.planes_corte.path]:
     APP_ROUTES.tubos.subRoutes.planes_corte.label,
   [APP_ROUTES.tubos.subRoutes.planes_corte_nuevo.path]:
