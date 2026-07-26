@@ -89,7 +89,12 @@ export default function Sidebar({
       text: "Planes de Corte",
       icon: <ContentCutOutlined />,
       path: APP_ROUTES.tubos.subRoutes.planes_corte,
-      paths: [APP_ROUTES.tubos.subRoutes.planes_corte],
+      paths: [
+        APP_ROUTES.tubos.subRoutes.planes_corte,
+        APP_ROUTES.tubos.subRoutes.planes_corte_nuevo,
+        APP_ROUTES.tubos.subRoutes.planes_corte_editar(":id"),
+        APP_ROUTES.tubos.subRoutes.planes_corte_bobinas(":id"),
+      ],
     },
     {
       text: "Bobinas Cortadas",

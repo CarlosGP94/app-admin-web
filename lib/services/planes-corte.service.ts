@@ -1,4 +1,5 @@
 // lib/services/planes-corte.service.ts
+import { BobinaCortada, PlanCorteCabecera } from "@/types/planCorte";
 import { Transaction } from "mssql";
 import type { ConnectionPool } from "mssql";
 
@@ -594,4 +595,55 @@ export async function eliminarPlanCorteService(
     await transaction.rollback();
     throw error;
   }
+}
+
+export async function getBobinasPorPlanCorte(
+  pool: ConnectionPool,
+  planCorteId: number,
+): Promise<{ cabecera: PlanCorteCabecera | null; bobinas: BobinaCortada[] }> {
+  const req = pool.request();
+  req.input("planCorteId", planCorteId);
+
+  // 1. Cabecera del plan
+  const resCabecera = await req.query(`
+    SELECT id, codigo_plan AS codigoPlan, fecha_creacion AS fechaCreacion, estado
+    FROM Planes_Corte
+    WHERE id = @planCorteId;
+  `);
+
+  if (resCabecera.recordset.length === 0) {
+    return { cabecera: null, bobinas: [] };
+  }
+
+  // 2. Consulta exacta sobre la tabla Bobinas_Cortadas
+  // Nota: Si tienes tabla de Usuarios/Operarios, puedes hacer LEFT JOIN con Operarios o Usuarios
+  const resBobinas = await req.query(`
+    SELECT 
+      bc.id,
+      bc.bobina_id AS bobinaId,
+      bc.plan_corte_id AS planCorteId,
+      bc.numero,
+      bc.ancho_inicial AS anchoInicial,
+      bc.ancho_final AS anchoFinal,
+      bc.espesor_inicial AS espesorInicial,
+      bc.espesor_final AS espesorFinal,
+      bc.peso_real AS pesoReal,
+      bc.observacion,
+      bc.creado,
+      bc.colada_id AS coladaId,
+      CONCAT('Op. #', bc.operario_id) AS operario -- O el campo nombre si haces JOIN con Usuarios
+    FROM Bobinas_Cortadas bc
+    WHERE bc.plan_corte_id = @planCorteId
+    ORDER BY bc.creado DESC, bc.id DESC;
+  `);
+
+  const cabecera: PlanCorteCabecera = {
+    ...resCabecera.recordset[0],
+    totalBobinas: resBobinas.recordset.length,
+  };
+
+  return {
+    cabecera,
+    bobinas: resBobinas.recordset,
+  };
 }

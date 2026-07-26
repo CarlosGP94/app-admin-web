@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Box, useTheme } from "@mui/material";
-import { usePathname } from "next/navigation"; // 🔥 Importamos el hook para leer la ruta actual
+import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { APP_ROUTES } from "@/config/routes";
@@ -17,6 +17,8 @@ const ROUTE_TITLES: Record<string, string> = {
   [APP_ROUTES.tubos.subRoutes.planes_corte_nuevo]: "Planes de Corte - Nuevo",
   [APP_ROUTES.tubos.subRoutes.planes_corte_editar(":id")]:
     "Planes de Corte - Editar",
+  [APP_ROUTES.tubos.subRoutes.planes_corte_bobinas(":id")]:
+    "Planes de Corte - Bobinas",
   [APP_ROUTES.tubos.subRoutes.bobinas_cortadas]: "Bobinas Cortadas",
   [APP_ROUTES.tubos.subRoutes.produccion]: "Producción de Tubos",
   [APP_ROUTES.tubos.subRoutes.salida_paquetes]: "Salidas de Paquetes",
@@ -37,21 +39,34 @@ const ROUTE_TITLES: Record<string, string> = {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
-  const pathname = usePathname(); // 📍 Obtiene la ruta actual, ej: "/dashboard/plan-corte"
+  const pathname = usePathname();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  // 🏷️ Función para resolver el título de forma limpia o dinámica
+  // 🏷️ Función para resolver el título de forma limpia y dinámica
   const getPageTitle = (): string => {
-    // 1. Intenta buscar la coincidencia exacta en el diccionario
+    // 1. Coincidencia exacta
     if (ROUTE_TITLES[pathname]) {
       return ROUTE_TITLES[pathname];
     }
 
-    // 2. Fallback dinámico: si la ruta no existe en el mapa (ej: "/dashboard/mallas/crear"),
-    // limpia el último segmento de la URL sustituyendo guiones por espacios y capitalizando.
+    // 2. Coincidencia por patrón dinámico (remplaza `:id` u otros slugs por regex)
+    for (const [routePattern, title] of Object.entries(ROUTE_TITLES)) {
+      if (routePattern.includes(":")) {
+        // Convierte p.ej. '/tubos/planes-corte/:id/bobinas' en un Regex -> /^\/tubos\/planes-corte\/[^\/]+\/bobinas$/
+        const regexPattern = new RegExp(
+          "^" + routePattern.replace(/:[a-zA-Z0-9_]+/g, "[^/]+") + "$",
+        );
+
+        if (regexPattern.test(pathname)) {
+          return title;
+        }
+      }
+    }
+
+    // 3. Fallback dinámico genérico
     const segments = pathname.split("/").filter(Boolean);
     const lastSegment = segments[segments.length - 1] || "";
 
@@ -84,10 +99,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         }}
       >
         {/* Barra superior */}
-        <Header
-          title={getPageTitle()} // 🔥 Inyectamos el título resuelto dinámicamente
-          onDrawerToggle={handleDrawerToggle}
-        />
+        <Header title={getPageTitle()} onDrawerToggle={handleDrawerToggle} />
 
         {/* Contenido dinámico de las páginas */}
         <Box

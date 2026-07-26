@@ -27,7 +27,7 @@ export default function Header({ title = "", onDrawerToggle }: HeaderProps) {
         backgroundColor: "background.paper",
         color: "text.primary",
         borderBottom: `1px solid ${theme.palette.divider}`,
-        zIndex: theme.zIndex.drawer + 1, // Garantiza que se superponga correctamente al hacer scroll
+        zIndex: theme.zIndex.drawer + 1,
         boxShadow: "none",
       }}
     >

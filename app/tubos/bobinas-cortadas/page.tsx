@@ -212,7 +212,9 @@ export default function BobinaCortadaPage() {
         loading={loading}
         rows={data as BobinaCortada[]}
         total={total}
-        columns={columns(handleDetail, handleEdit, handleDelete)}
+        columns={columns((row) => {
+          handleEdit(``);
+        }, handleDelete)}
         rowKeyExtractor={(row) => row.id}
         handlePageChange={handlePageChange}
       />
@@ -221,7 +223,6 @@ export default function BobinaCortadaPage() {
 }
 
 const columns = (
-  handleDetail: (row: BobinaCortada) => void,
   handleEdit: (row: BobinaCortada) => void,
   handleDelete: (row: BobinaCortada) => void,
 ): Column<BobinaCortada>[] => [
@@ -277,13 +278,6 @@ const columns = (
           width: "100%",
         }}
       >
-        <IconButton
-          size="small"
-          onClick={() => handleDetail(row as unknown as BobinaCortada)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Eye size={16} />
-        </IconButton>
         <IconButton
           size="small"
           onClick={() => handleEdit(row as unknown as BobinaCortada)}

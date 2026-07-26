@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useLayoutTitle } from "../layout";
 import { APP_ROUTES } from "@/config/routes";
 import { Box, Alert } from "@mui/material";
-import FlejeForm from "@/components/tubos/flejes/FlejeForm";
 import { PlanCorteFormValues } from "@/components/tubos/planesCorte/PlanesCorteFormSchema";
 import { toast } from "react-toastify";
 import PlanCorteForm from "@/components/tubos/planesCorte/PlanesCorteForm";
@@ -66,7 +65,6 @@ export default function NuevoPlanCortePage() {
           {errorMessage}
         </Alert>
       )}
-      planes corets
       <PlanCorteForm onSubmit={handleSubmit} />
     </Box>
   );

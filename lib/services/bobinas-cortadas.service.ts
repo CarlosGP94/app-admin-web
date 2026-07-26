@@ -4,6 +4,7 @@ import type { ConnectionPool } from "mssql";
 // 1. Interfaces para tipar la entrada y salida de datos
 export interface FiltrosBobinasCortadas {
   busqueda?: string;
+  planCorte?: number;
   ancho?: number;
   espesor?: string;
   fabricante?: string;
@@ -68,6 +69,7 @@ export async function listarBobinasCortadasService(
   if (params.filtros) {
     const {
       busqueda,
+      planCorte,
       ancho,
       espesor,
       fabricante,
@@ -82,6 +84,10 @@ export async function listarBobinasCortadasService(
     if (ancho !== undefined && ancho !== null && ancho !== 0) {
       whereClauses.push(`b.ancho = @ancho`);
       request.input("ancho", params.filtros.ancho);
+    }
+    if (planCorte !== undefined && planCorte !== null && planCorte !== 0) {
+      whereClauses.push(`bc.plan_corte_id = @planCorte`);
+      request.input("planCorte", planCorte);
     }
     if (
       espesor !== undefined &&

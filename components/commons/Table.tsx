@@ -13,6 +13,7 @@ import Checkbox from "@mui/material/Checkbox";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import { Skeleton } from "@mui/material";
+import InboxIcon from "@mui/icons-material/Inbox"; // Opcional: icono representativo
 import { PAGE_SIZE } from "@/config/constants";
 
 export interface Column<T> {
@@ -41,6 +42,7 @@ interface GenericTableProps<T> {
   selectable?: boolean;
   selectedIds?: (string | number)[];
   onSelectionChange?: (selectedIds: (string | number)[]) => void;
+  emptyMessage?: string; // Prop opcional para personalizar el mensaje
 }
 
 const stylesHeaderCell = {
@@ -64,6 +66,7 @@ export default function ColumnGroupingTable<T>({
   selectable = false,
   selectedIds = [],
   onSelectionChange,
+  emptyMessage = "No se encontraron elementos",
 }: GenericTableProps<T>) {
   const getColumnSortState = (columnId: string) => {
     const activeSort = sortModel.find((item) => item.orderBy === columnId);
@@ -86,7 +89,6 @@ export default function ColumnGroupingTable<T>({
     }
   };
 
-  // Lógica para Selección Global y de Fila Individual
   const pageRowKeys = React.useMemo(
     () => rows.map(rowKeyExtractor),
     [rows, rowKeyExtractor],
@@ -106,14 +108,12 @@ export default function ColumnGroupingTable<T>({
   const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!onSelectionChange) return;
     if (event.target.checked) {
-      // Unir los elementos de la página actual que no estén ya en la selección global
       const newSelections = [...selectedIds];
       pageRowKeys.forEach((key) => {
         if (!newSelections.includes(key)) newSelections.push(key);
       });
       onSelectionChange(newSelections);
     } else {
-      // Filtrar y quitar los elementos de la página actual
       const newSelections = selectedIds.filter(
         (id) => !pageRowKeys.includes(id),
       );
@@ -133,6 +133,9 @@ export default function ColumnGroupingTable<T>({
     }
     onSelectionChange(newSelected);
   };
+
+  // Cálculo de columnas totales para abarcar el ancho completo en el estado sin datos
+  const totalColumns = columns.length + (selectable ? 1 : 0);
 
   return (
     <Paper
@@ -182,7 +185,6 @@ export default function ColumnGroupingTable<T>({
         >
           <TableHead>
             <TableRow>
-              {/* Celda del Header del Checkbox de Selección múltiple global */}
               {selectable && (
                 <TableCell
                   padding="checkbox"
@@ -217,7 +219,6 @@ export default function ColumnGroupingTable<T>({
                     }}
                     sx={{
                       ...stylesHeaderCell,
-                      // Si no es seleccionable, la primera columna de datos lleva el reset del sombreado izquierdo
                       ...(!selectable &&
                         colIndex === 0 && {
                           boxShadow: "inset 6px 0px 0px 0px transparent",
@@ -248,120 +249,150 @@ export default function ColumnGroupingTable<T>({
           </TableHead>
 
           <TableBody sx={{ backgroundColor: "#ffffff" }}>
-            {loading
-              ? Array.from(new Array(PAGE_SIZE)).map((_, rowIndex) => (
-                  <TableRow key={`skeleton-row-${rowIndex}`}>
+            {loading ? (
+              Array.from(new Array(PAGE_SIZE)).map((_, rowIndex) => (
+                <TableRow key={`skeleton-row-${rowIndex}`}>
+                  {selectable && (
+                    <TableCell
+                      padding="checkbox"
+                      sx={{ boxShadow: "inset 6px 0px 0px 0px transparent" }}
+                    >
+                      <Skeleton
+                        variant="rectangular"
+                        width={20}
+                        height={20}
+                        animation="wave"
+                      />
+                    </TableCell>
+                  )}
+                  {columns.map((column, colIndex) => (
+                    <TableCell
+                      key={`skeleton-cell-${rowIndex}-${column.id as string}`}
+                      align={column.align}
+                      style={{
+                        width: column.width || "auto",
+                        minWidth: column.minWidth,
+                      }}
+                      sx={{
+                        ...(!selectable &&
+                          colIndex === 0 && {
+                            boxShadow: "inset 6px 0px 0px 0px transparent",
+                          }),
+                      }}
+                    >
+                      <Skeleton
+                        animation="wave"
+                        variant="text"
+                        width={column.align === "right" ? "60%" : "85%"}
+                        height={20}
+                      />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : rows.length === 0 ? (
+              /* ESTADO VACÍO (SIN ELEMENTOS) */
+              <TableRow sx={{ height: "100%" }}>
+                <TableCell
+                  colSpan={totalColumns}
+                  align="center"
+                  sx={{
+                    py: 8,
+                    borderBottom: "none",
+                    height: "100%",
+                    backgroundColor: "#F8FAFC",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      height: "100%",
+                      gap: 1.5,
+                      color: "#8a8c9e",
+                    }}
+                  >
+                    <InboxIcon sx={{ fontSize: 48, color: "#c5c5d2" }} />
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {emptyMessage}
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((row, rowIndex) => {
+                const rowKey = rowKeyExtractor(row) || rowIndex;
+                const isItemSelected = selectedIds.includes(rowKey);
+
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={rowKey}
+                    selected={selectable && isItemSelected}
+                    sx={{
+                      "&:hover .MuiTableCell-root:first-of-type": {
+                        boxShadow: "inset 6px 0px 0px 0px #001040",
+                      },
+                    }}
+                  >
                     {selectable && (
                       <TableCell
                         padding="checkbox"
-                        sx={{ boxShadow: "inset 6px 0px 0px 0px transparent" }}
+                        onClick={() => handleRowSelectClick(rowKey)}
+                        sx={{
+                          transition: "box-shadow 0.15s ease-in-out",
+                          boxShadow: "inset 6px 0px 0px 0px transparent",
+                          cursor: "pointer",
+                        }}
                       >
-                        <Skeleton
-                          variant="rectangular"
-                          width={20}
-                          height={20}
-                          animation="wave"
+                        <Checkbox
+                          color="primary"
+                          checked={isItemSelected}
+                          size="small"
                         />
                       </TableCell>
                     )}
-                    {columns.map((column, colIndex) => (
-                      <TableCell
-                        key={`skeleton-cell-${rowIndex}-${column.id as string}`}
-                        align={column.align}
-                        style={{
-                          width: column.width || "auto",
-                          minWidth: column.minWidth,
-                        }}
-                        sx={{
-                          ...(!selectable &&
-                            colIndex === 0 && {
-                              boxShadow: "inset 6px 0px 0px 0px transparent",
-                            }),
-                        }}
-                      >
-                        <Skeleton
-                          animation="wave"
-                          variant="text"
-                          width={column.align === "right" ? "60%" : "85%"}
-                          height={20}
-                        />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              : rows.map((row, rowIndex) => {
-                  const rowKey = rowKeyExtractor(row) || rowIndex;
-                  const isItemSelected = selectedIds.includes(rowKey);
 
-                  return (
-                    <TableRow
-                      hover
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={rowKey}
-                      selected={selectable && isItemSelected}
-                      sx={{
-                        "&:hover .MuiTableCell-root:first-of-type": {
-                          boxShadow: "inset 6px 0px 0px 0px #001040",
-                        },
-                      }}
-                    >
-                      {/* Celda del Checkbox individual para cada fila */}
-                      {selectable && (
+                    {columns.map((column, colIndex) => {
+                      const value = row[column.id];
+                      return (
                         <TableCell
-                          padding="checkbox"
-                          onClick={() => handleRowSelectClick(rowKey)}
+                          key={String(column.id)}
+                          align={column.align}
+                          style={{
+                            width: column.width || "auto",
+                            minWidth: column.minWidth,
+                          }}
                           sx={{
-                            transition: "box-shadow 0.15s ease-in-out",
-                            boxShadow: "inset 6px 0px 0px 0px transparent",
-                            cursor: "pointer",
+                            ...(!selectable &&
+                              colIndex === 0 && {
+                                boxShadow: "inset 6px 0px 0px 0px transparent",
+                                transition: "box-shadow 0.15s ease-in-out",
+                              }),
+                            ...(column.fontWeight && {
+                              fontWeight: column.fontWeight,
+                            }),
                           }}
                         >
-                          <Checkbox
-                            color="primary"
-                            checked={isItemSelected}
-                            size="small"
-                          />
+                          {column.format
+                            ? column.format(row)
+                            : String(value ?? "-")}
                         </TableCell>
-                      )}
-
-                      {columns.map((column, colIndex) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell
-                            key={String(column.id)}
-                            align={column.align}
-                            style={{
-                              width: column.width || "auto",
-                              minWidth: column.minWidth,
-                            }}
-                            sx={{
-                              // Aplica el efecto de la barra lateral izquierda a la celda de datos solo si no hay Checkbox previo
-                              ...(!selectable &&
-                                colIndex === 0 && {
-                                  boxShadow:
-                                    "inset 6px 0px 0px 0px transparent",
-                                  transition: "box-shadow 0.15s ease-in-out",
-                                }),
-                              ...(column.fontWeight && {
-                                fontWeight: column.fontWeight,
-                              }),
-                            }}
-                          >
-                            {column.format
-                              ? column.format(row)
-                              : String(value ?? "-")}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
+                      );
+                    })}
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Footer unificado con Contador de Selección y Paginación */}
+      {/* Footer */}
       <Box
         sx={{
           display: "flex",

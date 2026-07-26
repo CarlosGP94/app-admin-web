@@ -28,6 +28,8 @@ export async function GET(request: Request) {
     const ancho = anchoParam ? Number(anchoParam) : undefined;
     const fabricante = searchParams.get("fabricante") || undefined;
     const colada = searchParams.get("colada") || undefined;
+    const planCorteParam = searchParams.get("planCorte");
+    const planCorte = planCorteParam ? Number(planCorteParam) : undefined;
     const fechaInicio = searchParams.get("fechaCorte_start") || undefined;
     const fechaFin = searchParams.get("fechaCorte_end") || undefined;
 
@@ -48,6 +50,7 @@ export async function GET(request: Request) {
         fabricante,
         fechaInicio,
         fechaFin,
+        planCorte,
       },
     };
 
