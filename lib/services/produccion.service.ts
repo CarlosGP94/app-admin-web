@@ -1100,3 +1100,80 @@ export async function actualizarProduccionTuboService(
     throw error;
   }
 }
+
+export interface EliminarProduccionTuboResponse {
+  id: number;
+  mensaje: string;
+}
+
+/**
+ * Servicio para eliminar un registro de producción de tubo.
+ * Resta la producción devuelta al stock del tubo y elimina
+ * el control dimensional asociado si existe.
+ */
+export async function eliminarProduccionTuboService(
+  pool: ConnectionPool,
+  id: number,
+): Promise<EliminarProduccionTuboResponse> {
+  const transaction = new Transaction(pool);
+
+  try {
+    await transaction.begin();
+
+    // 1. Obtener la producción existente para verificar que existe y capturar sus datos clave
+    const reqObtener = new Request(transaction);
+    reqObtener.input("id", id);
+
+    const resObtener = await reqObtener.query(`
+      SELECT tubo_id, cant_tubos_buenos, control_dimensional_id 
+      FROM Prod_Tubos 
+      WHERE id = @id;
+    `);
+
+    if (resObtener.recordset.length === 0) {
+      throw new Error(`No se encontró la producción con ID ${id}.`);
+    }
+
+    const {
+      tubo_id: tuboId,
+      cant_tubos_buenos: tubosBuenos,
+      control_dimensional_id: controlDimensionalId,
+    } = resObtener.recordset[0];
+
+    // 2. Revertir/Restar del stock del tubo las unidades de esta producción
+    if (tuboId && tubosBuenos && tubosBuenos > 0) {
+      // Al pasar el valor negativo (-tubosBuenos), la función auxiliar restar del acumulado en DB
+      await actualizarStockTubo(transaction, tuboId, -tubosBuenos);
+    }
+
+    // 3. Eliminar el registro principal de la producción en Prod_Tubos
+    const reqDeleteProd = new Request(transaction);
+    reqDeleteProd.input("id", id);
+    await reqDeleteProd.query(`
+      DELETE FROM Prod_Tubos 
+      WHERE id = @id;
+    `);
+
+    // 4. Si existe un control dimensional vinculado, eliminarlo
+    if (controlDimensionalId) {
+      const reqDeleteControl = new Request(transaction);
+      reqDeleteControl.input("controlDimensionalId", controlDimensionalId);
+      await reqDeleteControl.query(`
+        DELETE FROM Control_Dimensional
+        WHERE id = @controlDimensionalId;
+      `);
+    }
+
+    // 5. Confirmar las operaciones en base de datos
+    await transaction.commit();
+
+    return {
+      id,
+      mensaje: `Producción con ID ${id} eliminada correctamente, stock actualizado y control dimensional eliminado.`,
+    };
+  } catch (error) {
+    // Si falla cualquier paso, revertir todos los cambios realizados
+    await transaction.rollback();
+    throw error;
+  }
+}

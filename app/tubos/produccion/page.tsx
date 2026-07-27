@@ -24,6 +24,7 @@ import ProtectedRoute from "@/components/commons/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { ConfirmDialog } from "@/components/commons/ConfirmDialog";
 
 interface Prod {
   id: number;
@@ -191,6 +192,20 @@ export function ProduccionView() {
     };
   };
 
+  const onDeleteConfirm = async (
+    id: string | number,
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await fetch(APP_ROUTES.api.tubos.produccion_detalle(String(id)), {
+        method: "DELETE",
+      });
+      return { success: true };
+    } catch (error) {
+      console.error("Error al eliminar el fleje:", error);
+      return { success: false, error: (error as string) || String(error) };
+    }
+  };
+
   const {
     page,
     total,
@@ -201,6 +216,7 @@ export function ProduccionView() {
     loading,
     sortModel,
     selectedIds,
+    showDeleteConfirm,
     handleSortModel,
     handlePageChange,
     handleEdit,
@@ -209,6 +225,7 @@ export function ProduccionView() {
     handleClearAllFilters,
     handleFilter,
     handleSelectItems,
+    handleDeleteConfirm,
   } = useDataTable({
     initFilters: [
       {
@@ -261,6 +278,7 @@ export function ProduccionView() {
         valueEnd: null,
       },
     ],
+    onDeleteConfirm: onDeleteConfirm,
     fetchData: fecthData,
     fetchFilters: fecthFilters,
   });
@@ -284,6 +302,18 @@ export function ProduccionView() {
         flexDirection: "column",
       }}
     >
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Confirmar eliminación"
+        message="¿Estás seguro de que deseas eliminar este tubo? Se restaurará el inventario del tubo correspondiente y esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        color="error"
+        onConfirm={() => {
+          handleDeleteConfirm();
+        }}
+        onClose={() => handleDelete(null)}
+      />
       <TopCrud
         newUrl={APP_ROUTES.tubos.subRoutes.produccion_create.path}
         searchTerm={searchTerm}
@@ -484,7 +514,7 @@ const columns = (
             <Edit2 size={16} />
           </IconButton>
         </Tooltip>
-        {/* <Tooltip title="Eliminar producción" arrow placement="top">
+        <Tooltip title="Eliminar producción" arrow placement="top">
           <IconButton
             size="small"
             onClick={() => handleDelete(row)}
@@ -492,7 +522,7 @@ const columns = (
           >
             <Trash2 size={16} />
           </IconButton>
-        </Tooltip> */}
+        </Tooltip>
       </Box>
     ),
   },
