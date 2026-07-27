@@ -42,7 +42,7 @@ export const tuboSchema = z
   })
   .superRefine((data, ctx) => {
     // Validaciones condicionales por Tipo de Tubo
-    if (data.tipo_id === 1) {
+    if (data.tipo_id === 2) {
       // Rectangular
       if (!data.alto || data.alto < 1) {
         ctx.addIssue({
@@ -58,7 +58,7 @@ export const tuboSchema = z
           path: ["ancho"],
         });
       }
-    } else if (data.tipo_id === 2) {
+    } else if (data.tipo_id === 1) {
       // Cuadrado
       if (!data.ancho || data.ancho < 1) {
         ctx.addIssue({

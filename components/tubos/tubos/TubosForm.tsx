@@ -209,7 +209,6 @@ export default function TuboForm({
     const anchoTxt = ancho ? String(ancho) : "";
     const diametroTxt = diametro ? String(diametro) : "";
     const espesorTxt = espesor ? String(espesor) : "";
-    const longitudTxt = longitud ? String(longitud) : "";
 
     let base = "";
     if (tipoId == 4) {
@@ -231,9 +230,14 @@ export default function TuboForm({
       tipo ? `${tipo.toUpperCase()} ` : ""
     }${base}`.trim();
 
+    // Cálculo de la parte entera en metros (longitud en mm / 1000)
     const numLongitud = Number(longitud);
-    if (numLongitud > 0) {
-      medida = `${medida} L${longitudTxt}m`;
+    if (!isNaN(numLongitud)) {
+      const metrosEnteros = Math.floor(numLongitud / 1000);
+
+      if (metrosEnteros > 0) {
+        medida = `${medida} L${metrosEnteros}m`;
+      }
     }
 
     setValue("art_concepto", medida, { shouldValidate: true });
@@ -252,16 +256,20 @@ export default function TuboForm({
   ]);
 
   useEffect(() => {
-    const pu = Number(pesoUnitario) || 0;
-    const l = Number(longitud) || 0;
+    const ml = Number(masaLineal) || 0;
+    const l = Number(longitud) || 0; // en milímetros
 
-    if (l > 0 && pu > 0) {
-      const ml = pu / l;
-      setValue("masa_lineal", Number(ml.toFixed(3)), { shouldValidate: true });
+    if (l > 0 && ml > 0) {
+      // Si la longitud está en mm, pasamos a metros dividiendo entre 1000
+      const metros = l / 1000;
+      const pu = ml * metros;
+      setValue("peso_unitario", Number(pu.toFixed(2)), {
+        shouldValidate: true,
+      });
     } else {
-      setValue("masa_lineal", 0, { shouldValidate: true });
+      setValue("peso_unitario", 0, { shouldValidate: true });
     }
-  }, [pesoUnitario, longitud, setValue]);
+  }, [masaLineal, longitud, setValue]);
 
   useEffect(() => {
     const unidadesTotales = (numPaquetes || 0) * (numPorPaq || 0);
@@ -548,20 +556,11 @@ export default function TuboForm({
           <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Magnitudes de Peso y Paquete
+                Magnitudes de Peso
               </Typography>
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 4 }}>
                   <FormTextField
-                    name="peso_unitario"
-                    type="number"
-                    control={control}
-                    label="Peso Unitario (kg)"
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
-                  <FormTextField
-                    disabled
                     name="masa_lineal"
                     type="number"
                     control={control}
@@ -570,13 +569,30 @@ export default function TuboForm({
                 </Grid>
                 <Grid size={{ xs: 12, sm: 4 }}>
                   <FormTextField
+                    disabled
+                    name="peso_unitario"
+                    type="number"
+                    control={control}
+                    label="Peso Unitario (kg)"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <FormTextField
                     name="peso_total"
                     type="number"
                     control={control}
-                    label="Peso Total (kg)"
+                    label="Peso Total del Paquete (kg)"
                   />
                 </Grid>
-
+              </Grid>
+            </CardContent>
+          </Card>
+          <Card variant="outlined" sx={{ borderRadius: 2 }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                Dimensiones del Paquete
+              </Typography>
+              <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <FormTextField
                     name="alto_paq"
