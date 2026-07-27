@@ -2,10 +2,12 @@
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 import {
+  actualizarProduccionTuboService,
   crearProduccionService,
   ListarProdTubosParams,
   listarProdTubosService,
   ProduccionCreatePayload,
+  ProduccionTuboUpdatePayload,
 } from "@/lib/services/produccion.service";
 
 /**
@@ -137,6 +139,63 @@ export async function POST(request: Request) {
         success: false,
         error: message,
       },
+      { status: 500 },
+    );
+  }
+}
+
+// ==========================================
+// PUT: Actualizar Registro de Producción de Tubo
+// ==========================================
+export async function PUT(request: Request) {
+  try {
+    const body: ProduccionTuboUpdatePayload = await request.json();
+
+    // Validaciones básicas de campos obligatorios
+    if (!body.id || !body.tubo_id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Los campos 'id' y 'tubo_id' son obligatorios para actualizar la producción.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (body.cant_tubos_buenos === undefined || body.cant_tubos_buenos < 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "El campo 'tubos_buenos' es obligatorio y no puede ser un número negativo.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Conexión y ejecución del servicio dentro de la transacción
+    const pool = await getConnection("tubos");
+    const resultado = await actualizarProduccionTuboService(pool, body);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: resultado.mensaje,
+        data: resultado,
+      },
+      { status: 200 },
+    );
+  } catch (error: unknown) {
+    console.error("❌ Error en PUT /api/tubos/produccion:", error);
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Error interno del servidor al actualizar la producción de tubo.";
+
+    return NextResponse.json(
+      { success: false, error: message },
       { status: 500 },
     );
   }

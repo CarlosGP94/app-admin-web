@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -122,11 +122,18 @@ export default function ProduccionTuboForm({
     },
   });
 
-  const { handleSubmit, watch, reset } = methods;
+  const { handleSubmit, watch, setValue, reset } = methods;
 
   const watchMaquinaId = watch("maquina_id");
+  const watchCalidadId = watch("calidad_id");
   const watchTuboId = watch("tubo_id");
-  const watchCreado = watch("creado"); // Observamos la fecha/hora seleccionada
+  const watchCreado = watch("creado");
+
+  // Referencias para omitir el disparo del reseteo en la carga inicial / reset del form
+  const isFirstRender = useRef(true);
+  const prevMaquinaId = useRef<number | undefined>(watchMaquinaId);
+  const prevCalidadId = useRef<number | undefined>(watchCalidadId);
+  const prevTuboId = useRef<number | undefined>(watchTuboId);
 
   // Cargar catálogo de calidades al montar
   useEffect(() => {
@@ -171,10 +178,48 @@ export default function ProduccionTuboForm({
         observacion: initialData.observacion ?? "",
         creado: getFechaLocalISO(initialData?.creado),
       });
+
+      // Actualizar referencias al hacer reset
+      prevMaquinaId.current = initialData.maquina_id
+        ? Number(initialData.maquina_id)
+        : 0;
+      prevCalidadId.current = initialData.calidad_id
+        ? Number(initialData.calidad_id)
+        : undefined;
+      prevTuboId.current = initialData.tubo_id
+        ? Number(initialData.tubo_id)
+        : 0;
     }
   }, [initialData, reset]);
 
-  console.log("ProduccionTuboForm - initialData:", initialData);
+  // =========================================================================
+  // REGLAS DE NEGOCIO: RESETEO CASCADA DE CAMPOS
+  // =========================================================================
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    // 1. Al cambiar la Máquina o la Calidad -> tubo_id pasa a 0 y lote_tubo_id pasa a 0
+    if (
+      prevMaquinaId.current !== watchMaquinaId ||
+      prevCalidadId.current !== watchCalidadId
+    ) {
+      setValue("tubo_id", 0, { shouldValidate: true });
+      setValue("lote_tubo_id", 0, { shouldValidate: true });
+      prevMaquinaId.current = watchMaquinaId;
+      prevCalidadId.current = watchCalidadId;
+      prevTuboId.current = 0;
+      return;
+    }
+
+    // 2. Al cambiar el Tubo -> lote_tubo_id pasa a 0
+    if (prevTuboId.current !== watchTuboId) {
+      setValue("lote_tubo_id", 0, { shouldValidate: true });
+      prevTuboId.current = watchTuboId;
+    }
+  }, [watchMaquinaId, watchCalidadId, watchTuboId, setValue]);
 
   // Obtención de Tubos según la Máquina
   useEffect(() => {
@@ -221,7 +266,6 @@ export default function ProduccionTuboForm({
         }
 
         if (watchCreado) {
-          // Extraemos YYYY-MM-DD del input datetime-local / ISO
           const fechaOnly = watchCreado.split("T")[0];
           if (fechaOnly) {
             url.searchParams.append("fecha", fechaOnly);
@@ -240,7 +284,7 @@ export default function ProduccionTuboForm({
     };
 
     fetchLotes();
-  }, [watchTuboId, watchCreado]);
+  }, [watchTuboId, watchCreado, watchMaquinaId]);
 
   const onSubmit = async (data: ProduccionTuboFormValues) => {
     await onSubmitProp(data);
@@ -311,6 +355,21 @@ export default function ProduccionTuboForm({
                 />
               </Grid>
 
+              {/* CALIDAD */}
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <FormSelect
+                  size="small"
+                  control={methods.control}
+                  name="calidad_id"
+                  label="Calidad"
+                  loading={loadingCalidades}
+                  options={calidades.map((c) => ({
+                    id: Number(c.id),
+                    label: c.nombre || "",
+                  }))}
+                />
+              </Grid>
+
               {/* TUBO ESPECIFICADO */}
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <FormSelect
@@ -326,21 +385,6 @@ export default function ProduccionTuboForm({
                 />
               </Grid>
 
-              {/* CALIDAD (INFORMATIVO Y VINCULADO AL TUBO) */}
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <FormSelect
-                  size="small"
-                  control={methods.control}
-                  name="calidad_id"
-                  label="Calidad"
-                  loading={loadingCalidades}
-                  options={calidades.map((c) => ({
-                    id: Number(c.id),
-                    label: c.nombre || "",
-                  }))}
-                />
-              </Grid>
-
               {/* LOTE DE TUBO (AUTOCOMPLETE) */}
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <FormAutocomplete
@@ -350,7 +394,6 @@ export default function ProduccionTuboForm({
                   label="Lote de Tubo"
                   required
                   loading={loadingLotes}
-                  disabled={!watchTuboId || lotes.length === 0}
                   options={lotes.map((lote: LoteTubo) => ({
                     id: Number(lote.id),
                     label: lote.codigo || lote.lote || `Lote #${lote.id}`,

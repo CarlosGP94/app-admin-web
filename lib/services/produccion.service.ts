@@ -906,19 +906,21 @@ export interface ProduccionTuboUpdatePayload {
   tubo_id: number;
   maquina_id?: number;
   lote_id?: number;
+  turno_id?: number;
   fleje_id?: number;
   operario_id?: number;
-  tubos_buenos: number;
-  tubos_malos?: number;
+  cant_tubos_buenos: number;
+  cant_tubos_malos?: number;
   velocidad?: number;
   observaciones?: string;
+  creado?: string;
   // Añadir aquí cualquier otro campo que pertenezca a la tabla de producción
 }
 
 export interface ProduccionTuboUpdateResponse {
   id: number;
   tubo_id: number;
-  tubos_buenos: number;
+  cant_tubos_buenos: number;
   mensaje: string;
 }
 
@@ -991,8 +993,8 @@ export async function actualizarProduccionTuboService(
     reqPrevio.input("id", payload.id);
 
     const resPrevio = await reqPrevio.query(`
-      SELECT tubo_id, tubos_buenos 
-      FROM Produccion_Tubos 
+      SELECT tubo_id, cant_tubos_buenos, control_dimensional_id 
+      FROM Prod_Tubos 
       WHERE id = @id;
     `);
 
@@ -1002,11 +1004,14 @@ export async function actualizarProduccionTuboService(
       );
     }
 
-    const { tubo_id: tuboIdViejo, tubos_buenos: tubosBuenosViejos } =
-      resPrevio.recordset[0];
+    const {
+      tubo_id: tuboIdViejo,
+      cant_tubos_buenos: tubosBuenosViejos,
+      control_dimensional_id: controlDimensionalId,
+    } = resPrevio.recordset[0];
 
     const tuboIdNuevo = payload.tubo_id;
-    const tubosBuenosNuevos = payload.tubos_buenos || 0;
+    const tubosBuenosNuevos = payload.cant_tubos_buenos || 0;
 
     // 2. Actualizar el stock del/los tubo(s)
     if (tuboIdViejo === tuboIdNuevo) {
@@ -1017,7 +1022,7 @@ export async function actualizarProduccionTuboService(
       }
     } else {
       // Cambio de tubo:
-      // a) Restablecer el stock del tubo antiguo (restar los tubos que antes se le habían sumado)
+      // a) Restablecer el stock del tubo antiguo
       if (tubosBuenosViejos && tubosBuenosViejos > 0) {
         await actualizarStockTubo(transaction, tuboIdViejo, -tubosBuenosViejos);
       }
@@ -1028,48 +1033,66 @@ export async function actualizarProduccionTuboService(
       }
     }
 
-    // 3. Actualizar la tabla de Produccion_Tubos
+    // 3. Actualizar la tabla Prod_Tubos
     const reqUpdateProd = new Request(transaction);
     reqUpdateProd.input("id", payload.id);
+    reqUpdateProd.input("turno_id", payload.turno_id ?? null);
     reqUpdateProd.input("tubo_id", payload.tubo_id);
     reqUpdateProd.input("maquina_id", payload.maquina_id ?? null);
     reqUpdateProd.input("lote_id", payload.lote_id ?? null);
-    reqUpdateProd.input("fleje_id", payload.fleje_id ?? null);
     reqUpdateProd.input("operario_id", payload.operario_id ?? null);
-    reqUpdateProd.input("tubos_buenos", tubosBuenosNuevos);
-    reqUpdateProd.input("tubos_malos", payload.tubos_malos ?? 0);
-    reqUpdateProd.input("velocidad", payload.velocidad ?? null);
-    reqUpdateProd.input(
-      "observaciones",
-
-      payload.observaciones ?? null,
-    );
+    reqUpdateProd.input("cant_tubos_buenos", tubosBuenosNuevos);
+    reqUpdateProd.input("cant_tubos_malos", payload.cant_tubos_malos ?? 0);
+    reqUpdateProd.input("observaciones", payload.observaciones ?? "");
+    reqUpdateProd.input("creado", payload.creado ?? new Date());
 
     const queryUpdateProd = `
-      UPDATE Produccion_Tubos
+      UPDATE Prod_Tubos
       SET 
+        turno_id = @turno_id,
         tubo_id = @tubo_id,
         maquina_id = @maquina_id,
-        lote_id = @lote_id,
-        fleje_id = @fleje_id,
+        lote_tubo_id = @lote_id,
         operario_id = @operario_id,
-        tubos_buenos = @tubos_buenos,
-        tubos_malos = @tubos_malos,
-        velocidad = @velocidad,
-        observaciones = @observaciones
+        cant_tubos_buenos = @cant_tubos_buenos,
+        cant_tubos_malos = @cant_tubos_malos,
+        observacion = @observaciones,
+        creado = @creado
       WHERE id = @id;
     `;
 
     await reqUpdateProd.query(queryUpdateProd);
 
-    // 4. Confirmar cambios
+    // 4. Actualizar el registro de Control_Dimensional si existe
+    if (controlDimensionalId) {
+      const reqUpdateControl = new Request(transaction);
+      reqUpdateControl.input("control_id", controlDimensionalId);
+      reqUpdateControl.input("tubo_id", payload.tubo_id);
+      reqUpdateControl.input("operario_id", payload.operario_id ?? null);
+      reqUpdateControl.input("maquina_id", payload.maquina_id ?? null);
+      reqUpdateControl.input("creado", payload.creado ?? new Date());
+
+      const queryUpdateControl = `
+        UPDATE Control_Dimensional
+        SET 
+          tubo_id = @tubo_id,
+          maquina_id = @maquina_id,
+          creado = @creado
+        WHERE id = @control_id;
+      `;
+
+      await reqUpdateControl.query(queryUpdateControl);
+    }
+
+    // 5. Confirmar cambios
     await transaction.commit();
 
     return {
       id: payload.id,
       tubo_id: payload.tubo_id,
-      tubos_buenos: tubosBuenosNuevos,
-      mensaje: "Producción y stock de tubos actualizados correctamente.",
+      cant_tubos_buenos: tubosBuenosNuevos,
+      mensaje:
+        "Producción, stock y control dimensional actualizados correctamente.",
     };
   } catch (error) {
     // Si hay algún fallo, se revierte todo
