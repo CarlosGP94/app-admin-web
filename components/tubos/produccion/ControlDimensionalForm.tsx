@@ -618,6 +618,7 @@ export default function ControlDimensionalForm({
                   control={methods.control}
                   size="small"
                   name="maquina_id"
+                  disabled
                   label="Máquina / Línea de Producción"
                   options={maquinas.map((m: MaquinaItem) => ({
                     id: Number(m.id),

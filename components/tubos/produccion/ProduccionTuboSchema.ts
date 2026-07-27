@@ -15,6 +15,10 @@ export const produccionTuboEditSchema = z.object({
     .number({ message: "Selecciona una máquina" })
     .min(1, { message: "Debe seleccionar una máquina válida" }),
 
+  calidad_id: z
+    .number({ message: "Selecciona una calidad" })
+    .min(1, { message: "Debe seleccionar una calidad válida" }),
+
   tubo_id: z
     .number({ message: "Selecciona un tubo" })
     .min(1, { message: "Debe seleccionar un tubo válido" }),
@@ -50,4 +54,4 @@ export const produccionTuboEditSchema = z.object({
 });
 
 // Tipo inferido para TypeScript
-export type ProduccionTuboEditInput = z.infer<typeof produccionTuboEditSchema>;
+export type ProduccionTuboFormValues = z.infer<typeof produccionTuboEditSchema>;

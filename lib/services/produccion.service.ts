@@ -740,3 +740,340 @@ export async function crearProduccionService(
     throw error;
   }
 }
+
+export interface ProduccionTuboDetalle {
+  id: number;
+  creado: string;
+  operario_id: number;
+  turno_id: number;
+  maquina_id: number;
+  tubo_id: number;
+  lote_tubo_id: number;
+  cant_tubos_buenos: number;
+  cant_tubos_malos: number;
+  paquetes: number;
+  concentracion_taladrina: number | null;
+  observacion: string | null;
+
+  // Relaciones opcionales/anidadas para enriquecer la UI en caso de requerirse
+  operario?: {
+    id: number;
+    nombre?: string;
+    apellido1?: string | null;
+    apellido2?: string | null;
+  };
+  turno?: {
+    id: number;
+    prefijo?: string | null;
+    entrada?: string | null;
+    salida?: string | null;
+  };
+  maquina?: {
+    id: number;
+    nombre?: string;
+    [key: string]: unknown;
+  };
+  tubo?: {
+    id: number;
+    medida?: string;
+    calidad_id?: number;
+    espesor?: number;
+    longitud?: number;
+  };
+  lote_tubo?: {
+    id: number;
+    codigo?: string;
+    lote?: string;
+  };
+}
+
+export async function obtenerProduccionTuboPorIdService(
+  pool: ConnectionPool,
+  id: number,
+): Promise<ProduccionTuboDetalle | null> {
+  const req = pool.request();
+  req.input("id", id);
+
+  const query = `
+    SELECT 
+      p.id,
+      p.creado,
+      p.operario_id,
+      p.turno_id,
+      p.maquina_id,
+      p.tubo_id,
+      p.lote_tubo_id,
+      p.cant_tubos_buenos,
+      p.cant_tubos_malos,
+      p.paquetes,
+      p.concentracion_taladrina,
+      p.observacion,
+      
+      -- Datos del Operario
+      o.nombre AS operario_nombre,
+      o.apellido1 AS operario_apellido1,
+      o.apellido2 AS operario_apellido2,
+
+      -- Datos del Turno
+      tr.prefijo AS turno_prefijo,
+      tr.entrada AS turno_entrada,
+      tr.salida AS turno_salida,
+
+      -- Datos de la Máquina
+      m.nombre AS maquina_nombre,
+
+      -- Datos del Tubo
+      t.medida AS tubo_medida,
+      t.calidad_id AS tubo_calidad_id,
+
+      -- Datos del Lote de Tubo
+      l.lote AS lote_nombre
+
+    FROM Prod_Tubos p
+    LEFT JOIN Operarios o ON p.operario_id = o.id
+    LEFT JOIN Turnos tr ON p.turno_id = tr.id
+    LEFT JOIN Maquinas m ON p.maquina_id = m.id
+    LEFT JOIN Tubos t ON p.tubo_id = t.id
+    LEFT JOIN Lotes_Tubos l ON p.lote_tubo_id = l.id
+    WHERE p.id = @id;
+  `;
+
+  const resultado = await req.query(query);
+  const row = resultado.recordset[0];
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    creado: row.creado ? new Date(row.creado).toISOString() : "",
+    operario_id: Number(row.operario_id),
+    turno_id: Number(row.turno_id),
+    maquina_id: Number(row.maquina_id),
+    tubo_id: Number(row.tubo_id),
+    lote_tubo_id: Number(row.lote_tubo_id),
+    cant_tubos_buenos: Number(row.cant_tubos_buenos ?? 0),
+    cant_tubos_malos: Number(row.cant_tubos_malos ?? 0),
+    paquetes: Number(row.paquetes ?? 0),
+    concentracion_taladrina:
+      row.concentracion_taladrina !== null
+        ? Number(row.concentracion_taladrina)
+        : null,
+    observacion: row.observacion ?? null,
+
+    // Mapeo de objetos anidados/relaciones
+    operario: row.operario_id
+      ? {
+          id: row.operario_id,
+          nombre: row.operario_nombre,
+          apellido1: row.operario_apellido1,
+          apellido2: row.operario_apellido2,
+        }
+      : undefined,
+    turno: row.turno_id
+      ? {
+          id: row.turno_id,
+          prefijo: row.turno_prefijo,
+          entrada: row.turno_entrada ? row.turno_entrada.toString() : null,
+          salida: row.turno_salida ? row.turno_salida.toString() : null,
+        }
+      : undefined,
+    maquina: row.maquina_id
+      ? {
+          id: row.maquina_id,
+          nombre: row.maquina_nombre,
+        }
+      : undefined,
+    tubo: row.tubo_id
+      ? {
+          id: row.tubo_id,
+          medida: row.tubo_medida,
+          calidad_id: row.tubo_calidad_id,
+        }
+      : undefined,
+    lote_tubo: row.lote_tubo_id
+      ? {
+          id: row.lote_tubo_id,
+          lote: row.lote_nombre,
+        }
+      : undefined,
+  };
+}
+
+export interface ProduccionTuboUpdatePayload {
+  id: number;
+  tubo_id: number;
+  maquina_id?: number;
+  lote_id?: number;
+  fleje_id?: number;
+  operario_id?: number;
+  tubos_buenos: number;
+  tubos_malos?: number;
+  velocidad?: number;
+  observaciones?: string;
+  // Añadir aquí cualquier otro campo que pertenezca a la tabla de producción
+}
+
+export interface ProduccionTuboUpdateResponse {
+  id: number;
+  tubo_id: number;
+  tubos_buenos: number;
+  mensaje: string;
+}
+
+/**
+ * Función auxiliar para recalcular y actualizar stock de un Tubo específico en DB
+ */
+async function actualizarStockTubo(
+  transaction: Transaction,
+  tuboId: number,
+  deltaUnidades: number,
+): Promise<void> {
+  // 1. Obtener datos actuales del tubo
+  const reqGetTubo = new Request(transaction);
+  reqGetTubo.input("tubo_id", tuboId);
+
+  const resTubo = await reqGetTubo.query(`
+    SELECT unidades, num_por_paq, peso_unitario 
+    FROM Tubos 
+    WHERE id = @tubo_id;
+  `);
+
+  if (resTubo.recordset.length === 0) {
+    throw new Error(`El tubo con ID ${tuboId} no existe en la base de datos.`);
+  }
+
+  const {
+    unidades: unidadesActuales,
+    num_por_paq,
+    peso_unitario,
+  } = resTubo.recordset[0];
+
+  // 2. Nuevos valores calculados
+  const nuevasUnidades = Math.max(0, (unidadesActuales || 0) + deltaUnidades);
+
+  const cantPorPaq = Number(num_por_paq) || 0;
+  const numPaquetes =
+    cantPorPaq > 0 ? Math.round((nuevasUnidades / cantPorPaq) * 10) / 10 : 0;
+
+  const pesoUnit = Number(peso_unitario) || 0;
+  const nuevoPesoTotal = nuevasUnidades * pesoUnit;
+
+  // 3. Actualizar la tabla Tubos
+  const reqUpdateTubo = new Request(transaction);
+  reqUpdateTubo.input("tubo_id", tuboId);
+  reqUpdateTubo.input("unidades", nuevasUnidades);
+  reqUpdateTubo.input("num_paquetes", numPaquetes);
+  reqUpdateTubo.input("peso_total", nuevoPesoTotal);
+
+  await reqUpdateTubo.query(`
+    UPDATE Tubos
+    SET 
+      unidades = @unidades,
+      num_paquetes = @num_paquetes,
+      peso_total = @peso_total
+    WHERE id = @tubo_id;
+  `);
+}
+
+export async function actualizarProduccionTuboService(
+  pool: ConnectionPool,
+  payload: ProduccionTuboUpdatePayload,
+): Promise<ProduccionTuboUpdateResponse> {
+  const transaction = new Transaction(pool);
+
+  try {
+    await transaction.begin();
+
+    // 1. Consultar el registro de producción previo
+    const reqPrevio = new Request(transaction);
+    reqPrevio.input("id", payload.id);
+
+    const resPrevio = await reqPrevio.query(`
+      SELECT tubo_id, tubos_buenos 
+      FROM Produccion_Tubos 
+      WHERE id = @id;
+    `);
+
+    if (resPrevio.recordset.length === 0) {
+      throw new Error(
+        `No se encontró el registro de producción con ID ${payload.id}`,
+      );
+    }
+
+    const { tubo_id: tuboIdViejo, tubos_buenos: tubosBuenosViejos } =
+      resPrevio.recordset[0];
+
+    const tuboIdNuevo = payload.tubo_id;
+    const tubosBuenosNuevos = payload.tubos_buenos || 0;
+
+    // 2. Actualizar el stock del/los tubo(s)
+    if (tuboIdViejo === tuboIdNuevo) {
+      // Mismo tubo: aplicamos únicamente el diferencial
+      const diferencia = tubosBuenosNuevos - (tubosBuenosViejos || 0);
+      if (diferencia !== 0) {
+        await actualizarStockTubo(transaction, tuboIdNuevo, diferencia);
+      }
+    } else {
+      // Cambio de tubo:
+      // a) Restablecer el stock del tubo antiguo (restar los tubos que antes se le habían sumado)
+      if (tubosBuenosViejos && tubosBuenosViejos > 0) {
+        await actualizarStockTubo(transaction, tuboIdViejo, -tubosBuenosViejos);
+      }
+
+      // b) Sumar la nueva producción al nuevo tubo
+      if (tubosBuenosNuevos > 0) {
+        await actualizarStockTubo(transaction, tuboIdNuevo, tubosBuenosNuevos);
+      }
+    }
+
+    // 3. Actualizar la tabla de Produccion_Tubos
+    const reqUpdateProd = new Request(transaction);
+    reqUpdateProd.input("id", payload.id);
+    reqUpdateProd.input("tubo_id", payload.tubo_id);
+    reqUpdateProd.input("maquina_id", payload.maquina_id ?? null);
+    reqUpdateProd.input("lote_id", payload.lote_id ?? null);
+    reqUpdateProd.input("fleje_id", payload.fleje_id ?? null);
+    reqUpdateProd.input("operario_id", payload.operario_id ?? null);
+    reqUpdateProd.input("tubos_buenos", tubosBuenosNuevos);
+    reqUpdateProd.input("tubos_malos", payload.tubos_malos ?? 0);
+    reqUpdateProd.input("velocidad", payload.velocidad ?? null);
+    reqUpdateProd.input(
+      "observaciones",
+
+      payload.observaciones ?? null,
+    );
+
+    const queryUpdateProd = `
+      UPDATE Produccion_Tubos
+      SET 
+        tubo_id = @tubo_id,
+        maquina_id = @maquina_id,
+        lote_id = @lote_id,
+        fleje_id = @fleje_id,
+        operario_id = @operario_id,
+        tubos_buenos = @tubos_buenos,
+        tubos_malos = @tubos_malos,
+        velocidad = @velocidad,
+        observaciones = @observaciones
+      WHERE id = @id;
+    `;
+
+    await reqUpdateProd.query(queryUpdateProd);
+
+    // 4. Confirmar cambios
+    await transaction.commit();
+
+    return {
+      id: payload.id,
+      tubo_id: payload.tubo_id,
+      tubos_buenos: tubosBuenosNuevos,
+      mensaje: "Producción y stock de tubos actualizados correctamente.",
+    };
+  } catch (error) {
+    // Si hay algún fallo, se revierte todo
+    await transaction.rollback();
+    throw error;
+  }
+}

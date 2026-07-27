@@ -203,7 +203,6 @@ export function ProduccionView() {
     selectedIds,
     handleSortModel,
     handlePageChange,
-    handleDetail,
     handleEdit,
     handleDelete,
     handleFilterChange,
@@ -331,7 +330,9 @@ export function ProduccionView() {
           columns={columns(
             handleCDimensional,
             (row) => {
-              handleEdit(``);
+              handleEdit(
+                `${APP_ROUTES.tubos.subRoutes.produccion_edit.path(row.id.toString())}`,
+              );
             },
             handleDelete,
           )}
@@ -474,7 +475,7 @@ const columns = (
             <PencilRuler size={16} />
           </IconButton>
         </Tooltip>
-        {/* <Tooltip title="Editar producción" arrow placement="top">
+        <Tooltip title="Editar producción" arrow placement="top">
           <IconButton
             size="small"
             onClick={() => handleEdit(row)}
@@ -482,8 +483,7 @@ const columns = (
           >
             <Edit2 size={16} />
           </IconButton>
-        </Tooltip> */}
-
+        </Tooltip>
         {/* <Tooltip title="Eliminar producción" arrow placement="top">
           <IconButton
             size="small"
