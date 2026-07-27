@@ -56,6 +56,16 @@ export const APP_ROUTES = {
         permission: "tubos:produccion:ver",
         label: "Producción",
       },
+      produccion_create: {
+        path: "/tubos/produccion/nuevo",
+        permission: "tubos:produccion:nuevo",
+        label: "Producción / Nueva",
+      },
+      produccion_control_dimensional: {
+        path: (id: string) => `/tubos/produccion/${id}/control-dimensional`,
+        permission: "tubos:produccion:control-dimensional",
+        label: "Producción / Control Dimensional",
+      },
       bobinas_cortadas: {
         path: "/tubos/bobinas-cortadas",
         permission: "tubos:bobinas-cortadas:ver",
@@ -111,16 +121,20 @@ export const APP_ROUTES = {
   api: {
     auth: {
       login: "/api/auth/login",
+      me: "/api/auth/me",
     },
     tubos: {
       maquinas: "/api/tubos/maquinas",
       tipos: "/api/tubos/tipos",
       calidades: "/api/tubos/calidades",
       fabricantes: "/api/tubos/fabricantes",
+      turnos: "/api/tubos/turnos",
+      operarios: "/api/tubos/operarios",
       tubos: "/api/tubos/tubos",
       tubos_filtros: "/api/tubos/tubos/filtros",
       tubos_detalle: (id: string) => `/api/tubos/tubos/${id}`,
       tubos_informe: "/api/tubos/tubos/informe",
+      tubos_all: "/api/tubos/tubos/all",
       flejes: "/api/tubos/flejes",
       flejes_filtros: "/api/tubos/flejes/filtros",
       flejes_detalle: (id: string) => `/api/tubos/flejes/${id}`,
@@ -134,6 +148,9 @@ export const APP_ROUTES = {
       salida_paquetes_filtros: "/api/tubos/salida-paquetes/filtros",
       produccion: "/api/tubos/produccion",
       produccion_filtros: "/api/tubos/produccion/filtros",
+      produccion_control_dimensional: (id: string) =>
+        `/api/tubos/produccion/${id}/control-dimensional`,
+      control_dimensional: "/api/tubos/control_dimensional",
       bobinas_cortadas: "/api/tubos/bobinas_cortadas",
       bobinas_cortadas_filtros: "/api/tubos/bobinas_cortadas/filtros",
       planes_corte: "/api/tubos/planes_corte",

@@ -1,4 +1,5 @@
 // lib/services/prod-tubos.service.ts
+import { Request, Transaction } from "mssql";
 import type { ConnectionPool } from "mssql";
 
 export interface FiltrosProdTubos {
@@ -39,10 +40,12 @@ export interface ProdTubo {
   paquete_incompleto: number;
   action_id: number;
   fecha: Date | string;
+  control_dimensional_id: number | null; // Nuevo campo para almacenar el ID del control dimensional asociado
 }
 
 interface ProdTuboRawResponse {
   id: number;
+  control_dimensional_id: number | null;
   tubo_concepto: string;
   lote_codigo: string;
   turno_prefijo: string;
@@ -159,6 +162,7 @@ export async function listarProdTubosService(
     WITH ProdTubosPaginados AS (
         SELECT
             pt.id,
+            pt.control_dimensional_id,
             t.art_concepto AS tubo_concepto,
             lt.lote AS lote_codigo,
             tu.prefijo AS turno_prefijo,
@@ -223,6 +227,7 @@ export async function listarProdTubosService(
       paquetes: row.paquetes || 0,
       paquete_incompleto: row.paquete_incompleto || 0,
       action_id: row.id,
+      control_dimensional_id: row.control_dimensional_id || null,
       fecha: row.creado,
     };
   });
@@ -607,4 +612,131 @@ export async function listarFiltrosProdTubosService(
       maxFecha: resFechas.recordset[0]?.maxFecha || null,
     },
   };
+}
+
+export interface ProduccionCreatePayload {
+  tubo_id: number;
+  maquina_id: number;
+  fleje_id: number;
+  unidades_objetivo: number;
+  num_paquetes_objetivo?: number;
+  observaciones?: string;
+  // Campos de estado u orígenes si aplicasen
+  estado_id?: number;
+}
+
+export interface ProduccionCreateResponse {
+  id: number;
+  codigo_orden: string;
+  tubo_id: number;
+  maquina_id: number;
+  fecha_creacion: string;
+}
+
+/**
+ * Servicio para crear una nueva Orden de Producción
+ */
+export async function crearProduccionService(
+  pool: ConnectionPool,
+  payload: ProduccionCreatePayload,
+): Promise<ProduccionCreateResponse> {
+  const transaction = new Transaction(pool);
+
+  try {
+    await transaction.begin();
+
+    // 1. Validar existencia del tubo y obtener su información base si es necesario
+    const reqValidar = new Request(transaction);
+    reqValidar.input("tubo_id", payload.tubo_id);
+
+    const qValidarTubo = `
+      SELECT id, art_concepto, activo 
+      FROM Tubos 
+      WHERE id = @tubo_id;
+    `;
+    const resValidar = await reqValidar.query(qValidarTubo);
+
+    if (resValidar.recordset.length === 0) {
+      throw new Error(`El tubo con ID ${payload.tubo_id} no existe.`);
+    }
+
+    if (!resValidar.recordset[0].activo) {
+      throw new Error(`El tubo especificado no se encuentra activo.`);
+    }
+
+    // 2. Insertar la nueva orden de Producción
+    const reqProduccion = new Request(transaction);
+    reqProduccion.input("tubo_id", payload.tubo_id);
+    reqProduccion.input("maquina_id", payload.maquina_id);
+    reqProduccion.input("fleje_id", payload.fleje_id);
+    reqProduccion.input("unidades_objetivo", payload.unidades_objetivo);
+    reqProduccion.input(
+      "num_paquetes_objetivo",
+      payload.num_paquetes_objetivo ?? null,
+    );
+    reqProduccion.input("observaciones", payload.observaciones?.trim() ?? null);
+    reqProduccion.input("estado_id", payload.estado_id ?? 1); // 1 = Pendiente/Iniciada por defecto
+
+    const queryInsertProduccion = `
+      INSERT INTO Produccion (
+        tubo_id,
+        maquina_id,
+        fleje_id,
+        unidades_objetivo,
+        num_paquetes_objetivo,
+        observaciones,
+        estado_id,
+        creado
+      )
+      OUTPUT 
+        INSERTED.id,
+        INSERTED.creado
+      VALUES (
+        @tubo_id,
+        @maquina_id,
+        @fleje_id,
+        @unidades_objetivo,
+        @num_paquetes_objetivo,
+        @observaciones,
+        @estado_id,
+        GETDATE()
+      );
+    `;
+
+    const resProduccion = await reqProduccion.query(queryInsertProduccion);
+    const nuevaProduccion = resProduccion.recordset[0];
+    const produccionId = nuevaProduccion.id;
+
+    // 3. Generación opcional de un Código de Orden dinámico (ej: OP-2026-00012)
+    const fechaActual = new Date(nuevaProduccion.creado);
+    const year = fechaActual.getFullYear();
+    const codigoOrden = `OP-${year}-${String(produccionId).padStart(5, "0")}`;
+
+    // Si tu tabla guarda un codigo_orden único, actualizamos el registro
+    const reqCodigo = new Request(transaction);
+    reqCodigo.input("id", produccionId);
+    reqCodigo.input("codigo_orden", codigoOrden);
+
+    const qUpdateCodigo = `
+      UPDATE Produccion 
+      SET codigo_orden = @codigo_orden 
+      WHERE id = @id;
+    `;
+    await reqCodigo.query(qUpdateCodigo);
+
+    // 4. Confirmar transacción en la BD
+    await transaction.commit();
+
+    return {
+      id: produccionId,
+      codigo_orden: codigoOrden,
+      tubo_id: payload.tubo_id,
+      maquina_id: payload.maquina_id,
+      fecha_creacion: fechaActual.toISOString(),
+    };
+  } catch (error) {
+    // Revertir ante cualquier fallo
+    await transaction.rollback();
+    throw error;
+  }
 }

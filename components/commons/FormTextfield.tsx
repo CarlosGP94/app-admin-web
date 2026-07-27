@@ -9,10 +9,20 @@ type FormTextFieldProps<TFieldValues extends FieldValues> = {
   name: Path<TFieldValues>;
   control: Control<TFieldValues>;
   label: string;
-  type?: "text" | "number" | "password" | "email";
+  type?:
+    | "text"
+    | "number"
+    | "password"
+    | "email"
+    | "date"
+    | "datetime-local"
+    | "time"
+    | "url"
+    | "tel";
   required?: boolean;
   isNumber?: boolean;
-} & Omit<TextFieldProps, "name" | "control">;
+  InputLabelProps?: React.LabelHTMLAttributes<HTMLLabelElement>;
+} & Omit<TextFieldProps, "name" | "control" | "InputLabelProps">;
 
 export function FormTextField<TFieldValues extends FieldValues>({
   name,
@@ -23,9 +33,14 @@ export function FormTextField<TFieldValues extends FieldValues>({
   isNumber = type === "number",
   size = "small",
   fullWidth = true,
+  InputLabelProps,
+  slotProps,
   ...props
 }: FormTextFieldProps<TFieldValues>) {
   const displayLabel = `${label}${required ? " *" : ""}`;
+
+  // Tipos que siempre requieren el label elevado/shrink
+  const isDateType = ["date", "datetime-local", "time"].includes(type);
 
   return (
     <Controller
@@ -47,6 +62,14 @@ export function FormTextField<TFieldValues extends FieldValues>({
             } else {
               field.onChange(e.target.value);
             }
+          }}
+          slotProps={{
+            ...slotProps,
+            inputLabel: {
+              ...(isDateType ? { shrink: true } : {}),
+              ...(slotProps?.inputLabel as Record<string, unknown>),
+              ...InputLabelProps,
+            },
           }}
           error={!!error}
           helperText={error?.message || props.helperText}

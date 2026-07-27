@@ -2,8 +2,10 @@
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 import {
+  crearProduccionService,
   ListarProdTubosParams,
   listarProdTubosService,
+  ProduccionCreatePayload,
 } from "@/lib/services/produccion.service";
 
 /**
@@ -71,6 +73,65 @@ export async function GET(request: Request) {
       error instanceof Error
         ? error.message
         : "Error interno del servidor al procesar las producciones de tubos.";
+    return NextResponse.json(
+      {
+        success: false,
+        error: message,
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST: Crea una nueva orden de producción
+ */
+export async function POST(request: Request) {
+  try {
+    // 1. Parsear el cuerpo de la petición
+    const body: ProduccionCreatePayload = await request.json();
+
+    // 2. Validación de campos requeridos
+    if (
+      !body.tubo_id ||
+      !body.maquina_id ||
+      !body.fleje_id ||
+      body.unidades_objetivo === undefined ||
+      body.unidades_objetivo === null ||
+      body.unidades_objetivo <= 0
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Los campos 'tubo_id', 'maquina_id', 'fleje_id' y 'unidades_objetivo' (mayor a 0) son obligatorios.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // 3. Obtener la conexión a la base de datos
+    const pool = await getConnection("tubos");
+
+    // 4. Ejecutar el servicio de creación (gestiona la transacción)
+    const resultado = await crearProduccionService(pool, body);
+
+    // 5. Responder con el resultado del registro creado (HTTP 201 Created)
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Orden de producción creada correctamente.",
+        data: resultado,
+      },
+      { status: 201 },
+    );
+  } catch (error: unknown) {
+    console.error("❌ Error en POST /api/produccion:", error);
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Error interno del servidor al crear la orden de producción.";
+
     return NextResponse.json(
       {
         success: false,

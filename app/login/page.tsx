@@ -62,14 +62,7 @@ export default function LoginPage() {
 
       // Ahora resData.token contiene un hash JWT real (ej. "eyJhbGciOiJIUzI1NiIsInR5cCI6...")
       login(
-        {
-          id: Number(userDb.id),
-          username: userDb.usuario,
-          nombre: userDb.nombre,
-          rol: userDb.rol_nombre || "Sin rol",
-          cargo: userDb.cargo || "Sin cargo",
-          permissions: userDb.permisos || [],
-        },
+        Number(userDb.id),
         resData.token, // Guarda el JWT real en el localStorage
       );
 

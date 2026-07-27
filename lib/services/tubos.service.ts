@@ -707,3 +707,60 @@ export async function eliminarTuboService(
     throw error;
   }
 }
+
+export interface TuboSelectorOption {
+  id: number;
+  medida: string;
+}
+
+export async function listarTubosSelectorService(
+  pool: ConnectionPool,
+  calidadId?: number | null,
+  tipoTuboId?: number | null,
+  maquinaId?: number | null,
+): Promise<TuboSelectorOption[]> {
+  const req = pool.request();
+
+  let whereClause = "WHERE t.activo = 1";
+
+  if (calidadId !== undefined && calidadId !== null) {
+    req.input("calidadId", calidadId);
+    whereClause += " AND t.calidad_id = @calidadId";
+  }
+
+  if (tipoTuboId !== undefined && tipoTuboId !== null) {
+    req.input("tipoTuboId", tipoTuboId);
+    whereClause += " AND t.tipo_id = @tipoTuboId";
+  }
+
+  if (maquinaId !== undefined && maquinaId !== null) {
+    req.input("maquinaId", maquinaId);
+    whereClause +=
+      " AND EXISTS (SELECT 1 FROM Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
+  }
+
+  const query = `
+    SELECT 
+        t.id,
+        t.medida
+    FROM Tubos t
+    INNER JOIN Tipos_Calidad tc ON t.calidad_id = tc.id
+    INNER JOIN Tipos_Tubos tt ON t.tipo_id = tt.id
+    ${whereClause}
+    ORDER BY 
+        tc.nombre ASC,
+        t.espesor ASC,
+        tt.nombre ASC,
+        t.ancho ASC,
+        t.alto ASC,
+        t.diametro ASC,
+        t.id ASC;
+  `;
+
+  const resultado = await req.query(query);
+
+  return resultado.recordset.map((row) => ({
+    id: row.id,
+    medida: row.medida,
+  }));
+}

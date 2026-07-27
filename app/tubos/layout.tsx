@@ -40,6 +40,16 @@ export interface FabricanteOption {
   nombre: string;
 }
 
+export interface OperarioOption {
+  id: number;
+  label: string;
+}
+
+export interface TurnoOption {
+  id: number;
+  label: string;
+}
+
 interface TubosModuleContextType {
   title: string;
   subtitle: string;
@@ -52,6 +62,10 @@ interface TubosModuleContextType {
   loadingMaquinas: boolean;
   fabricantes: FabricanteOption[];
   loadingFabricantes: boolean;
+  turnos: TurnoOption[];
+  loadingTurnos: boolean;
+  operarios: OperarioOption[];
+  loadingOperarios: boolean;
 }
 
 const TubosModuleContext = createContext<TubosModuleContextType | undefined>(
@@ -90,6 +104,12 @@ export default function TubosProvider({
   const [fabricantes, setFabricantes] = useState<FabricanteOption[]>([]);
   const [loadingFabricantes, setLoadingFabricantes] = useState<boolean>(true);
 
+  const [operarios, setOperarios] = useState<OperarioOption[]>([]);
+  const [loadingOperarios, setLoadingOperarios] = useState<boolean>(true);
+
+  const [turnos, setTurnos] = useState<TurnoOption[]>([]);
+  const [loadingTurnos, setLoadingTurnos] = useState<boolean>(true);
+
   const handleSetTitleInfo = useCallback((title: string, subtitle: string) => {
     setTitleInfo({ title, subtitle });
   }, []);
@@ -115,14 +135,32 @@ export default function TubosProvider({
           window.location.origin,
         );
 
+        const urlTurnos = new URL(
+          APP_ROUTES.api.tubos.turnos,
+          window.location.origin,
+        );
+
+        const urlOperarios = new URL(
+          APP_ROUTES.api.tubos.operarios,
+          window.location.origin,
+        );
+
         // Consultamos los tres catálogos en paralelo
-        const [resCalidades, resTipos, resMaquinas, resFabricantes] =
-          await Promise.all([
-            fetch(urlCalidades.toString()),
-            fetch(urlTipos.toString()),
-            fetch(urlMaquinas.toString()),
-            fetch(urlFabricantes.toString()),
-          ]);
+        const [
+          resCalidades,
+          resTipos,
+          resMaquinas,
+          resFabricantes,
+          resTurnos,
+          resOperarios,
+        ] = await Promise.all([
+          fetch(urlCalidades.toString()),
+          fetch(urlTipos.toString()),
+          fetch(urlMaquinas.toString()),
+          fetch(urlFabricantes.toString()),
+          fetch(urlTurnos.toString()),
+          fetch(urlOperarios.toString()),
+        ]);
 
         if (resCalidades.ok) {
           const resultCalidades = await resCalidades.json();
@@ -151,6 +189,20 @@ export default function TubosProvider({
         } else {
           console.error("Error al consultar los fabricantes");
         }
+
+        if (resTurnos.ok) {
+          const resultTurnos = await resTurnos.json();
+          setTurnos(resultTurnos.data || []);
+        } else {
+          console.error("Error al consultar los turnos");
+        }
+
+        if (resOperarios.ok) {
+          const resultOperarios = await resOperarios.json();
+          setOperarios(resultOperarios.data || []);
+        } else {
+          console.error("Error al consultar los operarios");
+        }
       } catch (error) {
         console.error("Error al cargar los catálogos en TubosProvider:", error);
       } finally {
@@ -158,6 +210,8 @@ export default function TubosProvider({
         setLoadingTipos(false);
         setLoadingMaquinas(false);
         setLoadingFabricantes(false);
+        setLoadingTurnos(false);
+        setLoadingOperarios(false);
       }
     }
 
@@ -178,6 +232,10 @@ export default function TubosProvider({
         loadingMaquinas,
         fabricantes,
         loadingFabricantes,
+        turnos,
+        loadingTurnos,
+        operarios,
+        loadingOperarios,
       }}
     >
       <ToastContainer

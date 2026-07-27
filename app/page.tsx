@@ -15,11 +15,13 @@ import {
   GridOnOutlined, // Icono representativo para Mallas
 } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SelectorLineaPage() {
   const theme = useTheme();
   const router = useRouter();
-
+  const { user } = useAuth(); // Asegúrate de tener un hook de autenticación para obtener el usuario actual
+  console.log("ProduccionView renderizado. Usuario actual:", user);
   // Configuración de las dos líneas de producción
   const lineas = [
     {

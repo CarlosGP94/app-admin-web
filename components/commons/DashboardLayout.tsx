@@ -26,6 +26,8 @@ const ROUTE_TITLES: Record<string, string> = {
     APP_ROUTES.tubos.subRoutes.bobinas_cortadas.label,
   [APP_ROUTES.tubos.subRoutes.produccion.path]:
     APP_ROUTES.tubos.subRoutes.produccion.label,
+  [APP_ROUTES.tubos.subRoutes.produccion_create.path]:
+    APP_ROUTES.tubos.subRoutes.produccion_create.label,
   [APP_ROUTES.tubos.subRoutes.salida_paquetes.path]:
     APP_ROUTES.tubos.subRoutes.salida_paquetes.label,
   [APP_ROUTES.tubos.subRoutes.tubos.path]:

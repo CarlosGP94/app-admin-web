@@ -22,5 +22,5 @@ export interface User {
   username: string;
   nombre: string;
   cargo: string;
-  permissions: PermissionCode[];
+  permisos: PermissionCode[];
 }

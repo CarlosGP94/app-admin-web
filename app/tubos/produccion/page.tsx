@@ -7,13 +7,23 @@ import useDataTable, {
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton, Typography, Stack, Button } from "@mui/material";
-import { Eye, Edit2, Trash2 } from "lucide-react";
+import {
+  Box,
+  IconButton,
+  Typography,
+  Stack,
+  Button,
+  Tooltip,
+} from "@mui/material";
+import { Edit2, Trash2, PencilRuler } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
 import FormatListBulletedAddIcon from "@mui/icons-material/FormatListBulletedAdd";
 import ProtectedRoute from "@/components/commons/ProtectedRoute";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
 interface Prod {
   id: number;
@@ -21,6 +31,7 @@ interface Prod {
   lote: string;
   turno_prefijo: string;
   operario: string;
+  control_dimensional_id: number | null;
   maquinas: { id: number; maquina: string }[];
   tubos_buenos: number;
   tubos_malos: number;
@@ -59,6 +70,8 @@ export default function ProduccionPage() {
 }
 
 export function ProduccionView() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
@@ -253,6 +266,16 @@ export function ProduccionView() {
     fetchFilters: fecthFilters,
   });
 
+  const handleCDimensional = (row: Prod) => {
+    if (!row.control_dimensional_id) {
+      toast.error("No hay control dimensional asociado a esta producción.");
+      return;
+    }
+    router.push(
+      `${APP_ROUTES.tubos.subRoutes.produccion_control_dimensional.path(row.id.toString())}`,
+    );
+  };
+
   return (
     <Box
       sx={{
@@ -263,6 +286,7 @@ export function ProduccionView() {
       }}
     >
       <TopCrud
+        newUrl={APP_ROUTES.tubos.subRoutes.produccion_create.path}
         searchTerm={searchTerm}
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
@@ -304,7 +328,13 @@ export function ProduccionView() {
           loading={loading}
           rows={data as Prod[]}
           total={total}
-          columns={columns(handleDetail, handleEdit, handleDelete)}
+          columns={columns(
+            handleCDimensional,
+            (row) => {
+              handleEdit(``);
+            },
+            handleDelete,
+          )}
           rowKeyExtractor={(row) => row.id}
           handlePageChange={handlePageChange}
         />
@@ -314,7 +344,7 @@ export function ProduccionView() {
 }
 
 const columns = (
-  handleDetail: (row: Prod) => void,
+  handleCDimensional: (row: Prod) => void,
   handleEdit: (row: Prod) => void,
   handleDelete: (row: Prod) => void,
 ): Column<Prod>[] => [
@@ -434,27 +464,35 @@ const columns = (
           width: "100%",
         }}
       >
-        <IconButton
-          size="small"
-          onClick={() => handleDetail(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Eye size={16} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => handleEdit(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Edit2 size={16} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => handleDelete(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
-        >
-          <Trash2 size={16} />
-        </IconButton>
+        <Tooltip title="Control Dimensional" arrow placement="top">
+          <IconButton
+            disabled={!row.control_dimensional_id}
+            size="small"
+            onClick={() => handleCDimensional(row)}
+            sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
+          >
+            <PencilRuler size={16} />
+          </IconButton>
+        </Tooltip>
+        {/* <Tooltip title="Editar producción" arrow placement="top">
+          <IconButton
+            size="small"
+            onClick={() => handleEdit(row)}
+            sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
+          >
+            <Edit2 size={16} />
+          </IconButton>
+        </Tooltip> */}
+
+        {/* <Tooltip title="Eliminar producción" arrow placement="top">
+          <IconButton
+            size="small"
+            onClick={() => handleDelete(row)}
+            sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
+          >
+            <Trash2 size={16} />
+          </IconButton>
+        </Tooltip> */}
       </Box>
     ),
   },
