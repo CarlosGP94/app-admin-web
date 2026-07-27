@@ -23,7 +23,7 @@ interface InformeFilaSegura extends TuboReportRow {
   isSubtotal?: boolean;
 }
 
-// Configuración de filas por página ajustada exactamente a 24 líneas
+// Configuración de filas por página ajustada exactamente a 28 líneas
 const ROWS_PER_PAGE_TEMPLATE = 28;
 
 function escapeHtml(text: string | null | undefined): string {
@@ -40,6 +40,25 @@ function formatPeso(pesoInKg: number | null | undefined): string {
   if (pesoInKg == null || isNaN(pesoInKg)) return "0.00 Kg";
   const toneladas = pesoInKg / 1000;
   return `${toneladas.toFixed(2)} Kg`;
+}
+
+/**
+ * Regla personalizada para formatear el número de paquetes:
+ * - 4   -> 4
+ * - 4.2 -> 4
+ * - 5.4 -> 6
+ */
+function formatPaquetes(val: number | null | undefined): number {
+  if (val == null || isNaN(val)) return 0;
+
+  const entero = Math.floor(val);
+  const decimal = val - entero;
+
+  if (decimal > 0.2) {
+    return entero + 1;
+  }
+
+  return entero;
 }
 
 /**
@@ -221,7 +240,7 @@ function generarHtmlInforme(reportRows: TuboReportRow[]): string {
               <tr class="subtotal-row" style="font-weight: 700; background: #f4f4f4; color: #000080; font-size: 14px;">
                 <td class="text-left" style="padding: 8px 0;">Subtotal de ${escapeHtml(row.calidad)}</td>
                 <td class="text-right" style="padding: 8px 0;">${row.unidades}</td>
-                <td class="text-right" style="padding: 8px 0;">${row.paquetes}</td>
+                <td class="text-right" style="padding: 8px 0;">${formatPaquetes(row.paquetes)}</td>
                 <td class="text-right" style="padding: 8px 0;">${formatPeso(row.peso)}</td>
               </tr>
               <tr class="subtotal-spacer">
@@ -233,7 +252,7 @@ function generarHtmlInforme(reportRows: TuboReportRow[]): string {
             <tr>
               <td class="text-left">${escapeHtml(row.medida)}</td>
               <td class="text-right">${row.unidades}</td>
-              <td class="text-right">${row.paquetes}</td>
+              <td class="text-right">${formatPaquetes(row.paquetes)}</td>
               <td class="text-right">${formatPeso(row.peso)}</td>
             </tr>`;
         })
@@ -274,7 +293,7 @@ function generarHtmlInforme(reportRows: TuboReportRow[]): string {
                     <tr class="grand-total">
                       <td class="text-left" style="width: 45%">Total general</td>
                       <td class="text-right" style="width: 18%">${totalUnidades}</td>
-                      <td class="text-right" style="width: 18%">${totalPaquetes}</td>
+                      <td class="text-right" style="width: 18%">${formatPaquetes(totalPaquetes)}</td>
                       <td class="text-right" style="width: 19%">${formatPeso(totalPeso)}</td>
                     </tr>
                   </tfoot>
