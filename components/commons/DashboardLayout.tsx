@@ -63,6 +63,8 @@ const ROUTE_TITLES: Record<string, string> = {
     APP_ROUTES.tubos.subRoutes.bobinas_create.label,
   [APP_ROUTES.tubos.subRoutes.bobinas_edit.path(":id")]:
     APP_ROUTES.tubos.subRoutes.bobinas_edit.label,
+  [APP_ROUTES.tubos.subRoutes.lotes_tubos.path]:
+    APP_ROUTES.tubos.subRoutes.lotes_tubos.label,
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {

@@ -257,7 +257,7 @@ export default function ProduccionTuboForm({
       try {
         setLoadingLotes(true);
         const url = new URL(
-          APP_ROUTES.api.tubos.lotes_tubos,
+          APP_ROUTES.api.tubos.lotes_tubos_all,
           window.location.origin,
         );
 

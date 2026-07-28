@@ -76,6 +76,11 @@ export const APP_ROUTES = {
         permission: "tubos:produccion:coladas",
         label: "Producción / Coladas",
       },
+      lotes_tubos: {
+        path: "/tubos/auditoria/lotes-tubos",
+        permission: "tubos:lotes-tubos:ver",
+        label: "Auditoría / Lotes de Tubos",
+      },
       bobinas_cortadas: {
         path: "/tubos/bobinas-cortadas",
         permission: "tubos:bobinas-cortadas:ver",
@@ -162,6 +167,8 @@ export const APP_ROUTES = {
       produccion_control_dimensional: (id: string) =>
         `/api/tubos/produccion/${id}/control-dimensional`,
       lotes_tubos: "/api/tubos/lotes_tubos",
+      lotes_tubos_all: "/api/tubos/lotes_tubos/all",
+      lotes_tubos_filtros: "/api/tubos/lotes_tubos/filtros",
       control_dimensional: "/api/tubos/control_dimensional",
       bobinas_cortadas: "/api/tubos/bobinas_cortadas",
       bobinas_cortadas_filtros: "/api/tubos/bobinas_cortadas/filtros",

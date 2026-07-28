@@ -27,6 +27,8 @@ import {
   CalendarViewDayOutlined,
   TripOriginOutlined,
   SettingsOutlined,
+  FactCheckOutlined,
+  ConfirmationNumberOutlined,
 } from "@mui/icons-material";
 import { APP_ROUTES } from "@/config/routes";
 import { useAuth } from "@/context/AuthContext";
@@ -84,9 +86,16 @@ export default function Sidebar({
   const [openInventario, setOpenInventario] = useState(
     pathname.startsWith("/tubos/inventario"),
   );
+  const [openAuditoria, setOpenAuditoria] = useState(
+    pathname.startsWith("/tubos/auditoria"),
+  );
 
   const handleInventarioClick = () => {
     setOpenInventario(!openInventario);
+  };
+
+  const handleAuditoriaClick = () => {
+    setOpenAuditoria(!openAuditoria);
   };
 
   // 1. Definimos los elementos asignándoles su permiso correspondiente desde APP_ROUTES
@@ -170,6 +179,16 @@ export default function Sidebar({
         APP_ROUTES.tubos.subRoutes.tubos_create.path,
         APP_ROUTES.tubos.subRoutes.tubos_edit.path(":id"),
       ],
+      permission: APP_ROUTES.tubos.subRoutes.tubos.permission as PermissionCode,
+    },
+  ];
+
+  const auditoriaItems: MenuItem[] = [
+    {
+      text: "Lotes de Tubos",
+      icon: <ConfirmationNumberOutlined />,
+      path: APP_ROUTES.tubos.subRoutes.lotes_tubos.path,
+      paths: [APP_ROUTES.tubos.subRoutes.lotes_tubos.path],
       permission: APP_ROUTES.tubos.subRoutes.tubos.permission as PermissionCode,
     },
   ];
@@ -335,6 +354,72 @@ export default function Sidebar({
             >
               <List component="div" disablePadding sx={{ mt: 0.5 }}>
                 {inventarioItems.map((subItem) =>
+                  renderListItemButton(subItem, true),
+                )}
+              </List>
+            </Collapse>
+          </>
+        )}
+
+        {auditoriaItems.length > 0 && (
+          <>
+            <ListItemButton
+              component="div"
+              onClick={handleAuditoriaClick}
+              sx={{
+                borderRadius: theme.rounded.sm,
+                py: 1.2,
+                mb: 0.5,
+                color: pathname.startsWith("/tubos/auditoria")
+                  ? "#ffffff"
+                  : "rgba(255, 255, 255, 0.7)",
+                "&:hover": {
+                  backgroundColor: "rgba(255, 255, 255, 0.04)",
+                  color: "#ffffff",
+                  "& .MuiListItemIcon-root": { color: "#ffffff" },
+                },
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  color: pathname.startsWith("/tubos/auditoria")
+                    ? "#ffffff"
+                    : "rgba(255, 255, 255, 0.5)",
+                  minWidth: 40,
+                }}
+              >
+                <FactCheckOutlined />
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: pathname.startsWith("/tubos/auditoria")
+                        ? 600
+                        : 500,
+                    }}
+                  >
+                    Auditoría
+                  </Typography>
+                }
+              />
+              {openAuditoria ? (
+                <ExpandLess sx={{ color: "rgba(255, 255, 255, 0.5)" }} />
+              ) : (
+                <ExpandMore sx={{ color: "rgba(255, 255, 255, 0.5)" }} />
+              )}
+            </ListItemButton>
+
+            {/* Submenú de Auditoría (Solo subrutas permitidas) */}
+            <Collapse
+              in={openAuditoria}
+              timeout="auto"
+              unmountOnExit
+              component="div"
+            >
+              <List component="div" disablePadding sx={{ mt: 0.5 }}>
+                {auditoriaItems.map((subItem) =>
                   renderListItemButton(subItem, true),
                 )}
               </List>
