@@ -297,3 +297,154 @@ export async function listarFiltrosLotesTubosService(
     },
   };
 }
+
+// --- TIPOS MAPPED AL COMPONENTE ---
+export interface FlejeDetalle {
+  id: number;
+  lote: string;
+
+  // Real
+  bobina_id: number;
+  bobina_concepto: string;
+  colada_id: number;
+  colada_nombre: string;
+
+  // Auditado
+  auditoria_id: number | null;
+  bobina_auditoria_id: number | null;
+  bobina_auditoria_concepto: string | null;
+  colada_auditoria_id: number | null;
+  colada_auditoria_nombre: string | null;
+}
+
+export interface LoteTuboConFlejes {
+  id: number;
+  lote: string;
+  maquina: string;
+  fecha: string;
+  flejes: FlejeDetalle[];
+}
+
+/**
+ * Servicio para obtener los Lotes de Tubos con sus Flejes asociados
+ * (incluye lotes sin flejes asignados) y sus datos de auditoría.
+ */
+export async function obtenerLotesTubosConFlejesService(
+  pool: ConnectionPool,
+  loteTuboIds: number[],
+): Promise<LoteTuboConFlejes[]> {
+  console.log("obtenerLotesTubosConFlejesService - loteTuboIds:", loteTuboIds);
+  if (!loteTuboIds || loteTuboIds.length === 0) {
+    return [];
+  }
+
+  const req = pool.request();
+
+  // Construcción de parámetros dinámicos (@id0, @id1, ...) para evitar Inyección SQL
+  const idParams = loteTuboIds.map((id, index) => {
+    const paramName = `id${index}`;
+    req.input(paramName, id);
+    return `@${paramName}`;
+  });
+
+  const query = `
+    SELECT
+      -- Datos del Lote de Tubo
+      lt.id AS lote_tubo_id,
+      lt.lote AS lote_tubo_nombre,
+      lt.creado AS lote_tubo_fecha,
+      m.maquina AS maquina_nombre,
+
+      -- Datos del Fleje (Lotes_Flejes)
+      lf.id AS fleje_id,
+      lf.lote AS fleje_lote,
+
+      -- Datos Reales (Bobina Cortada / Colada)
+      bc.id AS real_bobina_id,
+      b_real.concepto AS real_bobina_concepto,
+      col_real.id AS real_colada_id,
+      col_real.colada AS real_colada_nombre,
+
+      -- Datos de Auditoría
+      ab.id AS auditoria_id,
+      b_aud.id AS auditoria_bobina_id,
+      b_aud.numero AS auditoria_bobina_concepto,
+      b_col_aud.id AS auditoria_colada_id,
+      b_col_aud.colada AS auditoria_colada_nombre
+
+    FROM Lotes_Tubos lt
+    LEFT JOIN Maquinas m ON lt.maquina_id = m.id
+
+    -- CAMBIO AQUI: LEFT JOIN para incluir lotes sin flejes
+    LEFT JOIN lotes_flejes_Tubos lft ON lt.id = lft.lote_tubo_id
+    LEFT JOIN Lotes_Flejes lf ON lft.lote_fleje_id = lf.id
+    
+    -- Relaciones para obtener Bobina y Colada Real
+    LEFT JOIN Bobinas_Cortadas bc ON lf.bobina_cortada_id = bc.id
+    LEFT JOIN Bobinas b_real ON bc.bobina_id = b_real.id
+    LEFT JOIN Bobina_Coladas col_real ON lf.colada_id = col_real.id
+
+    -- Relaciones para obtener Auditoría (si existe)
+    LEFT JOIN Auditoria_Bobinas ab ON lf.auditoria_id = ab.id
+    LEFT JOIN Bobinas_Cortadas b_aud ON ab.bobina_id = b_aud.id
+    LEFT JOIN Bobina_Coladas b_col_aud ON ab.colada_id = b_col_aud.id
+
+    WHERE lt.id IN (${idParams.join(", ")})
+    ORDER BY lt.creado DESC, lf.id DESC;
+  `;
+
+  const resultado = await req.query(query);
+  const rows = resultado.recordset;
+
+  // Agrupación de filas SQL (1 Nivel Lote -> N Niveles Flejes)
+  const lotesMap = new Map<number, LoteTuboConFlejes>();
+
+  for (const row of rows) {
+    if (!lotesMap.has(row.lote_tubo_id)) {
+      lotesMap.set(row.lote_tubo_id, {
+        id: row.lote_tubo_id,
+        lote: row.lote_tubo_nombre ?? "",
+        maquina: row.maquina_nombre ?? "",
+        fecha: row.lote_tubo_fecha
+          ? new Date(row.lote_tubo_fecha).toISOString()
+          : "",
+        flejes: [],
+      });
+    }
+
+    const loteActual = lotesMap.get(row.lote_tubo_id)!;
+
+    // Solo añadimos el fleje si row.fleje_id NO es null o undefined
+    if (row.fleje_id) {
+      const yaExisteFleje = loteActual.flejes.some(
+        (f) => f.id === row.fleje_id,
+      );
+
+      if (!yaExisteFleje) {
+        loteActual.flejes.push({
+          id: row.fleje_id,
+          lote: row.fleje_lote ?? "",
+
+          // Datos reales
+          bobina_id: row.real_bobina_id ?? 0,
+          bobina_concepto: row.real_bobina_concepto
+            ? String(row.real_bobina_concepto)
+            : "",
+          colada_id: row.real_colada_id ?? 0,
+          colada_nombre: row.real_colada_nombre ?? "",
+
+          // Datos de Auditoría
+          auditoria_id: row.auditoria_id ?? null,
+          bobina_auditoria_id: row.auditoria_bobina_id ?? null,
+          bobina_auditoria_concepto: row.auditoria_bobina_concepto
+            ? String(row.auditoria_bobina_concepto)
+            : null,
+          colada_auditoria_id: row.auditoria_colada_id ?? null,
+          colada_auditoria_nombre: row.auditoria_colada_nombre ?? null,
+        });
+      }
+    }
+  }
+
+  return Array.from(lotesMap.values());
+}

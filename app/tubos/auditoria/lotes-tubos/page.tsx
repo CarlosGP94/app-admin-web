@@ -7,7 +7,7 @@ import useDataTable, {
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton, Tooltip } from "@mui/material";
+import { Box, IconButton, Tooltip, Button } from "@mui/material";
 import { Eye, Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
@@ -15,6 +15,7 @@ import TopCrud from "@/components/commons/TopCrud";
 import { ConfirmDialog } from "@/components/commons/ConfirmDialog";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/commons/ProtectedRoute";
+import FormatListBulletedAddIcon from "@mui/icons-material/FormatListBulletedAdd";
 
 interface LoteTubo {
   id: number;
@@ -147,14 +148,15 @@ export function LotesTubosView() {
     loadingFilters,
     loading,
     sortModel,
+    selectedIds,
     showDeleteConfirm,
     handleSortModel,
     handlePageChange,
-    handleEdit,
     handleDelete,
     handleFilterChange,
     handleClearAllFilters,
     handleFilter,
+    handleSelectItems,
     handleDeleteConfirm,
   } = useDataTable({
     initFilters: [
@@ -177,6 +179,16 @@ export function LotesTubosView() {
     fetchData: fecthData,
     fetchFilters: fecthFilters,
   });
+
+  const handleInsertarColadas = () => {
+    if (selectedIds.length === 0) return;
+
+    const idsQuery = selectedIds.join(",");
+
+    router.push(
+      `${APP_ROUTES.tubos.subRoutes.lotes_tubos_coladas.path}?ids=${idsQuery}`,
+    );
+  };
 
   return (
     <Box
@@ -204,6 +216,21 @@ export function LotesTubosView() {
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
         }}
+        actions={
+          <>
+            <Button
+              disabled={selectedIds.length === 0}
+              onClick={handleInsertarColadas}
+              startIcon={<FormatListBulletedAddIcon fontSize="small" />}
+              sx={{ minWidth: "120px" }}
+              color="primary"
+              size="small"
+              variant="contained"
+            >
+              Insertar Coladas ({selectedIds.length})
+            </Button>
+          </>
+        }
       />
       {filters.length > 0 && (
         <Box sx={{ mb: 2 }}>
@@ -218,6 +245,9 @@ export function LotesTubosView() {
       )}
       <Box sx={{ height: "calc(100vh - 285px)", overflow: "hidden" }}>
         <Table<LoteTubo>
+          selectable
+          selectedIds={selectedIds}
+          onSelectionChange={handleSelectItems}
           sortModel={sortModel}
           onSortModelChange={handleSortModel}
           page={page}

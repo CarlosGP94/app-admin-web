@@ -81,6 +81,11 @@ export const APP_ROUTES = {
         permission: "tubos:lotes-tubos:ver",
         label: "Auditoría / Lotes de Tubos",
       },
+      lotes_tubos_coladas: {
+        path: "/tubos/auditoria/lotes-tubos/coladas",
+        permission: "tubos:lotes-tubos:coladas",
+        label: "Auditoría / Lotes de Tubos / Coladas",
+      },
       bobinas_cortadas: {
         path: "/tubos/bobinas-cortadas",
         permission: "tubos:bobinas-cortadas:ver",
@@ -159,6 +164,7 @@ export const APP_ROUTES = {
       bobinas_detalle: (id: string) => `/api/tubos/bobinas/${id}`,
       bobinas_filtros: "/api/tubos/bobinas/filtros",
       bobinas_informe: "/api/tubos/bobinas/informe",
+
       salida_paquetes: "/api/tubos/salida-paquetes",
       salida_paquetes_filtros: "/api/tubos/salida-paquetes/filtros",
       produccion: "/api/tubos/produccion",
@@ -166,15 +172,22 @@ export const APP_ROUTES = {
       produccion_filtros: "/api/tubos/produccion/filtros",
       produccion_control_dimensional: (id: string) =>
         `/api/tubos/produccion/${id}/control-dimensional`,
+      produccion_lotes_flejes: "/api/tubos/produccion/lotes_flejes",
       lotes_tubos: "/api/tubos/lotes_tubos",
       lotes_tubos_all: "/api/tubos/lotes_tubos/all",
       lotes_tubos_filtros: "/api/tubos/lotes_tubos/filtros",
+      lotes_tubos_flejes: "/api/tubos/lotes_tubos/lotes_flejes",
       control_dimensional: "/api/tubos/control_dimensional",
       bobinas_cortadas: "/api/tubos/bobinas_cortadas",
       bobinas_cortadas_filtros: "/api/tubos/bobinas_cortadas/filtros",
+      bobinas_coladas_bobina: (id: string) =>
+        "/api/tubos/bobinas_coladas/bobina/" + id,
       planes_corte: "/api/tubos/planes_corte",
       planes_corte_filtros: "/api/tubos/planes_corte/filtros",
       planes_corte_detalle: (id: string) => `/api/tubos/planes_corte/${id}`,
+
+      // Auditoría
+      auditoria: "/api/tubos/auditoria",
     },
   },
 };

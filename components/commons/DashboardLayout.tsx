@@ -34,8 +34,6 @@ const ROUTE_TITLES: Record<string, string> = {
     APP_ROUTES.tubos.subRoutes.produccion_create.label,
   [APP_ROUTES.tubos.subRoutes.produccion_edit.path(":id")]:
     APP_ROUTES.tubos.subRoutes.produccion_edit.label,
-  [APP_ROUTES.tubos.subRoutes.produccion_coladas.path]:
-    APP_ROUTES.tubos.subRoutes.produccion_coladas.label,
   // CONTROL DIMENSIONAL
   [APP_ROUTES.tubos.subRoutes.produccion_control_dimensional.path(":id")]:
     APP_ROUTES.tubos.subRoutes.produccion_control_dimensional.label,
@@ -63,8 +61,11 @@ const ROUTE_TITLES: Record<string, string> = {
     APP_ROUTES.tubos.subRoutes.bobinas_create.label,
   [APP_ROUTES.tubos.subRoutes.bobinas_edit.path(":id")]:
     APP_ROUTES.tubos.subRoutes.bobinas_edit.label,
+  // Lotes de Tubos
   [APP_ROUTES.tubos.subRoutes.lotes_tubos.path]:
     APP_ROUTES.tubos.subRoutes.lotes_tubos.label,
+  [APP_ROUTES.tubos.subRoutes.lotes_tubos_coladas.path]:
+    APP_ROUTES.tubos.subRoutes.lotes_tubos_coladas.label,
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
