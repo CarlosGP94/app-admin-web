@@ -1,6 +1,22 @@
+"use client";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
+import { APP_ROUTES } from "@/config/routes";
 import Mantenimiento from "@/views/maintance/Maintance";
 
 export default function TubosPage() {
+  const permission = APP_ROUTES.tubos.subRoutes.produccion_coladas
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <TubosView />
+    </ProtectedRoute>
+  );
+}
+
+export function TubosView() {
   //   const {} = useDataTable({
   //     initFilters: [],
   //     fetchData: async (

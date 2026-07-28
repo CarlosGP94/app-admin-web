@@ -5,3 +5,8 @@ export function getFechaLocalISO(fechaStr?: string): string {
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+export const tienePermiso = (
+  userPermissions: string[],
+  requiredPermission: string,
+): boolean => userPermissions.includes(requiredPermission);

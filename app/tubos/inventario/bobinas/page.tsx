@@ -6,7 +6,7 @@ import useDataTable, {
   FilterOption,
   TableFilter,
 } from "@/hooks/useDataTable";
-import { APP_ROUTES } from "@/config/routes";
+import { APP_ROUTES, PERMISOS } from "@/config/routes";
 import { Box, Button, IconButton, Chip, Tooltip } from "@mui/material";
 import { Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
@@ -14,6 +14,8 @@ import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
 import { ConfirmDialog } from "@/components/commons/ConfirmDialog";
 import ProtectedRoute from "@/components/commons/ProtectedRoute";
+import { useAuth } from "@/context/AuthContext";
+import { tienePermiso } from "@/utils/functions";
 
 interface Bobina {
   id: number;
@@ -49,6 +51,13 @@ export default function BobinasPage() {
 }
 
 export function BobinasView() {
+  const { user } = useAuth();
+
+  const userPermissions = user?.permisos || [];
+  const informeInventarioPermission = tienePermiso(
+    userPermissions,
+    PERMISOS.tubos.bobinas.informe,
+  );
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
@@ -293,14 +302,17 @@ export function BobinasView() {
           handleFilterChange("search", value);
         }}
         actions={[
-          <Button
-            key="new-tubo"
-            variant="contained"
-            color="primary"
-            onClick={() => onGenerateReport()}
-          >
-            Informe Inventario
-          </Button>,
+          <Box key="informe-flejes">
+            {informeInventarioPermission && (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => onGenerateReport()}
+              >
+                Informe Inventario
+              </Button>
+            )}
+          </Box>,
         ]}
       />
       {filters.length > 0 && (

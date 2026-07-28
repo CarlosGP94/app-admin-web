@@ -3,6 +3,23 @@ export interface RouteItem {
   label: string;
 }
 
+export const PERMISOS = {
+  tubos: {
+    tubos: {
+      informe: "tubos:tubos:informe",
+    },
+    flejes: {
+      informe: "tubos:flejes:informe",
+    },
+    bobinas: {
+      informe: "tubos:bobinas:informe",
+    },
+    salida_paquetes: {
+      informe: "tubos:salida-paquetes:informe",
+    },
+  },
+};
+
 export const APP_ROUTES = {
   // Rutas generales del sistema
   home: {
