@@ -199,8 +199,8 @@ export default function TuboForm({
 
   // Construir Denominación Comercial
   useEffect(() => {
-    const calidadObj = calidades.find((c) => c.id === calidadId);
-    const tipoObj = tipos.find((t) => t.id === tipoId);
+    const calidadObj = calidades.find((c) => c.id == calidadId);
+    const tipoObj = tipos.find((t) => t.id == tipoId);
 
     const calidad = calidadObj ? calidadObj.label_tubo : "";
     const tipo = tipoObj ? tipoObj.prefijo : "";
@@ -213,9 +213,7 @@ export default function TuboForm({
     let base = "";
     if (tipoId == 4) {
       base =
-        noEspecial !== undefined && noEspecial !== null
-          ? String(noEspecial)
-          : "";
+        noEspecial != undefined && noEspecial != null ? String(noEspecial) : "";
     } else {
       base = formatearConceptoTubo(
         "",
@@ -240,7 +238,7 @@ export default function TuboForm({
       }
     }
 
-    setValue("art_concepto", medida, { shouldValidate: true });
+    setValue("art_concepto", medida.toUpperCase(), { shouldValidate: true });
   }, [
     calidadId,
     tipoId,

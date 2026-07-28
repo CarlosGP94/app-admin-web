@@ -250,7 +250,7 @@ function generarHtmlInforme(reportRows: TuboReportRow[]): string {
 
           return `
             <tr>
-              <td class="text-left">${escapeHtml(row.medida)}</td>
+              <td class="text-left">${escapeHtml(row.medida?.toUpperCase())}</td>
               <td class="text-right">${row.unidades}</td>
               <td class="text-right">${formatPaquetes(row.paquetes)}</td>
               <td class="text-right">${formatPeso(row.peso)}</td>

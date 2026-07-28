@@ -35,14 +35,7 @@ export default function FlejeForm({
   onSubmit: onSubmitProp,
 }: FlejeFormProps) {
   // Obtener calidades desde el contexto
-  const {
-    calidades,
-    loadingCalidades,
-    tipos,
-    loadingTipos,
-    maquinas,
-    loadingMaquinas,
-  } = useTubosModule();
+  const { calidades, loadingCalidades } = useTubosModule();
 
   const defaultValues: FlejeFormValues = {
     calidad_id: 0,
@@ -85,8 +78,12 @@ export default function FlejeForm({
       const conceptoGenerado =
         `FLEJE ${calidadNom ? `${calidadNom} ` : ""}${watchAncho}x${watchEspesor}`.trim();
 
-      setValue("concepto", conceptoGenerado, { shouldValidate: true });
-      setValue("art_concepto", conceptoGenerado, { shouldValidate: true });
+      setValue("concepto", conceptoGenerado.toUpperCase(), {
+        shouldValidate: true,
+      });
+      setValue("art_concepto", conceptoGenerado.toUpperCase(), {
+        shouldValidate: true,
+      });
     }
   }, [watchAncho, watchEspesor, watchCalidadId, calidades, setValue]);
 

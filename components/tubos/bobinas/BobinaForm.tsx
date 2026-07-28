@@ -92,7 +92,9 @@ export default function BobinaForm({
       const conceptoGenerado =
         `BOBINA ${calidadNom ? `${calidadNom.toUpperCase()} ` : ""}${watchAncho}x${watchEspesor}`.trim();
 
-      setValue("concepto", conceptoGenerado, { shouldValidate: true });
+      setValue("concepto", conceptoGenerado.toUpperCase(), {
+        shouldValidate: true,
+      });
     }
   }, [watchAncho, watchEspesor, watchCalidadId, calidades, setValue]);
 

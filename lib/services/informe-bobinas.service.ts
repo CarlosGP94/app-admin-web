@@ -213,7 +213,7 @@ function generarHtmlInforme(reportRows: BobinaReportRow[]): string {
 
           return `
             <tr>
-              <td class="text-left">${escapeHtml(row.concepto)}</td>
+              <td class="text-left">${escapeHtml(row.concepto?.toUpperCase())}</td>
               <td class="text-right">${row.unidades}</td>
               <td class="text-right">${formatPeso(row.peso)}</td>
             </tr>`;

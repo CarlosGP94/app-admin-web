@@ -158,7 +158,7 @@ function generarHtmlInforme(
 
               return `
                 <tr>
-                  <td class="text-left">${escapeHtml(row.tubo)}</td>
+                  <td class="text-left">${escapeHtml(row.tubo.toLocaleUpperCase())}</td>
                   <td class="text-center">${escapeHtml(paqsRestoStr)}</td>
                   <td class="text-right">${escapeHtml(row.fecha || formatDate(row.creado))}</td>
                 </tr>`;
