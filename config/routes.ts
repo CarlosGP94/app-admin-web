@@ -184,6 +184,7 @@ export const APP_ROUTES = {
 
       salida_paquetes: "/api/tubos/salida-paquetes",
       salida_paquetes_filtros: "/api/tubos/salida-paquetes/filtros",
+      salida_paquetes_informe: "/api/tubos/salida-paquetes/informe",
       produccion: "/api/tubos/produccion",
       produccion_detalle: (id: string) => `/api/tubos/produccion/${id}`,
       produccion_filtros: "/api/tubos/produccion/filtros",

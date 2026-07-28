@@ -1,18 +1,21 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import useDataTable, {
   CurrentFilter,
   FilterOption,
   TableFilter,
 } from "@/hooks/useDataTable";
-import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton, Typography, Stack } from "@mui/material";
+import { APP_ROUTES, PERMISOS } from "@/config/routes";
+import { Box, IconButton, Typography, Button } from "@mui/material";
 import { Eye, Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
 import ProtectedRoute from "@/components/commons/ProtectedRoute";
+import { tienePermiso } from "@/utils/functions";
+import { useAuth } from "@/context/AuthContext";
+import { InformeSalidaModal } from "@/components/tubos/salidaPaquetes/InformeSalidaModal";
 
 interface Prod {
   id: number;
@@ -48,6 +51,60 @@ export default function SalidaPaqsPage() {
 }
 
 export function SalidaPaqsView() {
+  const { user } = useAuth();
+
+  // Estado para controlar el modal de informe
+  const [openInformeModal, setOpenInformeModal] = useState<boolean>(false);
+  const [loadingInforme, setLoadingInforme] = useState<boolean>(false);
+
+  const userPermissions = user?.permisos || [];
+  const informePermission = tienePermiso(
+    userPermissions,
+    PERMISOS.tubos.salida_paquetes.informe,
+  );
+
+  const handleGenerarInforme = async (fechas: {
+    fechaInicio: string;
+    fechaFin: string;
+  }) => {
+    try {
+      setLoadingInforme(true);
+
+      const response = await fetch(
+        APP_ROUTES.api.tubos.salida_paquetes_informe,
+        {
+          method: "POST", // 👈 Especificamos el método POST
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fechaInicio: fechas.fechaInicio,
+            fechaFin: fechas.fechaFin,
+          }), // 👈 Enviamos los parámetros en el body
+        },
+      );
+
+      if (!response.ok) throw new Error("Error al generar el informe");
+
+      // Recibimos el archivo PDF desde el backend
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `informe_salida_paquetes_${Date.now()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      setOpenInformeModal(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingInforme(false);
+    }
+  };
+
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
@@ -209,7 +266,21 @@ export function SalidaPaqsView() {
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
         }}
+        actions={[
+          <Box key="new-tubo">
+            {informePermission && (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => setOpenInformeModal(true)}
+              >
+                Informe Salida de Paquetes
+              </Button>
+            )}
+          </Box>,
+        ]}
       />
+
       {filters.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <DataFilters
@@ -229,20 +300,24 @@ export function SalidaPaqsView() {
           loading={loading}
           rows={data as Prod[]}
           total={total}
-          columns={columns(handleDetail, handleEdit, handleDelete)}
+          columns={columns()}
           rowKeyExtractor={(row) => row.id}
           handlePageChange={handlePageChange}
         />
       </Box>
+
+      {/* Modal de selección de rango de fechas */}
+      <InformeSalidaModal
+        open={openInformeModal}
+        onClose={() => setOpenInformeModal(false)}
+        onConfirm={handleGenerarInforme}
+        loading={loadingInforme}
+      />
     </Box>
   );
 }
 
-const columns = (
-  handleDetail: (row: Prod) => void,
-  handleEdit: (row: Prod) => void,
-  handleDelete: (row: Prod) => void,
-): Column<Prod>[] => [
+const columns = (): Column<Prod>[] => [
   {
     id: "id",
     label: "ID",
@@ -291,43 +366,5 @@ const columns = (
     width: 150,
     align: "center",
     format: (row) => new Date(row.fecha).toLocaleDateString("es-ES"),
-  },
-  {
-    id: "action_id",
-    label: "ACCIONES",
-    width: 180,
-    align: "center",
-    format: (row) => (
-      <Box
-        sx={{
-          display: "flex",
-          gap: 0.5,
-          justifyContent: "center",
-          width: "100%",
-        }}
-      >
-        <IconButton
-          size="small"
-          onClick={() => handleDetail(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Eye size={16} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => handleEdit(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Edit2 size={16} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => handleDelete(row)}
-          sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
-        >
-          <Trash2 size={16} />
-        </IconButton>
-      </Box>
-    ),
   },
 ];
