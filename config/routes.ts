@@ -71,6 +71,11 @@ export const APP_ROUTES = {
         permission: "tubos:produccion:control-dimensional",
         label: "Producción / Control Dimensional",
       },
+      produccion_coladas: {
+        path: "/tubos/produccion/coladas",
+        permission: "tubos:produccion:coladas",
+        label: "Producción / Coladas",
+      },
       bobinas_cortadas: {
         path: "/tubos/bobinas-cortadas",
         permission: "tubos:bobinas-cortadas:ver",

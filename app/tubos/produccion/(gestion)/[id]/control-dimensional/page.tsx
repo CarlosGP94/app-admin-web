@@ -2,14 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation"; // Si el ID viene en la URL (ej: /produccion/[id])
-import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Paper,
-  Grid,
-} from "@mui/material";
+import { Box, CircularProgress, Alert } from "@mui/material";
 import { useLayoutTitle } from "../../layout";
 import { APP_ROUTES } from "@/config/routes";
 import ControlDimensionalForm from "@/components/tubos/produccion/ControlDimensionalForm";

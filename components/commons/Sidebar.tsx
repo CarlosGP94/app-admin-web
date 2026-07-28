@@ -349,7 +349,7 @@ export default function Sidebar({
       <List component="nav" sx={{ px: 1.5, py: 2 }}>
         <ListItemButton
           component="div"
-          onClick={() => router.push("/configuracion")}
+          onClick={() => router.push(APP_ROUTES.mantenimiento.path)}
           sx={{
             borderRadius: theme.rounded.sm,
             py: 1.2,

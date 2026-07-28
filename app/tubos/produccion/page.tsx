@@ -71,7 +71,6 @@ export default function ProduccionPage() {
 }
 
 export function ProduccionView() {
-  const { user, isLoading } = useAuth();
   const router = useRouter();
   const fecthData = async (
     currentPage: number,
@@ -293,6 +292,16 @@ export function ProduccionView() {
     );
   };
 
+  const handleInsertarColadas = () => {
+    if (selectedIds.length === 0) return;
+
+    const idsQuery = selectedIds.join(",");
+
+    router.push(
+      `${APP_ROUTES.tubos.subRoutes.produccion_coladas.path}?ids=${idsQuery}`,
+    );
+  };
+
   return (
     <Box
       sx={{
@@ -324,13 +333,14 @@ export function ProduccionView() {
           <>
             <Button
               disabled={selectedIds.length === 0}
+              onClick={handleInsertarColadas}
               startIcon={<FormatListBulletedAddIcon fontSize="small" />}
               sx={{ minWidth: "120px" }}
               color="primary"
               size="small"
               variant="contained"
             >
-              Insertar Coladas
+              Insertar Coladas ({selectedIds.length})
             </Button>
           </>
         }

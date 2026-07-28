@@ -13,7 +13,9 @@ interface DashboardLayoutProps {
 
 // 🗺️ Diccionario de títulos mapeados por sus rutas
 const ROUTE_TITLES: Record<string, string> = {
+  //MAIN
   [APP_ROUTES.tubos.path]: APP_ROUTES.tubos.label,
+  // PLANES DE CORTE
   [APP_ROUTES.tubos.subRoutes.planes_corte.path]:
     APP_ROUTES.tubos.subRoutes.planes_corte.label,
   [APP_ROUTES.tubos.subRoutes.planes_corte_nuevo.path]:
@@ -22,30 +24,39 @@ const ROUTE_TITLES: Record<string, string> = {
     APP_ROUTES.tubos.subRoutes.planes_corte_editar.label,
   [APP_ROUTES.tubos.subRoutes.planes_corte_bobinas.path(":id")]:
     APP_ROUTES.tubos.subRoutes.planes_corte_bobinas.label,
+  // BOBINAS CORTADAS
   [APP_ROUTES.tubos.subRoutes.bobinas_cortadas.path]:
     APP_ROUTES.tubos.subRoutes.bobinas_cortadas.label,
+  // PRODUCCION
   [APP_ROUTES.tubos.subRoutes.produccion.path]:
     APP_ROUTES.tubos.subRoutes.produccion.label,
   [APP_ROUTES.tubos.subRoutes.produccion_create.path]:
     APP_ROUTES.tubos.subRoutes.produccion_create.label,
   [APP_ROUTES.tubos.subRoutes.produccion_edit.path(":id")]:
     APP_ROUTES.tubos.subRoutes.produccion_edit.label,
+  [APP_ROUTES.tubos.subRoutes.produccion_coladas.path]:
+    APP_ROUTES.tubos.subRoutes.produccion_coladas.label,
+  // CONTROL DIMENSIONAL
   [APP_ROUTES.tubos.subRoutes.produccion_control_dimensional.path(":id")]:
     APP_ROUTES.tubos.subRoutes.produccion_control_dimensional.label,
+  // SALIDA DE PAQUETES
   [APP_ROUTES.tubos.subRoutes.salida_paquetes.path]:
     APP_ROUTES.tubos.subRoutes.salida_paquetes.label,
+  // INVENTARIO DE TUBOS
   [APP_ROUTES.tubos.subRoutes.tubos.path]:
     APP_ROUTES.tubos.subRoutes.tubos.label,
   [APP_ROUTES.tubos.subRoutes.tubos_create.path]:
     APP_ROUTES.tubos.subRoutes.tubos_create.label,
   [APP_ROUTES.tubos.subRoutes.tubos_edit.path(":id")]:
     APP_ROUTES.tubos.subRoutes.tubos_edit.label,
+  // INVENTARIO DE FLEJES
   [APP_ROUTES.tubos.subRoutes.flejes.path]:
     APP_ROUTES.tubos.subRoutes.flejes.label,
   [APP_ROUTES.tubos.subRoutes.flejes_create.path]:
     APP_ROUTES.tubos.subRoutes.flejes_create.label,
   [APP_ROUTES.tubos.subRoutes.flejes_edit.path(":id")]:
     APP_ROUTES.tubos.subRoutes.flejes_edit.label,
+  // INVENTARIO DE BOBINAS
   [APP_ROUTES.tubos.subRoutes.bobinas.path]:
     APP_ROUTES.tubos.subRoutes.bobinas.label,
   [APP_ROUTES.tubos.subRoutes.bobinas_create.path]:

@@ -17,7 +17,7 @@ const TopCrud: React.FC<{
   searchTerm = "",
   actions = [],
   handleSearchChange = () => {},
-  handleNew = () => {},
+  handleNew = null,
   newUrl,
 }) => {
   return (
@@ -50,18 +50,19 @@ const TopCrud: React.FC<{
       />
       <Stack direction="row" spacing={1}>
         {actions}
-        <Button
-          // Si existe newUrl, inyecta el Link de Next.js y su propiedad href
-          component={newUrl ? Link : "button"}
-          {...(newUrl ? { href: newUrl } : { onClick: handleNew })}
-          startIcon={<Add fontSize="small" />}
-          sx={{ minWidth: "120px" }}
-          color="primary"
-          size="small"
-          variant="contained"
-        >
-          Nuevo Elemento
-        </Button>
+        {handleNew && newUrl && (
+          <Button
+            component={newUrl ? Link : "button"}
+            {...(newUrl ? { href: newUrl } : { onClick: handleNew })}
+            startIcon={<Add fontSize="small" />}
+            sx={{ minWidth: "120px" }}
+            color="primary"
+            size="small"
+            variant="contained"
+          >
+            Nuevo Elemento
+          </Button>
+        )}
       </Stack>
     </Stack>
   );
