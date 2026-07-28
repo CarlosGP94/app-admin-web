@@ -8,6 +8,7 @@ import { APP_ROUTES } from "@/config/routes";
 import ControlDimensionalForm from "@/components/tubos/produccion/ControlDimensionalForm";
 import { ControlDimensionalFormValues } from "@/components/tubos/produccion/ControlDimensionalSchema";
 import { toast } from "react-toastify";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 // Interfaz que coincide con la respuesta del nuevo servicio
 interface ControlDimensionalDetalle {
@@ -45,9 +46,20 @@ interface ProduccionViewProps {
   prodTuboId?: number; // Opcional si lo pasas directamente como prop
 }
 
-export default function ProduccionView({
-  prodTuboId: propId,
-}: ProduccionViewProps) {
+export default function ProduccionPage() {
+  const permission = APP_ROUTES.tubos.subRoutes.produccion_control_dimensional
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <ProduccionView />
+    </ProtectedRoute>
+  );
+}
+
+export function ProduccionView({ prodTuboId: propId }: ProduccionViewProps) {
   const { setTitleInfo } = useLayoutTitle();
   const params = useParams();
   const router = useRouter();

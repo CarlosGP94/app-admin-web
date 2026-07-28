@@ -9,8 +9,22 @@ import { Box, Alert } from "@mui/material";
 import { PlanCorteFormValues } from "@/components/tubos/planesCorte/PlanesCorteFormSchema";
 import { toast } from "react-toastify";
 import PlanCorteForm from "@/components/tubos/planesCorte/PlanesCorteForm";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 export default function NuevoPlanCortePage() {
+  const permission = APP_ROUTES.tubos.subRoutes.planes_corte_nuevo
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <NuevoPlanCorteView />
+    </ProtectedRoute>
+  );
+}
+
+export function NuevoPlanCorteView() {
   const { setTitleInfo } = useLayoutTitle();
   const router = useRouter();
 

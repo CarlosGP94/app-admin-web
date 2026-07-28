@@ -33,15 +33,15 @@ interface ActualizarProduccionTuboPageProps {
 export default function ActualizarProduccionTuboPage({
   params,
 }: ActualizarProduccionTuboPageProps) {
-  const permission = APP_ROUTES.tubos.subRoutes.bobinas_edit
+  const permission = APP_ROUTES.tubos.subRoutes.produccion_edit
     .permission as React.ComponentProps<
     typeof ProtectedRoute
   >["requiredPermission"];
 
   return (
-    // <ProtectedRoute requiredPermission={permission}>
-    <ActualizarProduccionTuboView params={params} />
-    // </ProtectedRoute>
+    <ProtectedRoute requiredPermission={permission}>
+      <ActualizarProduccionTuboView params={params} />
+    </ProtectedRoute>
   );
 }
 

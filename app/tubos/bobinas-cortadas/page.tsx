@@ -35,7 +35,7 @@ interface Colada {
 }
 
 export default function BobinaCortadaPage() {
-  const permission = APP_ROUTES.tubos.subRoutes.planes_corte_bobinas
+  const permission = APP_ROUTES.tubos.subRoutes.bobinas_cortadas
     .permission as React.ComponentProps<
     typeof ProtectedRoute
   >["requiredPermission"];

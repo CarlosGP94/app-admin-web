@@ -9,6 +9,7 @@ import TablaAuditoriaProducciones, {
   BobinaOpcion,
   ProduccionConFlejes,
 } from "@/components/tubos/produccion/ProduccionColadas";
+import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 // Tipos reflejando la respuesta del backend
 interface FlejeDetalle {
@@ -37,6 +38,19 @@ interface ProdLoteTuboConFlejes {
 }
 
 export default function InsertarColadasPage() {
+  const permission = APP_ROUTES.tubos.subRoutes.produccion_coladas
+    .permission as React.ComponentProps<
+    typeof ProtectedRoute
+  >["requiredPermission"];
+
+  return (
+    <ProtectedRoute requiredPermission={permission}>
+      <InsertarColadasView />
+    </ProtectedRoute>
+  );
+}
+
+export function InsertarColadasView() {
   const searchParams = useSearchParams();
   const idsParam = searchParams.get("ids");
   const { setTitleInfo } = useLayoutTitle();

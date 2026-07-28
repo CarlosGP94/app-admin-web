@@ -86,16 +86,9 @@ export default function Sidebar({
   const [openInventario, setOpenInventario] = useState(
     pathname.startsWith("/tubos/inventario"),
   );
-  const [openAuditoria, setOpenAuditoria] = useState(
-    pathname.startsWith("/tubos/auditoria"),
-  );
 
   const handleInventarioClick = () => {
     setOpenInventario(!openInventario);
-  };
-
-  const handleAuditoriaClick = () => {
-    setOpenAuditoria(!openAuditoria);
   };
 
   // 1. Definimos los elementos asignándoles su permiso correspondiente desde APP_ROUTES
