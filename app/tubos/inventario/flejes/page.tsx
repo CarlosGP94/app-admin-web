@@ -1,13 +1,20 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import useDataTable, {
   CurrentFilter,
   FilterOption,
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES, PERMISOS } from "@/config/routes";
-import { Box, IconButton, Chip, Tooltip, Button } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  Chip,
+  Tooltip,
+  Button,
+  CircularProgress,
+} from "@mui/material";
 import { Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
@@ -48,12 +55,14 @@ export default function FlejesPage() {
 
 export function FlejesView() {
   const { user } = useAuth();
+  const [loadingInforme, setLoadingInforme] = useState(false);
 
   const userPermissions = user?.permisos || [];
   const informeInventarioPermission = tienePermiso(
     userPermissions,
     PERMISOS.tubos.flejes.informe,
   );
+
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
@@ -145,6 +154,7 @@ export function FlejesView() {
     error?: string;
   }> => {
     let objectUrl: string | null = null;
+    setLoadingInforme(true);
 
     try {
       const response = await fetch(APP_ROUTES.api.tubos.flejes_informe, {
@@ -155,7 +165,6 @@ export function FlejesView() {
       });
 
       if (!response.ok) {
-        // Intentamos parsear el JSON de error que devuelve el endpoint
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
           errorData.error ||
@@ -164,7 +173,6 @@ export function FlejesView() {
         );
       }
 
-      // Extraer el nombre del archivo si la API envía la cabecera Content-Disposition
       const contentDisposition = response.headers.get("Content-Disposition");
       let fileName = "informe_flejes.pdf";
       if (contentDisposition) {
@@ -174,7 +182,6 @@ export function FlejesView() {
         }
       }
 
-      // Convertir a Blob y forzar la descarga en el navegador
       const blob = await response.blob();
       objectUrl = window.URL.createObjectURL(blob);
 
@@ -195,7 +202,7 @@ export function FlejesView() {
 
       return { success: false, error: message };
     } finally {
-      // Liberar memoria del navegador
+      setLoadingInforme(false);
       if (objectUrl) {
         window.URL.revokeObjectURL(objectUrl);
       }
@@ -291,9 +298,15 @@ export function FlejesView() {
               <Button
                 variant="contained"
                 color="primary"
+                disabled={loadingInforme}
+                startIcon={
+                  loadingInforme ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : null
+                }
                 onClick={() => onGenerateReport()}
               >
-                Informe Inventario
+                {loadingInforme ? "Generando..." : "Informe Inventario"}
               </Button>
             )}
           </Box>,

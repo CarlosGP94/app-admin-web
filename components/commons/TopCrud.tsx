@@ -50,10 +50,10 @@ const TopCrud: React.FC<{
       />
       <Stack direction="row" spacing={1}>
         {actions}
-        {handleNew && newUrl && (
+        {newUrl && (
           <Button
-            component={newUrl ? Link : "button"}
-            {...(newUrl ? { href: newUrl } : { onClick: handleNew })}
+            component={Link}
+            href={newUrl}
             startIcon={<Add fontSize="small" />}
             sx={{ minWidth: "120px" }}
             color="primary"

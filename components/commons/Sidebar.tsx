@@ -124,7 +124,12 @@ export default function Sidebar({
       text: "Producción de Tubos",
       icon: <PrecisionManufacturingOutlined />,
       path: APP_ROUTES.tubos.subRoutes.produccion.path,
-      paths: [APP_ROUTES.tubos.subRoutes.produccion.path],
+      paths: [
+        APP_ROUTES.tubos.subRoutes.produccion.path,
+        APP_ROUTES.tubos.subRoutes.produccion_edit.path(":id"),
+        APP_ROUTES.tubos.subRoutes.produccion_control_dimensional.path(":id"),
+        APP_ROUTES.tubos.subRoutes.produccion_coladas.path,
+      ],
       permission: APP_ROUTES.tubos.subRoutes.produccion
         .permission as PermissionCode,
     },

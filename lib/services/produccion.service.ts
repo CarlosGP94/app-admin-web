@@ -1,6 +1,7 @@
 // lib/services/prod-tubos.service.ts
 import { Request, Transaction } from "mssql";
 import type { ConnectionPool } from "mssql";
+import * as ExcelJS from "exceljs";
 
 export interface FiltrosProdTubos {
   busqueda?: string;
@@ -94,7 +95,7 @@ export async function listarProdTubosService(
       fechaInicio,
       fechaFin,
     } = params.filtros;
-    console.log("Filtros recibidos:", estructural);
+
     if (busqueda) {
       whereClauses.push(
         `(t.concepto LIKE @busqueda OR lt.lote LIKE @busqueda)`,
@@ -1229,10 +1230,6 @@ export async function obtenerProdLotesTubosConFlejesService(
   pool: ConnectionPool,
   prodTuboIds: number[],
 ): Promise<ProdLoteTuboConFlejes[]> {
-  console.log(
-    "obtenerProdLotesTubosConFlejesService - prodTuboIds:",
-    prodTuboIds,
-  );
   if (!prodTuboIds || prodTuboIds.length === 0) {
     return [];
   }
@@ -1364,4 +1361,277 @@ export async function obtenerProdLotesTubosConFlejesService(
   }
 
   return Array.from(lotesMap.values());
+}
+
+export interface GenerarExcelProdTubosParams {
+  fechaInicio?: string; // Formato ISO o YYYY-MM-DD
+  fechaFin?: string; // Formato ISO o YYYY-MM-DD
+}
+
+/**
+ * Genera el reporte de producción en Excel para tubos estructurales
+ * filtrando por un rango opcional de fechas (pt.creado).
+ * Valida la consistencia de coladas por lote_tubo_id y tubo_id.
+ */
+export async function generarExcelProdTubosService(
+  pool: ConnectionPool,
+  params: GenerarExcelProdTubosParams = {},
+): Promise<Buffer> {
+  const { fechaInicio, fechaFin } = params;
+  const req = pool.request();
+
+  // 1. Cláusula fija para tubos estructurales
+  const whereClauses: string[] = [
+    "t.tipo_id != 3",
+    "t.tipo_id != 4",
+    "t.espesor > 2",
+  ];
+
+  // 2. Manejo dinámico del rango de fechas sobre pt.creado
+  if (fechaInicio && fechaFin) {
+    whereClauses.push("pt.creado >= @fechaInicio AND pt.creado <= @fechaFin");
+    req.input("fechaInicio", fechaInicio);
+    req.input("fechaFin", fechaFin);
+  } else if (fechaInicio) {
+    // Desde fechaInicio hasta el momento actual
+    whereClauses.push("pt.creado >= @fechaInicio");
+    req.input("fechaInicio", fechaInicio);
+  } else if (fechaFin) {
+    // Hasta fechaFin
+    whereClauses.push("pt.creado <= @fechaFin");
+    req.input("fechaFin", fechaFin);
+  }
+  // Si no recibe ni fechaInicio ni fechaFin, trae el histórico completo
+
+  const whereSQL =
+    whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+  // 3. Consulta SQL con filtro estructural + fechas, ordenado por pt.creado DESC
+  const query = `
+    SELECT 
+      pt.id AS prod_tubo_id,
+      pt.lote_tubo_id,
+      pt.tubo_id,
+      pt.paquetes,
+      pt.creado AS pt_creado,
+      lt.lote,
+      t.medida,
+      t.peso_unitario * pt.cant_tubos_buenos AS peso_total,
+      lf.id AS fleje_id,
+      lf.lote AS fleje_lote,
+      bc.id AS colada_id,
+      bc.colada,
+      o.apellido1 AS operario_apellido1,
+      o.apellido2 AS operario_apellido2,
+      o.nombre AS operario_nombre,
+      f.nombre AS fabricante_nombre,
+      t.longitud,
+      t.espesor,
+      m.maquina,
+      tr.prefijo AS turno_prefijo,
+      tr.entrada AS turno_entrada,
+      tr.salida AS turno_salida,
+      lft.num_paq_inicial,
+      lft.num_paq_final
+    FROM Prod_Tubos pt
+    LEFT JOIN Maquinas m ON m.id = pt.maquina_id
+    LEFT JOIN Turnos tr ON tr.id = pt.turno_id
+    LEFT JOIN Operarios o ON o.id = pt.operario_id
+    LEFT JOIN Lotes_Tubos lt ON lt.id = pt.lote_tubo_id
+    LEFT JOIN Tubos t ON t.id = pt.tubo_id
+    LEFT JOIN Lotes_Flejes_Tubos lft ON lft.tubo_id = pt.tubo_id AND lft.lote_tubo_id = pt.lote_tubo_id
+    LEFT JOIN Lotes_Flejes lf ON lf.id = lft.lote_fleje_id
+    LEFT JOIN Auditoria_Bobinas ab ON ab.id = lf.auditoria_id
+    LEFT JOIN Bobina_Coladas bc ON bc.id = ab.colada_id
+    LEFT JOIN Bobinas b ON b.id = ab.bobina_id
+    LEFT JOIN Fabricantes f ON f.id = b.fabricante_id
+
+    ORDER BY pt.creado DESC, lf.id DESC;
+  `;
+
+  const resultado = await req.query(query);
+
+  const rows = resultado.recordset;
+
+  // Si no hay datos devueltos para el filtro
+  if (!rows || rows.length === 0) {
+    throw new Error(
+      "No se encontraron registros de producción para los filtros especificados.",
+    );
+  }
+
+  // ==========================================
+  // 4. VALIDACIÓN DE INCONSISTENCIA DE COLADAS
+  // ==========================================
+  const grupoValidacion = new Map<
+    string,
+    { flejes: Set<number>; coladas: Set<number>; loteName: string }
+  >();
+
+  for (const row of rows) {
+    if (!row.lote_tubo_id || !row.tubo_id) continue;
+
+    const key = `${row.lote_tubo_id}_${row.tubo_id}`;
+
+    if (!grupoValidacion.has(key)) {
+      grupoValidacion.set(key, {
+        flejes: new Set(),
+        coladas: new Set(),
+        loteName: row.lote ?? `ID ${row.lote_tubo_id}`,
+      });
+    }
+
+    const item = grupoValidacion.get(key)!;
+
+    if (row.fleje_id) item.flejes.add(row.fleje_id);
+    if (row.colada_id) item.coladas.add(row.colada_id);
+  }
+
+  // Si hay >= 2 flejes distintos Y >= 2 coladas distintas para la misma combinación (lote_tubo_id, tubo_id)
+  for (const [, data] of grupoValidacion.entries()) {
+    if (data.flejes.size >= 2 && data.coladas.size >= 2) {
+      throw new Error(
+        `Error de trazabilidad: El Lote de Tubo "${data.loteName}" posee múltiples flejes pertenecientes a coladas distintas. Proceso cancelado.`,
+      );
+    }
+  }
+
+  // ==========================================
+  // 5. GENERACIÓN DE DOCUMENTO EXCEL (ExcelJS)
+  // ==========================================
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Producción Tubos");
+
+  worksheet.columns = [
+    {
+      header: "Fecha",
+      key: "creado",
+      width: 22,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Lote",
+      key: "lote",
+      width: 18,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Medida",
+      key: "medida",
+      width: 20,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Longitud (mm)",
+      key: "longitud",
+      width: 20,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Espesor (mm)",
+      key: "espesor",
+      width: 20,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Producción - Paquetes",
+      key: "paquetes",
+      width: 25,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Producción - Peso Total (kg)",
+      key: "peso_total",
+      width: 30,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Operario",
+      key: "operario",
+      width: 25,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Máquina",
+      key: "maquina",
+      width: 15,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Turno",
+      key: "turno_prefijo",
+      width: 22,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Fleje Lote",
+      key: "fleje_lote",
+      width: 15,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Paquete Inicio",
+      key: "num_paq_inicial",
+      width: 15,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Paquete Fin",
+      key: "num_paq_final",
+      width: 15,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Colada",
+      key: "colada",
+      width: 15,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+    {
+      header: "Fabricante",
+      key: "fabricante_nombre",
+      width: 20,
+      style: { alignment: { horizontal: "center", vertical: "middle" } },
+    },
+  ];
+
+  // Mantenemos la cabecera en negrita
+  worksheet.getRow(1).font = { bold: true };
+
+  worksheet.getRow(1).font = { bold: true };
+
+  rows.forEach((row) => {
+    worksheet.addRow({
+      creado: row.pt_creado
+        ? (() => {
+            const fecha = new Date(row.pt_creado);
+            const dia = String(fecha.getDate()).padStart(2, "0");
+            const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+            const anio = String(fecha.getFullYear()).slice(-2);
+            return `${dia}-${mes}-${anio}`;
+          })()
+        : "",
+      lote: row.lote ?? "-",
+      medida: row.medida ?? "-",
+      longitud: row.longitud ?? 0,
+      espesor: row.espesor ?? 0,
+      paquetes: row.paquetes ?? 0,
+      peso_total: row.peso_total ?? 0,
+      operario:
+        `${row.operario_apellido1 ?? "-"} ${row.operario_apellido2 ?? ""} ${row.operario_nombre ?? ""}`.trim() ||
+        "",
+      maquina: row.maquina ?? "-",
+      turno_prefijo: row.turno_prefijo
+        ? `${row.turno_prefijo} (${row.turno_entrada ?? ""} - ${row.turno_salida ?? ""})`
+        : "-",
+      fleje_lote: row.fleje_lote ?? "-",
+      num_paq_inicial: row.num_paq_inicial ?? 0,
+      num_paq_final: row.num_paq_final ?? 0,
+      colada: row.colada ?? "-",
+      fabricante_nombre: row.fabricante_nombre ?? "-",
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return buffer as unknown as Buffer;
 }

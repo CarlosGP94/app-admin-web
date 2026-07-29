@@ -34,6 +34,9 @@ const ROUTE_TITLES: Record<string, string> = {
     APP_ROUTES.tubos.subRoutes.produccion_create.label,
   [APP_ROUTES.tubos.subRoutes.produccion_edit.path(":id")]:
     APP_ROUTES.tubos.subRoutes.produccion_edit.label,
+  [APP_ROUTES.tubos.subRoutes.produccion_coladas.path]:
+    APP_ROUTES.tubos.subRoutes.produccion_coladas.label,
+  // AUDITORIA / LOTES DE TUBOS
   // CONTROL DIMENSIONAL
   [APP_ROUTES.tubos.subRoutes.produccion_control_dimensional.path(":id")]:
     APP_ROUTES.tubos.subRoutes.produccion_control_dimensional.label,

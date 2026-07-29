@@ -1,12 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import useDataTable, {
   CurrentFilter,
   FilterOption,
   TableFilter,
 } from "@/hooks/useDataTable";
-import { APP_ROUTES } from "@/config/routes";
+import { APP_ROUTES, PERMISOS } from "@/config/routes";
 import {
   Box,
   IconButton,
@@ -25,6 +25,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { ConfirmDialog } from "@/components/commons/ConfirmDialog";
+import { ListAlt } from "@mui/icons-material";
+import { ExcelAuditoriaModal } from "@/components/tubos/produccion/ExcelAuditoriaModal";
+import { tienePermiso } from "@/utils/functions";
 
 interface Prod {
   id: number;
@@ -71,6 +74,19 @@ export default function ProduccionPage() {
 }
 
 export function ProduccionView() {
+  const { user } = useAuth();
+  const userPermissions = user?.permisos || [];
+  const informePermission = tienePermiso(
+    userPermissions,
+    PERMISOS.tubos.produccion.auditoria,
+  );
+  const coladasPermission = tienePermiso(
+    userPermissions,
+    APP_ROUTES.tubos.subRoutes.produccion_coladas.permission,
+  );
+
+  const [openExcelModal, setOpenExcelModal] = useState<boolean>(false);
+  const [loadingExcel, setLoadingExcel] = useState<boolean>(false);
   const router = useRouter();
   const fecthData = async (
     currentPage: number,
@@ -282,6 +298,58 @@ export function ProduccionView() {
     fetchFilters: fecthFilters,
   });
 
+  const handleGenerarExcelAuditoria = async (fechas: {
+    fechaInicio: string;
+    fechaFin: string;
+  }) => {
+    try {
+      setLoadingExcel(true);
+
+      // 1. Construimos los query params para la petición GET
+      const params = new URLSearchParams({
+        fechaInicio: fechas.fechaInicio,
+        fechaFin: fechas.fechaFin,
+      });
+
+      const response = await fetch(
+        `${APP_ROUTES.api.tubos.produccion_auditoria}?${params.toString()}`,
+        {
+          method: "GET",
+        },
+      );
+
+      // 2. Si la respuesta falla, extraemos el mensaje de error devuelto por la API
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.error || "Error al generar el Excel de auditoría",
+        );
+      }
+
+      // 3. Descarga del archivo binario (Blob)
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `auditoria_produccion_${fechas.fechaInicio}_${fechas.fechaFin}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      setOpenExcelModal(false);
+      toast.success("Excel generado correctamente");
+    } catch (error: unknown) {
+      console.error(error);
+      toast.error(
+        ((error as Error)?.message as string) ||
+          "Hubo un problema al generar el reporte en Excel",
+      );
+    } finally {
+      setLoadingExcel(false);
+    }
+  };
+
   const handleCDimensional = (row: Prod) => {
     if (!row.control_dimensional_id) {
       toast.error("No hay control dimensional asociado a esta producción.");
@@ -324,24 +392,38 @@ export function ProduccionView() {
         onClose={() => handleDelete(null)}
       />
       <TopCrud
-        newUrl={APP_ROUTES.tubos.subRoutes.produccion_create.path}
         searchTerm={searchTerm}
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
         }}
         actions={
           <>
-            <Button
-              disabled={selectedIds.length === 0}
-              onClick={handleInsertarColadas}
-              startIcon={<FormatListBulletedAddIcon fontSize="small" />}
-              sx={{ minWidth: "120px" }}
-              color="primary"
-              size="small"
-              variant="contained"
-            >
-              Insertar Coladas ({selectedIds.length})
-            </Button>
+            {coladasPermission && (
+              <Button
+                disabled={selectedIds.length === 0}
+                onClick={handleInsertarColadas}
+                startIcon={<FormatListBulletedAddIcon fontSize="small" />}
+                sx={{ minWidth: "120px" }}
+                color="primary"
+                size="small"
+                variant="contained"
+              >
+                Insertar Coladas ({selectedIds.length})
+              </Button>
+            )}
+
+            {informePermission && (
+              <Button
+                onClick={() => setOpenExcelModal(true)}
+                startIcon={<ListAlt fontSize="small" />}
+                sx={{ minWidth: "120px" }}
+                color="primary"
+                size="small"
+                variant="contained"
+              >
+                Generar Excel Auditoría
+              </Button>
+            )}
           </>
         }
       />
@@ -380,6 +462,12 @@ export function ProduccionView() {
           handlePageChange={handlePageChange}
         />
       </Box>
+      <ExcelAuditoriaModal
+        open={openExcelModal}
+        onClose={() => setOpenExcelModal(false)}
+        onConfirm={handleGenerarExcelAuditoria}
+        loading={loadingExcel}
+      />
     </Box>
   );
 }

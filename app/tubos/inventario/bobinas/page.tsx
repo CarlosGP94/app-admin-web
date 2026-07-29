@@ -1,13 +1,20 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import useDataTable, {
   CurrentFilter,
   FilterOption,
   TableFilter,
 } from "@/hooks/useDataTable";
 import { APP_ROUTES, PERMISOS } from "@/config/routes";
-import { Box, Button, IconButton, Chip, Tooltip } from "@mui/material";
+import {
+  Box,
+  Button,
+  IconButton,
+  Chip,
+  Tooltip,
+  CircularProgress,
+} from "@mui/material";
 import { Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
@@ -52,12 +59,14 @@ export default function BobinasPage() {
 
 export function BobinasView() {
   const { user } = useAuth();
+  const [loadingInforme, setLoadingInforme] = useState(false);
 
   const userPermissions = user?.permisos || [];
   const informeInventarioPermission = tienePermiso(
     userPermissions,
     PERMISOS.tubos.bobinas.informe,
   );
+
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
@@ -153,6 +162,7 @@ export function BobinasView() {
     error?: string;
   }> => {
     let objectUrl: string | null = null;
+    setLoadingInforme(true);
 
     try {
       const response = await fetch(APP_ROUTES.api.tubos.bobinas_informe, {
@@ -163,7 +173,6 @@ export function BobinasView() {
       });
 
       if (!response.ok) {
-        // Intentamos parsear el JSON de error que devuelve el endpoint
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
           errorData.error ||
@@ -172,7 +181,6 @@ export function BobinasView() {
         );
       }
 
-      // Extraer el nombre del archivo si la API envía la cabecera Content-Disposition
       const contentDisposition = response.headers.get("Content-Disposition");
       let fileName = "informe_bobinas.pdf";
       if (contentDisposition) {
@@ -182,7 +190,6 @@ export function BobinasView() {
         }
       }
 
-      // Convertir a Blob y forzar la descarga en el navegador
       const blob = await response.blob();
       objectUrl = window.URL.createObjectURL(blob);
 
@@ -203,7 +210,7 @@ export function BobinasView() {
 
       return { success: false, error: message };
     } finally {
-      // Liberar memoria del navegador
+      setLoadingInforme(false);
       if (objectUrl) {
         window.URL.revokeObjectURL(objectUrl);
       }
@@ -307,9 +314,15 @@ export function BobinasView() {
               <Button
                 variant="contained"
                 color="primary"
+                disabled={loadingInforme}
+                startIcon={
+                  loadingInforme ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : null
+                }
                 onClick={() => onGenerateReport()}
               >
-                Informe Inventario
+                {loadingInforme ? "Generando..." : "Informe Inventario"}
               </Button>
             )}
           </Box>,

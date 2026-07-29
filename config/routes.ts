@@ -17,6 +17,9 @@ export const PERMISOS = {
     salida_paquetes: {
       informe: "tubos:salida-paquetes:informe",
     },
+    produccion: {
+      auditoria: "tubos:produccion:auditoria",
+    },
   },
 };
 
@@ -181,7 +184,6 @@ export const APP_ROUTES = {
       bobinas_detalle: (id: string) => `/api/tubos/bobinas/${id}`,
       bobinas_filtros: "/api/tubos/bobinas/filtros",
       bobinas_informe: "/api/tubos/bobinas/informe",
-
       salida_paquetes: "/api/tubos/salida-paquetes",
       salida_paquetes_filtros: "/api/tubos/salida-paquetes/filtros",
       salida_paquetes_informe: "/api/tubos/salida-paquetes/informe",
@@ -191,6 +193,7 @@ export const APP_ROUTES = {
       produccion_control_dimensional: (id: string) =>
         `/api/tubos/produccion/${id}/control-dimensional`,
       produccion_lotes_flejes: "/api/tubos/produccion/lotes_flejes",
+      produccion_auditoria: "/api/tubos/produccion/auditoria",
       lotes_tubos: "/api/tubos/lotes_tubos",
       lotes_tubos_all: "/api/tubos/lotes_tubos/all",
       lotes_tubos_filtros: "/api/tubos/lotes_tubos/filtros",

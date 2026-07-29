@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import useDataTable, {
   CurrentFilter,
   FilterOption,
@@ -14,6 +14,7 @@ import {
   Typography,
   Tooltip,
   Button,
+  CircularProgress,
 } from "@mui/material";
 import { Edit2, Trash2 } from "lucide-react";
 import Table, { Column } from "@/components/commons/Table";
@@ -65,6 +66,7 @@ export default function TubosPage() {
 
 export function TubosView() {
   const { user } = useAuth();
+  const [loadingInforme, setLoadingInforme] = useState(false);
 
   const userPermissions = user?.permisos || [];
   const informeInventarioPermission = tienePermiso(
@@ -166,6 +168,7 @@ export function TubosView() {
     error?: string;
   }> => {
     let objectUrl: string | null = null;
+    setLoadingInforme(true);
 
     try {
       const response = await fetch(APP_ROUTES.api.tubos.tubos_informe, {
@@ -216,6 +219,7 @@ export function TubosView() {
 
       return { success: false, error: message };
     } finally {
+      setLoadingInforme(false);
       // Liberar memoria del navegador
       if (objectUrl) {
         window.URL.revokeObjectURL(objectUrl);
@@ -321,9 +325,15 @@ export function TubosView() {
               <Button
                 variant="contained"
                 color="primary"
+                disabled={loadingInforme}
+                startIcon={
+                  loadingInforme ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : null
+                }
                 onClick={() => onGenerateReport()}
               >
-                Informe Inventario
+                {loadingInforme ? "Generando..." : "Informe Inventario"}
               </Button>
             )}
           </Box>,
