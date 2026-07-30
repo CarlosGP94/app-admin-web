@@ -22,7 +22,6 @@ export interface SalidaPaqueteTubo {
   id: number;
   tubo: string;
   num_paqs: number;
-  resto: number;
   operario: string;
   action_id: number;
   fecha: Date | string;
@@ -32,7 +31,6 @@ interface SalidaPaqueteRawResponse {
   id: number;
   tubo_concepto: string;
   num_paqs: number;
-  resto: number;
   operario_completo: string;
   creado: Date;
   TotalCount: number;
@@ -108,7 +106,6 @@ export async function listarSalidasPaqsService(
             spt.id,
             t.art_concepto AS tubo_concepto,
             spt.num_paqs,
-            spt.resto,
             o.nombre + ' ' + o.apellido1 + ' ' + o.apellido2 AS operario_completo,
             spt.creado,
             ROW_NUMBER() OVER (ORDER BY ${safeOrderCol} ${orderDir}) AS RowNum,
@@ -135,7 +132,6 @@ export async function listarSalidasPaqsService(
         id: row.id,
         tubo: row.tubo_concepto || "",
         num_paqs: row.num_paqs || 0,
-        resto: row.resto || 0,
         operario: row.operario_completo || "",
         action_id: row.id,
         fecha: row.creado,

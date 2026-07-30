@@ -19,17 +19,15 @@ export async function obtenerTurnosService(
       t.prefijo,
       t.entrada,
       t.salida,
-      TRIM(
-        CONCAT(
-          ISNULL(t.prefijo, ''),
-          CASE WHEN t.prefijo IS NOT NULL THEN ' ' ELSE '' END,
-          '(',
-          ISNULL(FORMAT(TRY_CAST(t.entrada AS time), 'hh\\:mm'), ISNULL(t.entrada, '')),
-          ' - ',
-          ISNULL(FORMAT(TRY_CAST(t.salida AS time), 'hh\\:mm'), ISNULL(t.salida, '')),
-          ')'
-        )
-      ) AS label
+      LTRIM(RTRIM(
+        ISNULL(t.prefijo, '') +
+        CASE WHEN t.prefijo IS NOT NULL AND t.prefijo != '' THEN ' ' ELSE '' END +
+        '(' +
+        ISNULL(CONVERT(VARCHAR(5), CAST(t.entrada AS TIME), 108), ISNULL(CAST(t.entrada AS VARCHAR), '')) +
+        ' - ' +
+        ISNULL(CONVERT(VARCHAR(5), CAST(t.salida AS TIME), 108), ISNULL(CAST(t.salida AS VARCHAR), '')) +
+        ')'
+      )) AS label
     FROM Turnos t
     ORDER BY t.prefijo ASC, t.entrada ASC, t.salida ASC;
   `;

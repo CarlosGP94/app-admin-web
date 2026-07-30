@@ -67,6 +67,7 @@ export interface PaginatedResult<T> {
   limit: number;
   totalPages: number;
 }
+
 export async function listarProdTubosService(
   pool: ConnectionPool,
   params: ListarProdTubosParams,
@@ -119,11 +120,14 @@ export async function listarProdTubosService(
       request.input("espesor", espesor);
     }
     if (estructural === true) {
-      whereClauses.push(`t.tipo_id != 3 AND t.tipo_id != 4 AND t.espesor > 2`);
+      whereClauses.push(
+        `(t.tipo_id != 3 AND t.tipo_id != 4 AND t.espesor > 2)`,
+      );
       request.input("estructural", estructural);
     }
     if (estructural === false) {
-      whereClauses.push(`t.tipo_id = 3 OR t.tipo_id = 4 OR t.espesor <= 2`);
+      // Paréntesis agregados para evitar romper los AND de las otras condiciones
+      whereClauses.push(`(t.tipo_id = 3 OR t.tipo_id = 4 OR t.espesor <= 2)`);
       request.input("estructural", estructural);
     }
     if (maquina !== undefined && maquina !== null && maquina !== 0) {
@@ -160,46 +164,47 @@ export async function listarProdTubosService(
   const safeOrderCol = mapeoColumnas[orderCol] || "pt.id";
 
   const query = `
-    WITH ProdTubosPaginados AS (
-        SELECT
-            pt.id,
-            pt.control_dimensional_id,
-            t.art_concepto AS tubo_concepto,
-            lt.lote AS lote_codigo,
-            tu.prefijo AS turno_prefijo,
-            o.nombre + ' ' + o.apellido1 + ' ' + o.apellido2 AS operario_completo,
-            pt.cant_tubos_buenos as tubos_buenos,
-            pt.cant_tubos_malos as tubos_malos,
-            pt.paquetes,
-            CASE 
-                WHEN (pt.cant_tubos_buenos - (pt.paquetes * t.num_por_paq)) < 0 THEN 0 
-                ELSE (pt.cant_tubos_buenos - (pt.paquetes * t.num_por_paq)) 
-            END AS paquete_incompleto,
-            pt.creado,
-            (
-               SELECT STRING_AGG(CAST(sub.maquina_id AS VARCHAR) + ':' + sub.maquina, ',')
-               FROM (
-                   -- GROUP BY evita duplicados si hay registros repetidos en Tubos_Maquinas
-                   SELECT tm.maquina_id, m.maquina, tm.tubo_id
-                   FROM Tubos_Maquinas tm
-                   INNER JOIN Maquinas m ON tm.maquina_id = m.id
-                   GROUP BY tm.maquina_id, m.maquina, tm.tubo_id
-               ) AS sub
-               WHERE sub.tubo_id = pt.tubo_id
-            ) AS maquinas_raw,
-            ROW_NUMBER() OVER (ORDER BY ${safeOrderCol} ${orderDir}) AS RowNum,
-            COUNT(*) OVER() AS TotalCount
-        FROM Prod_Tubos AS pt
-        LEFT JOIN Tubos AS t ON pt.tubo_id = t.id
-        LEFT JOIN Lotes_Tubos AS lt ON pt.lote_tubo_id = lt.id
-        LEFT JOIN Turnos AS tu ON pt.turno_id = tu.id
-        LEFT JOIN Operarios AS o ON pt.operario_id = o.id
-        ${whereSql}
-    )
-    SELECT *
-    FROM ProdTubosPaginados
-    WHERE RowNum BETWEEN @rowStart AND @rowEnd;
-  `;
+  WITH ProdTubosPaginados AS (
+      SELECT
+          pt.id,
+          pt.control_dimensional_id,
+          t.art_concepto AS tubo_concepto,
+          lt.lote AS lote_codigo,
+          tu.prefijo AS turno_prefijo,
+          o.nombre + ' ' + ISNULL(o.apellido1, '') + ' ' + ISNULL(o.apellido2, '') AS operario_completo,
+          pt.cant_tubos_buenos as tubos_buenos,
+          pt.cant_tubos_malos as tubos_malos,
+          pt.paquetes,
+          CASE 
+              WHEN (pt.cant_tubos_buenos - (pt.paquetes * t.num_por_paq)) < 0 THEN 0 
+              ELSE (pt.cant_tubos_buenos - (pt.paquetes * t.num_por_paq)) 
+          END AS paquete_incompleto,
+          pt.creado,
+          -- CONCATENACIÓN 100% COMPATIBLE CON SQL SERVER 2008
+          STUFF((
+              SELECT ',' + CAST(sub.maquina_id AS VARCHAR) + ':' + sub.maquina
+              FROM (
+                  SELECT tm.maquina_id, m.maquina, tm.tubo_id
+                  FROM Tubos_Maquinas tm
+                  INNER JOIN Maquinas m ON tm.maquina_id = m.id
+                  GROUP BY tm.maquina_id, m.maquina, tm.tubo_id
+              ) AS sub
+              WHERE sub.tubo_id = pt.tubo_id
+              FOR XML PATH('')
+          ), 1, 1, '') AS maquinas_raw,
+          ROW_NUMBER() OVER (ORDER BY ${safeOrderCol} ${orderDir}) AS RowNum,
+          COUNT(*) OVER() AS TotalCount
+      FROM Prod_Tubos AS pt
+      LEFT JOIN Tubos AS t ON pt.tubo_id = t.id
+      LEFT JOIN Lotes_Tubos AS lt ON pt.lote_tubo_id = lt.id
+      LEFT JOIN Turnos AS tu ON pt.turno_id = tu.id
+      LEFT JOIN Operarios AS o ON pt.operario_id = o.id
+      ${whereSql}
+  )
+  SELECT *
+  FROM ProdTubosPaginados
+  WHERE RowNum BETWEEN @rowStart AND @rowEnd;
+`;
 
   request.input("rowStart", rowStart);
   request.input("rowEnd", rowEnd);
@@ -208,7 +213,6 @@ export async function listarProdTubosService(
 
   // Mapeo y formateo final de los registros a la interfaz requerida
   const data: ProdTubo[] = result.recordset.map((row: ProdTuboRawResponse) => {
-    // Parseo seguro del string de máquinas agrupadas "1:Cortadora,2:Prensa"
     const maquinas: MaquinaItem[] = row.maquinas_raw
       ? row.maquinas_raw.split(",").map((item: string) => {
           const [idStr, name] = item.split(":");
@@ -223,8 +227,8 @@ export async function listarProdTubosService(
       turno_prefijo: row.turno_prefijo || "",
       operario: row.operario_completo || "",
       maquinas: maquinas,
-      tubos_buenos: row.tubos_buenos || 0, // Corregido: antes apuntaba a campos inexistentes en row
-      tubos_malos: row.tubos_malos || 0, // Corregido: antes apuntaba a campos inexistentes en row
+      tubos_buenos: row.tubos_buenos || 0,
+      tubos_malos: row.tubos_malos || 0,
       paquetes: row.paquetes || 0,
       paquete_incompleto: row.paquete_incompleto || 0,
       action_id: row.id,

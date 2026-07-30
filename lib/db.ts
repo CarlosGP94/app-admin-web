@@ -18,10 +18,12 @@ const configs: Record<LineaProduccion, mssql.config> = {
     password: process.env.DB_TUBOS_PASSWORD,
     server: process.env.DB_TUBOS_SERVER || "localhost",
     database: process.env.DB_TUBOS_DATABASE,
-    port: Number(process.env.DB_TUBOS_PORT) || 1433,
+    // NOTA: Si hay instanceName, OMITIR el puerto 1433
+    ...(process.env.DB_TUBOS_INSTANCE
+      ? {}
+      : { port: Number(process.env.DB_TUBOS_PORT) || 1433 }),
     options: {
       ...commonOptions,
-      // Si existe una instancia (ej: SQLEXPRESS), la inyectamos aquí
       ...(process.env.DB_TUBOS_INSTANCE
         ? { instanceName: process.env.DB_TUBOS_INSTANCE }
         : {}),
@@ -31,13 +33,23 @@ const configs: Record<LineaProduccion, mssql.config> = {
   mallas: {
     user: process.env.DB_MALLAS_USER,
     password: process.env.DB_MALLAS_PASSWORD,
-    server: process.env.DB_MALLAS_SERVER || "localhost",
+    // Si DB_MALLAS_SERVER="SQL\SQLSERVERGP", separa el servidor de la instancia
+    server: process.env.DB_MALLAS_SERVER
+      ? process.env.DB_MALLAS_SERVER.split("\\")[0]
+      : "localhost",
     database: process.env.DB_MALLAS_DATABASE,
-    port: Number(process.env.DB_MALLAS_PORT) || 1433,
+    ...(process.env.DB_MALLAS_INSTANCE
+      ? {}
+      : { port: Number(process.env.DB_MALLAS_PORT) || 1433 }),
     options: {
       ...commonOptions,
-      ...(process.env.DB_MALLAS_INSTANCE
-        ? { instanceName: process.env.DB_MALLAS_INSTANCE }
+      ...(process.env.DB_MALLAS_INSTANCE ||
+      process.env.DB_MALLAS_SERVER?.includes("\\")
+        ? {
+            instanceName:
+              process.env.DB_MALLAS_INSTANCE ||
+              process.env.DB_MALLAS_SERVER?.split("\\")[1],
+          }
         : {}),
     },
     pool: { max: 10, min: 0, idleTimeoutMillis: 30000 },
@@ -47,7 +59,9 @@ const configs: Record<LineaProduccion, mssql.config> = {
     password: process.env.DB_SEGURIDAD_PASSWORD,
     server: process.env.DB_SEGURIDAD_SERVER || "localhost",
     database: process.env.DB_SEGURIDAD_DATABASE,
-    port: Number(process.env.DB_SEGURIDAD_PORT) || 1433,
+    ...(process.env.DB_SEGURIDAD_INSTANCE
+      ? {}
+      : { port: Number(process.env.DB_SEGURIDAD_PORT) || 1433 }),
     options: {
       ...commonOptions,
       ...(process.env.DB_SEGURIDAD_INSTANCE
@@ -92,16 +106,34 @@ export const getConnection = (
   pools[linea] = new mssql.ConnectionPool(config)
     .connect()
     .then((pool) => {
+      // IMPRIMIR DETALLES DE LA CONEXIÓN ESTABLECIDA
+      console.log(`\n========================================`);
+      console.log(`✅ CONEXIÓN EXITOSA -> LÍNEA: [${linea.toUpperCase()}]`);
+      console.log(`📌 Servidor:  ${config.server}`);
       console.log(
-        `✅ Conexión establecida -> LÍNEA: [${linea.toUpperCase()}] (BD: ${config.database})`,
+        `📌 Instancia: ${config.options?.instanceName || "(Ninguna / Por defecto)"}`,
       );
+      console.log(
+        `📌 Puerto:    ${config.port || "(Gestionado por SQL Browser / Instancia)"}`,
+      );
+      console.log(`📌 Base Datos:${config.database}`);
+      console.log(`📌 Usuario:   ${config.user}`);
+      console.log(`========================================\n`);
+
       return pool;
     })
     .catch((err) => {
+      console.error(`\n========================================`);
+      console.error(`❌ ERROR DE CONEXIÓN -> LÍNEA: [${linea.toUpperCase()}]`);
+      console.error(`📌 Intentó conectar a: ${config.server}`);
       console.error(
-        `❌ Error al conectar con la base de datos de la línea '${linea}':`,
-        err,
+        `📌 Instancia: ${config.options?.instanceName || "(Ninguna)"}`,
       );
+      console.error(`📌 Base Datos:${config.database}`);
+      console.error(`📌 Usuario:   ${config.user}`);
+      console.error(`📌 Detalle del error:`, err);
+      console.error(`========================================\n`);
+
       delete pools[linea]; // Limpiamos para poder reintentar
       throw err;
     });

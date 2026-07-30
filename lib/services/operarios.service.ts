@@ -19,7 +19,12 @@ export async function obtenerOperariosService(
       o.nombre,
       o.apellido1,
       o.apellido2,
-      TRIM(CONCAT_WS(' ', o.nombre, o.apellido1, o.apellido2)) AS label
+      -- Compatibilidad SQL Server 2008: LTRIM/RTRIM + ISNULL
+      LTRIM(RTRIM(
+        o.nombre + 
+        CASE WHEN o.apellido1 IS NOT NULL AND o.apellido1 != '' THEN ' ' + o.apellido1 ELSE '' END +
+        CASE WHEN o.apellido2 IS NOT NULL AND o.apellido2 != '' THEN ' ' + o.apellido2 ELSE '' END
+      )) AS label
     FROM Operarios o
     ORDER BY o.nombre ASC, o.apellido1 ASC;
   `;

@@ -337,7 +337,7 @@ const columns = (): Column<Prod>[] => [
   {
     id: "num_paqs",
     width: 200,
-    label: "Paquetes / Resto (uds)",
+    label: "Paquetes",
     align: "center",
     format: (row) => (
       <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
@@ -346,13 +346,6 @@ const columns = (): Column<Prod>[] => [
           sx={{ color: "info.main", fontWeight: "bold" }}
         >
           {row.num_paqs}
-        </Typography>
-        <span>/</span>
-        <Typography
-          variant="body2"
-          sx={{ color: "secondary.main", fontWeight: "bold" }}
-        >
-          {row.resto}
         </Typography>
       </Box>
     ),
