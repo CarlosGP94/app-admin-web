@@ -980,6 +980,76 @@ async function actualizarStockTubo(
   `);
 }
 
+/**
+ * Función auxiliar para buscar o crear un lote en Lotes_Tubos
+ */
+async function obtenerOCrearLoteId(
+  transaction: Transaction,
+  fecha: string | Date,
+  maquinaId: number,
+  turnoId: number,
+): Promise<number> {
+  const reqLote = new Request(transaction);
+  reqLote.input("fecha", fecha);
+  reqLote.input("maquina_id", maquinaId);
+  reqLote.input("turno_id", turnoId);
+
+  // 1. Buscar lote existente por día, mes, año, máquina y turno
+  const resLote = await reqLote.query(`
+    SELECT id 
+    FROM Lotes_Tubos 
+    WHERE CAST(creado AS DATE) = CAST(@fecha AS DATE)
+      AND maquina_id = @maquina_id
+      AND turno_id = @turno_id;
+  `);
+
+  if (resLote.recordset.length > 0) {
+    return resLote.recordset[0].id;
+  }
+
+  // 2. Si no existe, obtener el prefijo del turno para armar el string del lote
+  const reqTurno = new Request(transaction);
+  reqTurno.input("turno_id", turnoId);
+
+  const resTurno = await reqTurno.query(`
+    SELECT prefijo 
+    FROM Turnos 
+    WHERE id = @turno_id;
+  `);
+
+  if (resTurno.recordset.length === 0) {
+    throw new Error(`No se encontró el turno con ID ${turnoId}`);
+  }
+
+  const prefijoTurno = resTurno.recordset[0].prefijo ?? "";
+
+  const fechaDate = typeof fecha === "string" ? new Date(fecha) : fecha;
+
+  // Formatting DDMMAA (ejemplo: 20/06/2026 -> 200626)
+  const dia = String(fechaDate.getDate()).padStart(2, "0");
+  const mes = String(fechaDate.getMonth() + 1).padStart(2, "0");
+  const anio = String(fechaDate.getFullYear()).slice(-2);
+  const fechaFormateada = `${dia}${mes}${anio}`;
+
+  // Formato final: LT + maquina_id + DDMMAA + prefijo
+  const codigoLote = `LT${maquinaId}${fechaFormateada}${prefijoTurno}`;
+
+  // 3. Insertar el nuevo lote
+  const reqInsertLote = new Request(transaction);
+  reqInsertLote.input("lote", codigoLote);
+  reqInsertLote.input("creado", fechaDate);
+  reqInsertLote.input("maquina_id", maquinaId);
+  reqInsertLote.input("turno_id", turnoId);
+
+  const resInsert = await reqInsertLote.query(`
+    INSERT INTO Lotes_Tubos (lote, creado, maquina_id, turno_id)
+    OUTPUT INSERTED.id
+    VALUES (@lote, @creado, @maquina_id, @turno_id);
+  `);
+
+  return resInsert.recordset[0].id;
+}
+
 export async function actualizarProduccionTuboService(
   pool: ConnectionPool,
   payload: ProduccionTuboUpdatePayload,
@@ -994,7 +1064,14 @@ export async function actualizarProduccionTuboService(
     reqPrevio.input("id", payload.id);
 
     const resPrevio = await reqPrevio.query(`
-      SELECT tubo_id, cant_tubos_buenos, control_dimensional_id 
+      SELECT 
+        tubo_id, 
+        cant_tubos_buenos, 
+        control_dimensional_id,
+        turno_id,
+        maquina_id,
+        creado,
+        lote_tubo_id
       FROM Prod_Tubos 
       WHERE id = @id;
     `);
@@ -1009,43 +1086,64 @@ export async function actualizarProduccionTuboService(
       tubo_id: tuboIdViejo,
       cant_tubos_buenos: tubosBuenosViejos,
       control_dimensional_id: controlDimensionalId,
+      turno_id: turnoIdViejo,
+      maquina_id: maquinaIdViejo,
+      creado: fechaVieja,
+      lote_tubo_id: loteIdViejo,
     } = resPrevio.recordset[0];
 
     const tuboIdNuevo = payload.tubo_id;
     const tubosBuenosNuevos = payload.cant_tubos_buenos || 0;
+    const fechaNueva = payload.creado ?? new Date();
+    const turnoIdNuevo = payload.turno_id ?? turnoIdViejo;
+    const maquinaIdNuevo = payload.maquina_id ?? maquinaIdViejo;
 
-    // 2. Actualizar el stock del/los tubo(s)
+    // 2. Determinar el lote_id (Recalcular si cambiaron fecha, turno o máquina)
+    let loteIdFinal = payload.lote_id ?? loteIdViejo;
+
+    const fechaCambio =
+      new Date(fechaVieja).getTime() !== new Date(fechaNueva).getTime();
+    const turnoCambio = turnoIdViejo !== turnoIdNuevo;
+    const maquinaCambio = maquinaIdViejo !== maquinaIdNuevo;
+
+    if (fechaCambio || turnoCambio || maquinaCambio || !loteIdFinal) {
+      if (maquinaIdNuevo && turnoIdNuevo) {
+        loteIdFinal = await obtenerOCrearLoteId(
+          transaction,
+          fechaNueva,
+          maquinaIdNuevo,
+          turnoIdNuevo,
+        );
+      }
+    }
+
+    // 3. Actualizar el stock del/los tubo(s)
     if (tuboIdViejo === tuboIdNuevo) {
-      // Mismo tubo: aplicamos únicamente el diferencial
       const diferencia = tubosBuenosNuevos - (tubosBuenosViejos || 0);
       if (diferencia !== 0) {
         await actualizarStockTubo(transaction, tuboIdNuevo, diferencia);
       }
     } else {
-      // Cambio de tubo:
-      // a) Restablecer el stock del tubo antiguo
       if (tubosBuenosViejos && tubosBuenosViejos > 0) {
         await actualizarStockTubo(transaction, tuboIdViejo, -tubosBuenosViejos);
       }
-
-      // b) Sumar la nueva producción al nuevo tubo
       if (tubosBuenosNuevos > 0) {
         await actualizarStockTubo(transaction, tuboIdNuevo, tubosBuenosNuevos);
       }
     }
 
-    // 3. Actualizar la tabla Prod_Tubos
+    // 4. Actualizar la tabla Prod_Tubos
     const reqUpdateProd = new Request(transaction);
     reqUpdateProd.input("id", payload.id);
-    reqUpdateProd.input("turno_id", payload.turno_id ?? null);
+    reqUpdateProd.input("turno_id", turnoIdNuevo ?? null);
     reqUpdateProd.input("tubo_id", payload.tubo_id);
-    reqUpdateProd.input("maquina_id", payload.maquina_id ?? null);
-    reqUpdateProd.input("lote_id", payload.lote_id ?? null);
+    reqUpdateProd.input("maquina_id", maquinaIdNuevo ?? null);
+    reqUpdateProd.input("lote_id", loteIdFinal ?? null);
     reqUpdateProd.input("operario_id", payload.operario_id ?? null);
     reqUpdateProd.input("cant_tubos_buenos", tubosBuenosNuevos);
     reqUpdateProd.input("cant_tubos_malos", payload.cant_tubos_malos ?? 0);
     reqUpdateProd.input("observaciones", payload.observaciones ?? "");
-    reqUpdateProd.input("creado", payload.creado ?? new Date());
+    reqUpdateProd.input("creado", fechaNueva);
 
     const queryUpdateProd = `
       UPDATE Prod_Tubos
@@ -1064,14 +1162,14 @@ export async function actualizarProduccionTuboService(
 
     await reqUpdateProd.query(queryUpdateProd);
 
-    // 4. Actualizar el registro de Control_Dimensional si existe
+    // 5. Actualizar el registro de Control_Dimensional si existe
     if (controlDimensionalId) {
       const reqUpdateControl = new Request(transaction);
       reqUpdateControl.input("control_id", controlDimensionalId);
       reqUpdateControl.input("tubo_id", payload.tubo_id);
       reqUpdateControl.input("operario_id", payload.operario_id ?? null);
-      reqUpdateControl.input("maquina_id", payload.maquina_id ?? null);
-      reqUpdateControl.input("creado", payload.creado ?? new Date());
+      reqUpdateControl.input("maquina_id", maquinaIdNuevo ?? null);
+      reqUpdateControl.input("creado", fechaNueva);
 
       const queryUpdateControl = `
         UPDATE Control_Dimensional
@@ -1085,7 +1183,7 @@ export async function actualizarProduccionTuboService(
       await reqUpdateControl.query(queryUpdateControl);
     }
 
-    // 5. Confirmar cambios
+    // 6. Confirmar cambios
     await transaction.commit();
 
     return {
@@ -1093,10 +1191,9 @@ export async function actualizarProduccionTuboService(
       tubo_id: payload.tubo_id,
       cant_tubos_buenos: tubosBuenosNuevos,
       mensaje:
-        "Producción, stock y control dimensional actualizados correctamente.",
+        "Producción, stock, lote y control dimensional actualizados correctamente.",
     };
   } catch (error) {
-    // Si hay algún fallo, se revierte todo
     await transaction.rollback();
     throw error;
   }

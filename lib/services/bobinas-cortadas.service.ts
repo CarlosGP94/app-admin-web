@@ -27,6 +27,8 @@ export interface BobinaCortada {
   turno_prefijo: string;
   operario: string;
   colada: string;
+  fabricante_id: number;
+  calidad_id: number;
   action_id: number;
   fecha: Date;
 }
@@ -36,6 +38,8 @@ export interface BobinaCortadaItemResponse {
   turno_prefijo: string;
   operario: string;
   colada: string;
+  fabricante_id: number;
+  calidad_id: number;
   action_id: number;
   creado: Date;
 }
@@ -150,6 +154,8 @@ export async function listarBobinasCortadasService(
             o.nombre + ' ' + o.apellido1 + ' ' + o.apellido2 AS operario,
             bcol.colada AS colada,
             bc.creado,
+            b.fabricante_id,
+            b.calidad_id,
             ROW_NUMBER() OVER (ORDER BY ${safeOrderCol} ${orderDir}) AS RowNum,
             COUNT(*) OVER() AS TotalCount
         FROM Bobinas_Cortadas as bc
@@ -178,6 +184,8 @@ export async function listarBobinasCortadasService(
       colada: row.colada,
       action_id: row.action_id,
       fecha: row.creado,
+      fabricante_id: row.fabricante_id,
+      calidad_id: row.calidad_id,
     }),
   );
 

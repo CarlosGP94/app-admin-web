@@ -408,7 +408,7 @@ export function ProduccionView() {
                 size="small"
                 variant="contained"
               >
-                Insertar Coladas ({selectedIds.length})
+                Insertar Coladas Auditoría ({selectedIds.length})
               </Button>
             )}
 
