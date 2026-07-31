@@ -1,5 +1,6 @@
 // lib/services/bobinas-cortadas.service.ts
 import type { ConnectionPool } from "mssql";
+import { Transaction, Request } from "mssql";
 
 // 1. Interfaces para tipar la entrada y salida de datos
 export interface FiltrosBobinasCortadas {
@@ -54,7 +55,7 @@ export interface PaginatedResult<T> {
 
 export async function listarBobinasCortadasService(
   pool: ConnectionPool,
-  params: ListarBobinasCortadasParams,
+  params: ListarBobinasCortadasParams
 ): Promise<PaginatedResult<BobinaCortada>> {
   const page = Math.max(1, params.page || 1);
   const limit = Math.max(1, params.limit || 10);
@@ -186,7 +187,7 @@ export async function listarBobinasCortadasService(
       fecha: row.creado,
       fabricante_id: row.fabricante_id,
       calidad_id: row.calidad_id,
-    }),
+    })
   );
 
   // Obtenemos el conteo total del registro auxiliar de la primera fila
@@ -232,7 +233,7 @@ export interface ListarFiltrosBobinasCortadasResponse {
 
 export async function listarFiltrosBobinasCortadasService(
   pool: ConnectionPool,
-  params: ListarFiltrosBobinasCortadasParams,
+  params: ListarFiltrosBobinasCortadasParams
 ): Promise<ListarFiltrosBobinasCortadasResponse> {
   const { colada, fabricante, fechaInicio, fechaFin } = params;
 
@@ -328,4 +329,124 @@ export async function listarFiltrosBobinasCortadasService(
       maxFecha: resFechas.recordset[0]?.maxFecha || null,
     },
   };
+}
+
+// Interfaz para la entrada del servicio de actualización masiva
+export interface ActualizarColadaBobinasCortadasParams {
+  ids: number[];
+  colada_id?: number | null;
+  colada_nombre?: string | null;
+  fabricante_id?: number | null;
+  fabricante_nombre?: string | null;
+}
+
+export interface ActualizarColadaBobinasCortadasResponse {
+  success: boolean;
+  filasActualizadas: number;
+  coladaId: number;
+}
+
+/**
+ * Actualiza el campo colada_id en la tabla Bobinas_Cortadas para una lista de IDs.
+ * Si colada_id no se proporciona, crea primero el registro en Bobina_Coladas.
+ * Si tampoco se proporciona fabricante_id pero sí su nombre, crea el registro en Fabricantes.
+ */
+export async function actualizarColadaBobinasCortadasService(
+  pool: ConnectionPool,
+  params: ActualizarColadaBobinasCortadasParams
+): Promise<ActualizarColadaBobinasCortadasResponse> {
+  const { ids, colada_nombre, fabricante_nombre } = params;
+  let { colada_id, fabricante_id } = params;
+
+  if (!ids || ids.length === 0) {
+    throw new Error("Debe proporcionar al menos un ID de Bobina Cortada.");
+  }
+
+  // Iniciamos una transacción para mantener la consistencia en BD
+  const transaction = new Transaction(pool);
+  await transaction.begin();
+
+  try {
+    // 1. Resolver el fabricante_id si no viene definido
+    if (!colada_id && !fabricante_id) {
+      if (fabricante_nombre && fabricante_nombre.trim() !== "") {
+        const reqFabricante = new Request(transaction);
+        reqFabricante.input("nombre", fabricante_nombre.trim());
+
+        // Comprobamos si ya existe el fabricante o lo insertamos
+        const resFabricante = await reqFabricante.query(`
+          IF EXISTS (SELECT 1 FROM Fabricantes WHERE nombre = @nombre)
+          BEGIN
+            SELECT id FROM Fabricantes WHERE nombre = @nombre;
+          END
+          ELSE
+          BEGIN
+            INSERT INTO Fabricantes (nombre)
+            OUTPUT INSERTED.id
+            VALUES (@nombre);
+          END
+        `);
+
+        fabricante_id = resFabricante.recordset[0]?.id;
+      } else {
+        throw new Error(
+          "No se puede crear la colada sin un fabricante_id o fabricante_nombre válido."
+        );
+      }
+    }
+
+    // 2. Crear la colada si colada_id no viene definido
+    if (!colada_id) {
+      if (!colada_nombre || colada_nombre.trim() === "") {
+        throw new Error(
+          "Debe proporcionar colada_nombre si colada_id no está definido."
+        );
+      }
+
+      const reqColada = new Request(transaction);
+      reqColada.input("fabricante_id", fabricante_id);
+      reqColada.input("colada", colada_nombre.trim());
+
+      const resColada = await reqColada.query(`
+        INSERT INTO Bobina_Coladas (fabricante_id, colada)
+        OUTPUT INSERTED.id
+        VALUES (@fabricante_id, @colada);
+      `);
+
+      colada_id = resColada.recordset[0]?.id;
+    }
+
+    // 3. Actualizar la tabla Bobinas_Cortadas para los IDs indicados
+    const reqUpdate = new Request(transaction);
+    reqUpdate.input("colada_id", colada_id);
+
+    // Para evitar problemas de límites de parámetros SQL pasamos la lista mediante un array o IN dinámico
+    const paramsList: string[] = [];
+    ids.forEach((id, index) => {
+      const paramName = `id_${index}`;
+      paramsList.push(`@${paramName}`);
+      reqUpdate.input(paramName, id);
+    });
+
+    const updateQuery = `
+      UPDATE Bobinas_Cortadas
+      SET colada_id = @colada_id
+      WHERE id IN (${paramsList.join(", ")});
+    `;
+
+    const result = await reqUpdate.query(updateQuery);
+
+    // Confirmamos los cambios
+    await transaction.commit();
+
+    return {
+      success: true,
+      filasActualizadas: result.rowsAffected[0] || 0,
+      coladaId: colada_id!,
+    };
+  } catch (error) {
+    // Si algo falla desglosamos los cambios
+    await transaction.rollback();
+    throw error;
+  }
 }

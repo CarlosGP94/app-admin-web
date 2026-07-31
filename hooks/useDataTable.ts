@@ -51,18 +51,18 @@ interface UseDataTableProps<T extends { id: string | number }> {
     pageSize: number,
     searchTerm: string,
     filters: TableFilter[],
-    sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[],
+    sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[]
   ) => Promise<{ data: T[]; total: number } | undefined | null | void>;
   fetchFilters?: (
-    filters: CurrentFilter[],
+    filters: CurrentFilter[]
   ) => Promise<Record<string, (FilterOption | number | string)[]>>;
   initFilters: TableFilter[];
   externalDeps?: unknown[];
   onDeleteConfirm?: (
-    id: string | number,
+    id: string | number
   ) => Promise<{ success: boolean; error?: string }>;
   onCreateConfirm?: (
-    newData: Partial<T>,
+    newData: Partial<T>
   ) => Promise<{ success: boolean; error?: string }>;
   onEditConfirm?: (newData: T) => Promise<{ success: boolean; error?: string }>;
   onOtherAction?: () => Promise<{
@@ -94,10 +94,10 @@ const useDataTable = <T extends { id: string | number }>({
 }: UseDataTableProps<T>) => {
   const [page, setPage] = useState<number>(persistedState?.page || 1);
   const [searchTerm, setSearchTerm] = useState<string>(
-    persistedState?.searchTerm || "",
+    persistedState?.searchTerm || ""
   );
   const [filters, setFilteredMallas] = useState<TableFilter[]>(
-    persistedState?.filters || initFilters,
+    persistedState?.filters || initFilters
   );
   const [sortModel, setSortModel] = useState<
     { orderBy: string; orderDir: "ASC" | "DESC" }[]
@@ -120,7 +120,7 @@ const useDataTable = <T extends { id: string | number }>({
   // Mutación limpia de mapeo de opciones devueltas de base de datos
   const mapRawOptions = (
     type: "select" | "daterangeStart" | "daterangeEnd" | "autocomplete",
-    rawOptions: (FilterOption | number | string)[],
+    rawOptions: (FilterOption | number | string)[]
   ): FilterOption[] => {
     return rawOptions.map((option) => {
       if (
@@ -148,14 +148,14 @@ const useDataTable = <T extends { id: string | number }>({
   }, [page, searchTerm, filters, sortModel, onPersistStateChange]);
 
   const handleSortModel = (
-    model: { orderBy: string; orderDir: "ASC" | "DESC" }[],
+    model: { orderBy: string; orderDir: "ASC" | "DESC" }[]
   ) => {
     setSortModel(model);
   };
 
   const handleSelectItems = (
     ids: (string | number)[],
-    type?: "exclude" | "include",
+    type?: "exclude" | "include"
   ) => {
     if (type === "exclude") {
       setSelectedIds(data.map((item) => item.id));
@@ -179,7 +179,7 @@ const useDataTable = <T extends { id: string | number }>({
           valueStart: filter.valueStart || null,
           valueEnd: filter.valueEnd || null,
           type: filter.type,
-        })),
+        }))
       );
       const updated = currentFilters.map((filter) => ({
         ...filter,
@@ -283,7 +283,7 @@ const useDataTable = <T extends { id: string | number }>({
   const loadData = async (
     currentPage: number,
     currentSearch: string,
-    currentFilters: TableFilter[],
+    currentFilters: TableFilter[]
   ) => {
     setLoading(true);
     const result = await fetchData(
@@ -291,7 +291,7 @@ const useDataTable = <T extends { id: string | number }>({
       PAGE_SIZE,
       currentSearch,
       currentFilters,
-      sortModel,
+      sortModel
     );
     setData((result?.data as T[]) || []);
     setTotal(result?.total || 0);
@@ -306,7 +306,7 @@ const useDataTable = <T extends { id: string | number }>({
       | "select"
       | "daterangeStart"
       | "daterangeEnd"
-      | "autocomplete" = "select",
+      | "autocomplete" = "select"
   ) => {
     if (filterName === "search") {
       setSearchTerm(typeof value === "string" ? value : "");
@@ -348,7 +348,7 @@ const useDataTable = <T extends { id: string | number }>({
           valueStart: filter.valueStart || null,
           valueEnd: filter.valueEnd || null,
           type: filter.type,
-        })),
+        }))
       );
 
       const updatedFiltersWithNewOptions = targetFilters.map((filter) => ({
@@ -387,6 +387,10 @@ const useDataTable = <T extends { id: string | number }>({
     setSortModel([]);
   };
 
+  const handleReloadData = async () => {
+    await loadData(page, searchTerm, filters);
+  };
+
   useEffect(() => {
     loadData(page, searchTerm, filters);
   }, [page, sortModel, ...externalDeps]);
@@ -406,6 +410,7 @@ const useDataTable = <T extends { id: string | number }>({
     showDetail,
     showForm,
     actionLoading,
+    handleReloadData,
     handleFilterChange,
     handlePageChange,
     handleSortModel,

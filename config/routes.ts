@@ -201,8 +201,10 @@ export const APP_ROUTES = {
       control_dimensional: "/api/tubos/control_dimensional",
       bobinas_cortadas: "/api/tubos/bobinas_cortadas",
       bobinas_cortadas_filtros: "/api/tubos/bobinas_cortadas/filtros",
+      bobinas_cortadas_coladas: "/api/tubos/bobinas_cortadas/coladas",
       bobinas_coladas_bobina: (id: string) =>
         "/api/tubos/bobinas_coladas/bobina/" + id,
+      bobinas_coladas: "/api/tubos/bobinas_coladas",
       planes_corte: "/api/tubos/planes_corte",
       planes_corte_filtros: "/api/tubos/planes_corte/filtros",
       planes_corte_detalle: (id: string) => `/api/tubos/planes_corte/${id}`,

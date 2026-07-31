@@ -16,6 +16,7 @@ import ProtectedRoute from "@/components/commons/ProtectedRoute";
 import FormatListBulletedAddIcon from "@mui/icons-material/FormatListBulletedAdd";
 import { AsignarColadaModal } from "@/components/tubos/bobinasCortadas/AsignarColadaModal";
 import { toast } from "react-toastify";
+import { useTubosModule } from "../layout";
 
 interface BobinaCortada {
   id: number;
@@ -25,8 +26,8 @@ interface BobinaCortada {
   operario: string;
   action_id: number;
   fecha: string;
-  fabricante_id: number; // 👈 Añadido para la validación
-  calidad_id: number; // 👈 Añadido para la validación
+  fabricante_id: number;
+  calidad_id: number;
 }
 
 interface Fabricante {
@@ -53,20 +54,23 @@ export default function BobinaCortadaPage() {
 }
 
 export function BobinaCortadaView() {
+  const { fabricantes = [] } = useTubosModule();
   // Estados para controlar el modal y el loader
   const [openColadaModal, setOpenColadaModal] = useState<boolean>(false);
   const [loadingColada, setLoadingColada] = useState<boolean>(false);
+  const [selectedFabricante, setSelectedFabricante] =
+    useState<Fabricante | null>(null);
 
   const fecthData = async (
     currentPage: number,
     currentPageSize: number,
     searchTerm: string,
     filters: TableFilter[],
-    sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[],
+    sortModel: { orderBy: string; orderDir: "ASC" | "DESC" }[]
   ): Promise<{ data: BobinaCortada[]; total: number }> => {
     const url = new URL(
       APP_ROUTES.api.tubos.bobinas_cortadas,
-      window.location.origin,
+      window.location.origin
     );
 
     url.searchParams.append("page", String(currentPage));
@@ -80,7 +84,7 @@ export function BobinaCortadaView() {
         if (filter.valueStart)
           url.searchParams.append(
             "fechaCorte_start",
-            String(filter.valueStart),
+            String(filter.valueStart)
           );
         if (filter.valueEnd)
           url.searchParams.append("fechaCorte_end", String(filter.valueEnd));
@@ -110,11 +114,11 @@ export function BobinaCortadaView() {
   };
 
   const fecthFilters = async (
-    currentFilters: CurrentFilter[],
+    currentFilters: CurrentFilter[]
   ): Promise<Record<string, (string | number | FilterOption)[]>> => {
     const url = new URL(
       APP_ROUTES.api.tubos.bobinas_cortadas_filtros,
-      window.location.origin,
+      window.location.origin
     );
 
     currentFilters.forEach((filter) => {
@@ -122,7 +126,7 @@ export function BobinaCortadaView() {
         if (filter.valueStart)
           url.searchParams.append(
             "fechaCorte_start",
-            String(filter.valueStart),
+            String(filter.valueStart)
           );
         if (filter.valueEnd)
           url.searchParams.append("fechaCorte_end", String(filter.valueEnd));
@@ -175,6 +179,7 @@ export function BobinaCortadaView() {
     handleFilterChange,
     handleClearAllFilters,
     handleFilter,
+    handleReloadData,
   } = useDataTable({
     initFilters: [
       {
@@ -209,47 +214,58 @@ export function BobinaCortadaView() {
 
     // Obtener los objetos completos de las bobinas seleccionadas
     const selectedBobinas = (data as BobinaCortada[]).filter((b) =>
-      selectedIds.includes(b.id),
+      selectedIds.includes(b.id)
     );
 
+    let fabricante = null;
     // Si hay 2 o más seleccionadas, validamos fabricante y calidad
+    const primerFabricante = selectedBobinas[0].fabricante_id;
+    const primeraCalidad = selectedBobinas[0].calidad_id;
     if (selectedBobinas.length >= 2) {
-      const primerFabricante = selectedBobinas[0].fabricante_id;
-      const primeraCalidad = selectedBobinas[0].calidad_id;
-
       const tieneDistintoFabricanteOCalidad = selectedBobinas.some(
         (b) =>
-          b.fabricante_id != primerFabricante || b.calidad_id != primeraCalidad,
+          b.fabricante_id != primerFabricante || b.calidad_id != primeraCalidad
       );
 
       if (tieneDistintoFabricanteOCalidad) {
         toast.error(
-          "No es posible asignar la misma colada a bobinas de distintos fabricantes o calidad.",
+          "No es posible asignar la misma colada a bobinas de distintos fabricantes o calidad."
         );
         return;
       }
     }
-
-    // Si pasa la validación o es solo 1 elemento, se abre el modal
+    fabricante = fabricantes.find((f) => f.id == primerFabricante) || null;
+    setSelectedFabricante(fabricante);
     setOpenColadaModal(true);
   };
 
   // Función para procesar el guardado de la colada
-  const handleConfirmarColada = async (nombreColada: string) => {
+  const handleConfirmarColada = async ({
+    coladaNombre,
+    coladaId,
+  }: {
+    coladaNombre: string;
+    coladaId: number | null;
+  }) => {
     try {
       setLoadingColada(true);
 
-      // Aquí realizar el fetch POST/PUT hacia la API correspondiente
-      /*
-      await fetch(APP_ROUTES.api.tubos.asignar_colada, {
+      await fetch(APP_ROUTES.api.tubos.bobinas_cortadas_coladas, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: selectedIds, colada: nombreColada }),
+        body: JSON.stringify({
+          ids: selectedIds,
+          colada_nombre: coladaNombre,
+          fabricante_id: selectedFabricante?.id,
+          colada_id: coladaId,
+        }),
       });
-      */
 
-      console.log("Asignando colada:", nombreColada, "a los IDs:", selectedIds);
       setOpenColadaModal(false);
+      toast.success("Colada asignada correctamente.");
+      await handleReloadData();
+      setSelectedFabricante(null);
+      toast.success("Colada asignada correctamente.");
     } catch (error) {
       console.error("Error al asignar colada:", error);
     } finally {
@@ -298,24 +314,27 @@ export function BobinaCortadaView() {
           />
         </Box>
       )}
-      <Table<BobinaCortada>
-        selectable
-        selectedIds={selectedIds}
-        onSelectionChange={handleSelectItems}
-        sortModel={sortModel}
-        onSortModelChange={handleSortModel}
-        page={page}
-        loading={loading}
-        rows={data as BobinaCortada[]}
-        total={total}
-        columns={columns((row) => handleEdit(``), handleDelete)}
-        rowKeyExtractor={(row) => row.id}
-        handlePageChange={handlePageChange}
-      />
+      <Box sx={{ height: "calc(100vh - 285px)", overflow: "hidden" }}>
+        <Table<BobinaCortada>
+          selectable
+          selectedIds={selectedIds}
+          onSelectionChange={handleSelectItems}
+          sortModel={sortModel}
+          onSortModelChange={handleSortModel}
+          page={page}
+          loading={loading}
+          rows={data as BobinaCortada[]}
+          total={total}
+          columns={columns((row) => handleEdit(``), handleDelete)}
+          rowKeyExtractor={(row) => row.id}
+          handlePageChange={handlePageChange}
+        />
+      </Box>
 
       {/* Modal para ingresar el nombre de la colada */}
       <AsignarColadaModal
         open={openColadaModal}
+        fabricante={selectedFabricante}
         onClose={() => setOpenColadaModal(false)}
         onConfirm={handleConfirmarColada}
         loading={loadingColada}
@@ -326,7 +345,7 @@ export function BobinaCortadaView() {
 
 const columns = (
   handleEdit: (row: BobinaCortada) => void,
-  handleDelete: (row: BobinaCortada) => void,
+  handleDelete: (row: BobinaCortada) => void
 ): Column<BobinaCortada>[] => [
   {
     id: "id",
@@ -365,36 +384,5 @@ const columns = (
     width: 150,
     align: "center",
     format: (row) => new Date(row.fecha).toLocaleDateString("es-ES"),
-  },
-  {
-    id: "action_id",
-    label: "ACCIONES",
-    width: 180,
-    align: "center",
-    format: (row) => (
-      <Box
-        sx={{
-          display: "flex",
-          gap: 0.5,
-          justifyContent: "center",
-          width: "100%",
-        }}
-      >
-        <IconButton
-          size="small"
-          onClick={() => handleEdit(row as unknown as BobinaCortada)}
-          sx={{ color: "#64748b", "&:hover": { color: "#1e293b" } }}
-        >
-          <Edit2 size={16} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => handleDelete(row as unknown as BobinaCortada)}
-          sx={{ color: "#64748b", "&:hover": { color: "#ef4444" } }}
-        >
-          <Trash2 size={16} />
-        </IconButton>
-      </Box>
-    ),
   },
 ];

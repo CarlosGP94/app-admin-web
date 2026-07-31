@@ -1546,7 +1546,7 @@ export async function generarExcelProdTubosService(
     LEFT JOIN Bobina_Coladas bc ON bc.id = ab.colada_id
     LEFT JOIN Bobinas b ON b.id = ab.bobina_id
     LEFT JOIN Fabricantes f ON f.id = b.fabricante_id
-
+    ${whereSQL}
     ORDER BY pt.creado DESC, lf.id DESC;
   `;
 
