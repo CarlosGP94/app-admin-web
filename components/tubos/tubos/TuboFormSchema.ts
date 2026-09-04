@@ -24,6 +24,7 @@ export const tuboSchema = z
     // Pesos
     peso_unitario: z.number().min(1, "Mínimo 1"),
     peso_total: z.number().min(1, "Mínimo 1"),
+    peso_total_paquete: z.number().min(1, "Mínimo 1"),
     masa_lineal: z.number().min(0, "Mínimo 0"),
 
     // Dimensiones Paquete
@@ -37,7 +38,7 @@ export const tuboSchema = z
         maquina_nombre: z.string(),
         habilitada: z.boolean(),
         flejes_ids: z.array(z.number()),
-      }),
+      })
     ),
   })
   .superRefine((data, ctx) => {
