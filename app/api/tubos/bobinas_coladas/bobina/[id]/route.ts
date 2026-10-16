@@ -25,12 +25,12 @@ export async function GET(request: Request, { params }: RouteParams) {
           success: false,
           error: "El ID de la bobina debe ser un número entero válido.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 2. Obtener el Connection Pool correspondiente a la línea de tubos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Mapear parámetros al servicio
     const serviceParams: ListarBobinasColadasParams = {
@@ -40,7 +40,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     // 4. Ejecutar la consulta a través del servicio
     const coladas = await listarBobinasColadasPorBobinaIdService(
       pool,
-      serviceParams,
+      serviceParams
     );
 
     // 5. Devolver la respuesta con el formato estándar del proyecto
@@ -61,7 +61,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

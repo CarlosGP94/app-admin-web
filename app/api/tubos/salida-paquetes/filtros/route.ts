@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     const fechaFin = searchParams.get("fechaFin") || undefined;
 
     // 2. Obtener el Connection Pool de la base de datos de tubos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Mapear parámetros con los nuevos tipos del servicio de salidas
     const params: ListarFiltrosSalidasPaquetesParams = {
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
   } catch (error: unknown) {
     console.error(
       "❌ Error en GET /api/tubos/salidas-paquetes/filtros:",
-      error,
+      error
     );
 
     const message =
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

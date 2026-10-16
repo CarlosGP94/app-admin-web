@@ -15,36 +15,46 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "El campo 'ids' es obligatorio y debe ser un array con al menos un ID.",
+          error:
+            "El campo 'ids' es obligatorio y debe ser un array con al menos un ID.",
         },
         { status: 400 }
       );
     }
 
     // Regla de negocio: Si no hay colada_id, se requiere un nombre de colada
-    if (!body.colada_id && (!body.colada_nombre || body.colada_nombre.trim() === "")) {
+    if (
+      !body.colada_id &&
+      (!body.colada_nombre || body.colada_nombre.trim() === "")
+    ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Debe proporcionar 'colada_id' o en su defecto un 'colada_nombre' válido.",
+          error:
+            "Debe proporcionar 'colada_id' o en su defecto un 'colada_nombre' válido.",
         },
         { status: 400 }
       );
     }
 
     // Regla de negocio: Si no hay colada_id ni fabricante_id, se requiere un nombre de fabricante
-    if (!body.colada_id && !body.fabricante_id && (!body.fabricante_nombre || body.fabricante_nombre.trim() === "")) {
+    if (
+      !body.colada_id &&
+      !body.fabricante_id &&
+      (!body.fabricante_nombre || body.fabricante_nombre.trim() === "")
+    ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Para crear una colada nueva debe especificar 'fabricante_id' o 'fabricante_nombre'.",
+          error:
+            "Para crear una colada nueva debe especificar 'fabricante_id' o 'fabricante_nombre'.",
         },
         { status: 400 }
       );
     }
 
     // 3. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 4. Ejecutar el servicio de actualización (gestiona la transacción)
     const resultado = await actualizarColadaBobinasCortadasService(pool, body);
@@ -59,7 +69,10 @@ export async function POST(request: Request) {
       { status: 200 }
     );
   } catch (error: unknown) {
-    console.error("❌ Error en POST /api/bobinas-cortadas/actualizar-colada:", error);
+    console.error(
+      "❌ Error en POST /api/bobinas-cortadas/actualizar-colada:",
+      error
+    );
     const message =
       error instanceof Error
         ? error.message

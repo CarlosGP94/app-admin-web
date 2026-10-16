@@ -15,11 +15,11 @@ export async function POST(request: Request) {
     if (!usuario || !password) {
       return NextResponse.json(
         { ok: false, message: "Usuario y contraseña requeridos." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    const pool = await getConnection("seguridad");
+    const pool = await getConnection();
     const userDb = await loginService(pool, { usuario, password });
 
     // Validar contraseña
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     if (!passwordMatch) {
       return NextResponse.json(
         { ok: false, message: "Credenciales inválidas." },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         rol_id: usuarioSinHash.rol_id,
       },
       JWT_SECRET,
-      { expiresIn: "8h" },
+      { expiresIn: "8h" }
     );
 
     // 3. Incluir la propiedad token en la respuesta
@@ -55,13 +55,13 @@ export async function POST(request: Request) {
         token,
         message: "Autenticación exitosa.",
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error) {
     console.error("❌ Error en login:", error);
     return NextResponse.json(
       { ok: false, message: "Error interno del servidor." },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

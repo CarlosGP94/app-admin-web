@@ -26,7 +26,7 @@ export async function GET(request: Request) {
       : undefined;
 
     // 2. Obtener el Connection Pool
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Mapear parámetros al formato estricto que espera el servicio de tubos
     const params: FiltrosTubosParams = {
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     const fechaFin = searchParams.get("fechaFin") || undefined;
 
     // 4. Obtener el Connection Pool correspondiente a la línea de producción
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 5. Mapear parámetros al formato estricto del servicio de lotes
     const params: ListarLotesParams = {
@@ -82,7 +82,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

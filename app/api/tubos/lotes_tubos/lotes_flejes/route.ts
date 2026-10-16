@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
           success: false,
           error: "Debe proporcionar al menos un ID de lote (parámetro 'ids').",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -29,17 +29,17 @@ export async function GET(request: NextRequest) {
           success: false,
           error: "Los IDs proporcionados no son válidos.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // Invocar el servicio de consulta con los LEFT JOINs
     const lotesWithFlejes = await obtenerLotesTubosConFlejesService(
       pool,
-      loteTuboIds,
+      loteTuboIds
     );
 
     return NextResponse.json({
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
             ? error.message
             : "Error interno del servidor al consultar los lotes con flejes",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

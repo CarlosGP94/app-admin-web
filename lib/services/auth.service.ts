@@ -6,7 +6,7 @@ import { ConnectionPool } from "mssql";
  */
 export const hasPermission = (
   user: User | null,
-  requiredPermission?: PermissionCode,
+  requiredPermission?: PermissionCode
 ): boolean => {
   if (!requiredPermission) return true;
   if (!user || !user.permisos) return false;
@@ -19,7 +19,7 @@ export const hasPermission = (
  */
 export const hasAnyPermission = (
   user: User | null,
-  requiredPermissions: PermissionCode[],
+  requiredPermissions: PermissionCode[]
 ): boolean => {
   if (!user || !user.permisos) return false;
 
@@ -59,7 +59,7 @@ export interface LoginResponse {
  */
 export async function loginService(
   pool: ConnectionPool,
-  credentials: LoginDTO,
+  credentials: LoginDTO
 ): Promise<UsuarioAuth> {
   const usuarioLimpio = credentials.usuario.trim();
 
@@ -78,10 +78,10 @@ export async function loginService(
       r.id AS rol_id,
       r.nombre AS rol_nombre,
       p.codigo AS permiso_codigo
-    FROM usuarios u
-    LEFT JOIN Usuario_Roles ur ON u.id = ur.usuario_id
+    FROM Usuarios u
+    LEFT JOIN Rel_Usuario_Roles ur ON u.id = ur.usuario_id
     LEFT JOIN Roles r ON ur.rol_id = r.id
-    LEFT JOIN Rol_Permisos rp ON r.id = rp.rol_id
+    LEFT JOIN Rel_Rol_Permisos rp ON r.id = rp.rol_id
     LEFT JOIN Permisos p ON rp.permiso_id = p.id
     WHERE u.usuario = @usuario;
   `;
@@ -98,7 +98,7 @@ export async function loginService(
   // Validar si la cuenta está activa
   if (!primerRegistro.activo) {
     throw new Error(
-      "El usuario se encuentra desactivado. Contacte al administrador.",
+      "El usuario se encuentra desactivado. Contacte al administrador."
     );
   }
 
@@ -107,8 +107,8 @@ export async function loginService(
     new Set(
       rows
         .map((row) => row.permiso_codigo as PermissionCode)
-        .filter((codigo): codigo is PermissionCode => Boolean(codigo)),
-    ),
+        .filter((codigo): codigo is PermissionCode => Boolean(codigo))
+    )
   );
 
   return {
@@ -129,7 +129,7 @@ export async function loginService(
  */
 export async function getUserByIdService(
   pool: ConnectionPool,
-  userId: number,
+  userId: number
 ): Promise<Omit<UsuarioAuth, "password_hash">> {
   const req = pool.request();
   req.input("userId", userId);
@@ -144,10 +144,10 @@ export async function getUserByIdService(
       r.id AS rol_id,
       r.nombre AS rol_nombre,
       p.codigo AS permiso_codigo
-    FROM usuarios u
-    LEFT JOIN Usuario_Roles ur ON u.id = ur.usuario_id
+    FROM Usuarios u
+    LEFT JOIN Rel_Usuario_Roles ur ON u.id = ur.usuario_id
     LEFT JOIN Roles r ON ur.rol_id = r.id
-    LEFT JOIN Rol_Permisos rp ON r.id = rp.rol_id
+    LEFT JOIN Rel_Rol_Permisos rp ON r.id = rp.rol_id
     LEFT JOIN Permisos p ON rp.permiso_id = p.id
     WHERE u.id = @userId;
   `;
@@ -164,7 +164,7 @@ export async function getUserByIdService(
   // Validar si la cuenta está activa
   if (!primerRegistro.activo) {
     throw new Error(
-      "El usuario se encuentra desactivado. Contacte al administrador.",
+      "El usuario se encuentra desactivado. Contacte al administrador."
     );
   }
 
@@ -173,8 +173,8 @@ export async function getUserByIdService(
     new Set(
       rows
         .map((row) => row.permiso_codigo as PermissionCode)
-        .filter((codigo): codigo is PermissionCode => Boolean(codigo)),
-    ),
+        .filter((codigo): codigo is PermissionCode => Boolean(codigo))
+    )
   );
 
   return {

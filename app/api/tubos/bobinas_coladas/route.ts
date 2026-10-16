@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     }
 
     // 2. Obtener el Connection Pool correspondiente a la línea de tubos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Mapear parámetros al servicio
     const serviceParams: ListarColadasParaSeleccionarParams = {

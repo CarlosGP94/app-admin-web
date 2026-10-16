@@ -8,113 +8,61 @@ const commonOptions = {
   trustServerCertificate: true,
 };
 
-// 1. Definición clara de tus líneas de producción
-export type LineaProduccion = "tubos" | "mallas" | "seguridad";
+// 1. Configuración única para la base de datos de producción
+const serverInput = process.env.DB_SERVER || "localhost";
+const instanceNameInput = process.env.DB_INSTANCE;
 
-// 2. Configuraciones por línea de negocio adaptadas para instancias como SQLEXPRESS
-const configs: Record<LineaProduccion, mssql.config> = {
-  tubos: {
-    user: process.env.DB_TUBOS_USER,
-    password: process.env.DB_TUBOS_PASSWORD,
-    server: process.env.DB_TUBOS_SERVER || "localhost",
-    database: process.env.DB_TUBOS_DATABASE,
-    // NOTA: Si hay instanceName, OMITIR el puerto 1433
-    ...(process.env.DB_TUBOS_INSTANCE
-      ? {}
-      : { port: Number(process.env.DB_TUBOS_PORT) || 1433 }),
-    options: {
-      ...commonOptions,
-      ...(process.env.DB_TUBOS_INSTANCE
-        ? { instanceName: process.env.DB_TUBOS_INSTANCE }
-        : {}),
-    },
-    pool: { max: 10, min: 0, idleTimeoutMillis: 30000 },
+// Separa el servidor y la instancia si vienen unidos por barra invertida (ej: "localhost\\SQLEXPRESS")
+const server = serverInput.includes("\\")
+  ? serverInput.split("\\")[0]
+  : serverInput;
+const instanceName =
+  instanceNameInput ||
+  (serverInput.includes("\\") ? serverInput.split("\\")[1] : undefined);
+
+const config: mssql.config = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  server: server,
+  database: process.env.DB_DATABASE || "produccion",
+  ...(instanceName ? {} : { port: Number(process.env.DB_PORT) || 1433 }),
+  options: {
+    ...commonOptions,
+    ...(instanceName ? { instanceName } : {}),
   },
-  mallas: {
-    user: process.env.DB_MALLAS_USER,
-    password: process.env.DB_MALLAS_PASSWORD,
-    // Si DB_MALLAS_SERVER="SQL\SQLSERVERGP", separa el servidor de la instancia
-    server: process.env.DB_MALLAS_SERVER
-      ? process.env.DB_MALLAS_SERVER.split("\\")[0]
-      : "localhost",
-    database: process.env.DB_MALLAS_DATABASE,
-    ...(process.env.DB_MALLAS_INSTANCE
-      ? {}
-      : { port: Number(process.env.DB_MALLAS_PORT) || 1433 }),
-    options: {
-      ...commonOptions,
-      ...(process.env.DB_MALLAS_INSTANCE ||
-      process.env.DB_MALLAS_SERVER?.includes("\\")
-        ? {
-            instanceName:
-              process.env.DB_MALLAS_INSTANCE ||
-              process.env.DB_MALLAS_SERVER?.split("\\")[1],
-          }
-        : {}),
-    },
-    pool: { max: 10, min: 0, idleTimeoutMillis: 30000 },
-  },
-  seguridad: {
-    user: process.env.DB_SEGURIDAD_USER,
-    password: process.env.DB_SEGURIDAD_PASSWORD,
-    server: process.env.DB_SEGURIDAD_SERVER || "localhost",
-    database: process.env.DB_SEGURIDAD_DATABASE,
-    ...(process.env.DB_SEGURIDAD_INSTANCE
-      ? {}
-      : { port: Number(process.env.DB_SEGURIDAD_PORT) || 1433 }),
-    options: {
-      ...commonOptions,
-      ...(process.env.DB_SEGURIDAD_INSTANCE
-        ? { instanceName: process.env.DB_SEGURIDAD_INSTANCE }
-        : {}),
-    },
-    pool: { max: 10, min: 0, idleTimeoutMillis: 30000 },
-  },
+  pool: { max: 10, min: 0, idleTimeoutMillis: 30000 },
 };
 
-// Evitamos que Next.js duplique conexiones en desarrollo al recargar archivos (Hot Reload)
+// 2. Interfaz global para evitar duplicación de conexiones en desarrollo (Hot Reload de Next.js)
 interface CustomGlobal {
-  _mssqlPools?: Partial<Record<LineaProduccion, Promise<mssql.ConnectionPool>>>;
+  _mssqlPool?: Promise<mssql.ConnectionPool>;
 }
 
 const globalRef = global as unknown as CustomGlobal;
 
-if (!globalRef._mssqlPools) {
-  globalRef._mssqlPools = {};
-}
-
-const pools = globalRef._mssqlPools;
-
 /**
- * Obtiene el Connection Pool correspondiente a la línea de producción solicitada.
- * @param linea 'tubos' o 'mallas' o 'seguridad'
+ * Obtiene o inicializa el Connection Pool único para la base de datos de producción.
  */
-export const getConnection = (
-  linea: LineaProduccion,
-): Promise<mssql.ConnectionPool> => {
-  if (pools[linea]) {
-    return pools[linea]!;
+export const getConnection = (): Promise<mssql.ConnectionPool> => {
+  if (globalRef._mssqlPool) {
+    return globalRef._mssqlPool;
   }
 
-  const config = configs[linea];
-  if (!config) {
-    throw new Error(
-      `La configuración para la línea de producción '${linea}' no está definida.`,
-    );
-  }
-
-  pools[linea] = new mssql.ConnectionPool(config)
+  globalRef._mssqlPool = new mssql.ConnectionPool(config)
     .connect()
     .then((pool) => {
-      // IMPRIMIR DETALLES DE LA CONEXIÓN ESTABLECIDA
       console.log(`\n========================================`);
-      console.log(`✅ CONEXIÓN EXITOSA -> LÍNEA: [${linea.toUpperCase()}]`);
+      console.log(`✅ CONEXIÓN EXITOSA -> BASE DE DATOS: [PRODUCCIÓN]`);
       console.log(`📌 Servidor:  ${config.server}`);
       console.log(
-        `📌 Instancia: ${config.options?.instanceName || "(Ninguna / Por defecto)"}`,
+        `📌 Instancia: ${
+          config.options?.instanceName || "(Ninguna / Por defecto)"
+        }`
       );
       console.log(
-        `📌 Puerto:    ${config.port || "(Gestionado por SQL Browser / Instancia)"}`,
+        `📌 Puerto:    ${
+          config.port || "(Gestionado por SQL Browser / Instancia)"
+        }`
       );
       console.log(`📌 Base Datos:${config.database}`);
       console.log(`📌 Usuario:   ${config.user}`);
@@ -124,21 +72,21 @@ export const getConnection = (
     })
     .catch((err) => {
       console.error(`\n========================================`);
-      console.error(`❌ ERROR DE CONEXIÓN -> LÍNEA: [${linea.toUpperCase()}]`);
+      console.error(`❌ ERROR DE CONEXIÓN -> BASE DE DATOS: [PRODUCCIÓN]`);
       console.error(`📌 Intentó conectar a: ${config.server}`);
       console.error(
-        `📌 Instancia: ${config.options?.instanceName || "(Ninguna)"}`,
+        `📌 Instancia: ${config.options?.instanceName || "(Ninguna)"}`
       );
       console.error(`📌 Base Datos:${config.database}`);
       console.error(`📌 Usuario:   ${config.user}`);
       console.error(`📌 Detalle del error:`, err);
       console.error(`========================================\n`);
 
-      delete pools[linea]; // Limpiamos para poder reintentar
+      delete globalRef._mssqlPool; // Limpiamos para poder reintentar
       throw err;
     });
 
-  return pools[linea]!;
+  return globalRef._mssqlPool;
 };
 
 export { mssql };

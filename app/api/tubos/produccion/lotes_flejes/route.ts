@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     }
 
     // Obtener pool y consultar el servicio
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const data = await obtenerProdLotesTubosConFlejesService(pool, prodTuboIds);
 
     return NextResponse.json({
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

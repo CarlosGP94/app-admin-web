@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const espesor = searchParams.get("espesor") || undefined;
 
     // 4. Obtener el Connection Pool correspondiente
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 5. Mapear parámetros al formato estricto que requiere el servicio de tubos
     const params: ListarTubosParams = {
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -110,12 +110,12 @@ export async function POST(request: Request) {
           error:
             "Los campos 'art_concepto', 'calidad_id' y 'tipo_id' son obligatorios.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 3. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 4. Ejecutar el servicio de creación
     const resultado = await crearTuboService(pool, body);
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
         message: "Tubo creado correctamente.",
         data: resultado,
       },
-      { status: 201 },
+      { status: 201 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en POST /api/tubos/tubos:", error);
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -160,11 +160,11 @@ export async function PUT(request: Request) {
           error:
             "El 'id' y los campos 'art_concepto', 'calidad_id' y 'tipo_id' son obligatorios.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const resultado = await actualizarTuboService(pool, body);
 
     return NextResponse.json(
@@ -173,7 +173,7 @@ export async function PUT(request: Request) {
         message: "Tubo actualizado correctamente.",
         data: resultado,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en PUT /api/tubos:", error);
@@ -184,7 +184,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

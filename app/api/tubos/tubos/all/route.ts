@@ -23,14 +23,14 @@ export async function GET(request: NextRequest) {
       tipoTuboId && !isNaN(tipoTuboId) ? tipoTuboId : null;
 
     // 2. Obtención de la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Llamada al servicio pasando los filtros si existen
     const data = await listarTubosSelectorService(
       pool,
       calidadIdValido,
       tipoTuboIdValido,
-      maquinaIdParam ? Number(maquinaIdParam) : null,
+      maquinaIdParam ? Number(maquinaIdParam) : null
     );
 
     // 4. Respuesta estructurada
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

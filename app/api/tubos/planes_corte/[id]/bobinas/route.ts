@@ -4,7 +4,7 @@ import { getBobinasPorPlanCorte } from "@/lib/services/planes-corte.service";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1. Obtener y validar el ID del parámetro dinámico
@@ -14,12 +14,12 @@ export async function GET(
     if (isNaN(planCorteId) || planCorteId <= 0) {
       return NextResponse.json(
         { error: "El ID del plan de corte debe ser un número entero válido." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 2. Obtener la conexión a SQL Server
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Ejecutar el servicio
     const data = await getBobinasPorPlanCorte(pool, planCorteId);
@@ -28,7 +28,7 @@ export async function GET(
     if (!data.cabecera) {
       return NextResponse.json(
         { error: `No se encontró el plan de corte con ID #${planCorteId}` },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -45,7 +45,7 @@ export async function GET(
             ? error.message
             : undefined,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

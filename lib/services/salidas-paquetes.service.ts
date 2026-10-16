@@ -46,7 +46,7 @@ export interface PaginatedResult<T> {
 
 export async function listarSalidasPaqsService(
   pool: ConnectionPool,
-  params: ListarSalidasPaqsParams,
+  params: ListarSalidasPaqsParams
 ): Promise<PaginatedResult<SalidaPaqueteTubo>> {
   const page = Math.max(1, params.page || 1);
   const limit = Math.max(1, params.limit || 10);
@@ -110,8 +110,8 @@ export async function listarSalidasPaqsService(
             spt.creado,
             ROW_NUMBER() OVER (ORDER BY ${safeOrderCol} ${orderDir}) AS RowNum,
             COUNT(*) OVER() AS TotalCount
-        FROM Salidas_Paqs_Tubos AS spt
-        LEFT JOIN Tubos AS t ON spt.tubo_id = t.id
+        FROM Tubos_DB_Salidas_Paqs_Tubos AS spt
+        LEFT JOIN Tubos_DB_Tubos AS t ON spt.tubo_id = t.id
         LEFT JOIN Operarios AS o ON spt.operario_id = o.id
         ${whereSql}
     )
@@ -136,7 +136,7 @@ export async function listarSalidasPaqsService(
         action_id: row.id,
         fecha: row.creado,
       };
-    },
+    }
   );
 
   const total = result.recordset[0]?.TotalCount || 0;
@@ -172,7 +172,7 @@ export interface ListarFiltrosSalidasPaquetesResponse {
 
 export async function listarFiltrosSalidasPaquetesService(
   pool: ConnectionPool,
-  params: ListarFiltrosSalidasPaquetesParams,
+  params: ListarFiltrosSalidasPaquetesParams
 ): Promise<ListarFiltrosSalidasPaquetesResponse> {
   const { filtros } = params;
   const calidadId = filtros?.calidadId;
@@ -209,9 +209,9 @@ export async function listarFiltrosSalidasPaquetesService(
   }
   const qCalidades = `
     SELECT DISTINCT tc.id, tc.nombre as calidad
-    FROM Salidas_Paqs_Tubos sp
-    INNER JOIN Tubos t ON sp.tubo_id = t.id
-    INNER JOIN Tipos_Calidad tc ON t.calidad_id = tc.id
+    FROM Tubos_DB_Salidas_Paqs_Tubos sp
+    INNER JOIN Tubos_DB_Tubos t ON sp.tubo_id = t.id
+    INNER JOIN Tubos_DB_Tipos_Calidad tc ON t.calidad_id = tc.id
     ${whereCalidades}
     ORDER BY tc.nombre ASC; 
   `;
@@ -232,9 +232,9 @@ export async function listarFiltrosSalidasPaquetesService(
   }
   const qOperarios = `
     SELECT DISTINCT o.id, o.nombre + ' ' + o.apellido1 + ' ' + o.apellido2 AS nombre_completo
-    FROM Salidas_Paqs_Tubos sp
+    FROM Tubos_DB_Salidas_Paqs_Tubos sp
     INNER JOIN Operarios o ON sp.operario_id = o.id
-    LEFT JOIN Tubos t ON sp.tubo_id = t.id
+    LEFT JOIN Tubos_DB_Tubos t ON sp.tubo_id = t.id
     ${whereOperarios}
     ORDER BY nombre_completo ASC;
   `;
@@ -253,8 +253,8 @@ export async function listarFiltrosSalidasPaquetesService(
     SELECT 
       MIN(sp.creado) AS minFecha, 
       MAX(sp.creado) AS maxFecha
-    FROM Salidas_Paqs_Tubos sp
-    LEFT JOIN Tubos t ON sp.tubo_id = t.id
+    FROM Tubos_DB_Salidas_Paqs_Tubos sp
+    LEFT JOIN Tubos_DB_Tubos t ON sp.tubo_id = t.id
     ${whereFechas};
   `;
 

@@ -5,7 +5,7 @@ import { obtenerTiposTubosService } from "@/lib/services/tipos.service";
 
 export async function GET() {
   try {
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const data = await obtenerTiposTubosService(pool);
 
     return NextResponse.json({ success: true, data });
@@ -13,7 +13,7 @@ export async function GET() {
     console.error("Error al obtener tipos de tubos:", error);
     return NextResponse.json(
       { success: false, message: "Error interno del servidor" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

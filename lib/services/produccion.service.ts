@@ -70,7 +70,7 @@ export interface PaginatedResult<T> {
 
 export async function listarProdTubosService(
   pool: ConnectionPool,
-  params: ListarProdTubosParams,
+  params: ListarProdTubosParams
 ): Promise<PaginatedResult<ProdTubo>> {
   const page = Math.max(1, params.page || 1);
   const limit = Math.max(1, params.limit || 10);
@@ -99,7 +99,7 @@ export async function listarProdTubosService(
 
     if (busqueda) {
       whereClauses.push(
-        `(t.concepto LIKE @busqueda OR lt.lote LIKE @busqueda)`,
+        `(t.concepto LIKE @busqueda OR lt.lote LIKE @busqueda)`
       );
       request.input("busqueda", `%${busqueda}%`);
     }
@@ -121,7 +121,7 @@ export async function listarProdTubosService(
     }
     if (estructural === true) {
       whereClauses.push(
-        `(t.tipo_id != 3 AND t.tipo_id != 4 AND t.espesor > 2)`,
+        `(t.tipo_id != 3 AND t.tipo_id != 4 AND t.espesor > 2)`
       );
       request.input("estructural", estructural);
     }
@@ -132,7 +132,7 @@ export async function listarProdTubosService(
     }
     if (maquina !== undefined && maquina !== null && maquina !== 0) {
       whereClauses.push(
-        `EXISTS (SELECT 1 FROM Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquina)`,
+        `EXISTS (SELECT 1 FROM Tubos_DB_Rel_Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquina)`
       );
       request.input("maquina", maquina);
     }
@@ -185,7 +185,7 @@ export async function listarProdTubosService(
               SELECT ',' + CAST(sub.maquina_id AS VARCHAR) + ':' + sub.maquina
               FROM (
                   SELECT tm.maquina_id, m.maquina, tm.tubo_id
-                  FROM Tubos_Maquinas tm
+                  FROM Tubos_DB_Rel_Tubos_Maquinas tm
                   INNER JOIN Maquinas m ON tm.maquina_id = m.id
                   GROUP BY tm.maquina_id, m.maquina, tm.tubo_id
               ) AS sub
@@ -194,9 +194,9 @@ export async function listarProdTubosService(
           ), 1, 1, '') AS maquinas_raw,
           ROW_NUMBER() OVER (ORDER BY ${safeOrderCol} ${orderDir}) AS RowNum,
           COUNT(*) OVER() AS TotalCount
-      FROM Prod_Tubos AS pt
-      LEFT JOIN Tubos AS t ON pt.tubo_id = t.id
-      LEFT JOIN Lotes_Tubos AS lt ON pt.lote_tubo_id = lt.id
+      FROM Tubos_DB_Prod_Tubos AS pt
+      LEFT JOIN Tubos_DB_Tubos AS t ON pt.tubo_id = t.id
+      LEFT JOIN Tubos_DB_Lotes_Tubos AS lt ON pt.lote_tubo_id = lt.id
       LEFT JOIN Turnos AS tu ON pt.turno_id = tu.id
       LEFT JOIN Operarios AS o ON pt.operario_id = o.id
       ${whereSql}
@@ -279,7 +279,7 @@ export interface ListarFiltrosProdTubosResponse {
 
 export async function listarFiltrosProdTubosService(
   pool: ConnectionPool,
-  params: ListarFiltrosProdTubosParams,
+  params: ListarFiltrosProdTubosParams
 ): Promise<ListarFiltrosProdTubosResponse> {
   const { filtros } = params;
   const calidadId = filtros?.calidadId;
@@ -334,7 +334,7 @@ export async function listarFiltrosProdTubosService(
   }
   if (maquinaId) {
     whereCalidades +=
-      " AND EXISTS (SELECT 1 FROM Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
+      " AND EXISTS (SELECT 1 FROM Tubos_DB_Rel_Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
     reqCalidades.input("maquinaId", maquinaId);
   }
   if (fInicioParam) {
@@ -643,7 +643,7 @@ export interface ProduccionCreateResponse {
  */
 export async function crearProduccionService(
   pool: ConnectionPool,
-  payload: ProduccionCreatePayload,
+  payload: ProduccionCreatePayload
 ): Promise<ProduccionCreateResponse> {
   const transaction = new Transaction(pool);
 
@@ -677,7 +677,7 @@ export async function crearProduccionService(
     reqProduccion.input("unidades_objetivo", payload.unidades_objetivo);
     reqProduccion.input(
       "num_paquetes_objetivo",
-      payload.num_paquetes_objetivo ?? null,
+      payload.num_paquetes_objetivo ?? null
     );
     reqProduccion.input("observaciones", payload.observaciones?.trim() ?? null);
     reqProduccion.input("estado_id", payload.estado_id ?? 1); // 1 = Pendiente/Iniciada por defecto
@@ -794,7 +794,7 @@ export interface ProduccionTuboDetalle {
 
 export async function obtenerProduccionTuboPorIdService(
   pool: ConnectionPool,
-  id: number,
+  id: number
 ): Promise<ProduccionTuboDetalle | null> {
   const req = pool.request();
   req.input("id", id);
@@ -935,7 +935,7 @@ export interface ProduccionTuboUpdateResponse {
 async function actualizarStockTubo(
   transaction: Transaction,
   tuboId: number,
-  deltaUnidades: number,
+  deltaUnidades: number
 ): Promise<void> {
   // 1. Obtener datos actuales del tubo
   const reqGetTubo = new Request(transaction);
@@ -991,7 +991,7 @@ async function obtenerOCrearLoteId(
   transaction: Transaction,
   fecha: string | Date,
   maquinaId: number,
-  turnoId: number,
+  turnoId: number
 ): Promise<number> {
   const reqLote = new Request(transaction);
   reqLote.input("fecha", fecha);
@@ -1056,7 +1056,7 @@ async function obtenerOCrearLoteId(
 
 export async function actualizarProduccionTuboService(
   pool: ConnectionPool,
-  payload: ProduccionTuboUpdatePayload,
+  payload: ProduccionTuboUpdatePayload
 ): Promise<ProduccionTuboUpdateResponse> {
   const transaction = new Transaction(pool);
 
@@ -1082,7 +1082,7 @@ export async function actualizarProduccionTuboService(
 
     if (resPrevio.recordset.length === 0) {
       throw new Error(
-        `No se encontró el registro de producción con ID ${payload.id}`,
+        `No se encontró el registro de producción con ID ${payload.id}`
       );
     }
 
@@ -1116,7 +1116,7 @@ export async function actualizarProduccionTuboService(
           transaction,
           fechaNueva,
           maquinaIdNuevo,
-          turnoIdNuevo,
+          turnoIdNuevo
         );
       }
     }
@@ -1215,7 +1215,7 @@ export interface EliminarProduccionTuboResponse {
  */
 export async function eliminarProduccionTuboService(
   pool: ConnectionPool,
-  id: number,
+  id: number
 ): Promise<EliminarProduccionTuboResponse> {
   const transaction = new Transaction(pool);
 
@@ -1329,7 +1329,7 @@ export interface ListarProdLotesParams {
  */
 export async function obtenerProdLotesTubosConFlejesService(
   pool: ConnectionPool,
-  prodTuboIds: number[],
+  prodTuboIds: number[]
 ): Promise<ProdLoteTuboConFlejes[]> {
   if (!prodTuboIds || prodTuboIds.length === 0) {
     return [];
@@ -1432,7 +1432,7 @@ export async function obtenerProdLotesTubosConFlejesService(
     // Agregar el fleje si existiera la relación
     if (row.fleje_id) {
       const yaExisteFleje = loteActual.flejes.some(
-        (f) => f.id === row.fleje_id,
+        (f) => f.id === row.fleje_id
       );
 
       if (!yaExisteFleje) {
@@ -1476,7 +1476,7 @@ export interface GenerarExcelProdTubosParams {
  */
 export async function generarExcelProdTubosService(
   pool: ConnectionPool,
-  params: GenerarExcelProdTubosParams = {},
+  params: GenerarExcelProdTubosParams = {}
 ): Promise<Buffer> {
   const { fechaInicio, fechaFin } = params;
   const req = pool.request();
@@ -1557,7 +1557,7 @@ export async function generarExcelProdTubosService(
   // Si no hay datos devueltos para el filtro
   if (!rows || rows.length === 0) {
     throw new Error(
-      "No se encontraron registros de producción para los filtros especificados.",
+      "No se encontraron registros de producción para los filtros especificados."
     );
   }
 
@@ -1592,7 +1592,7 @@ export async function generarExcelProdTubosService(
   for (const [, data] of grupoValidacion.entries()) {
     if (data.flejes.size >= 2 && data.coladas.size >= 2) {
       throw new Error(
-        `Error de trazabilidad: El Lote de Tubo "${data.loteName}" posee múltiples flejes pertenecientes a coladas distintas. Proceso cancelado.`,
+        `Error de trazabilidad: El Lote de Tubo "${data.loteName}" posee múltiples flejes pertenecientes a coladas distintas. Proceso cancelado.`
       );
     }
   }
@@ -1719,11 +1719,14 @@ export async function generarExcelProdTubosService(
       paquetes: row.paquetes ?? 0,
       peso_total: row.peso_total ?? 0,
       operario:
-        `${row.operario_apellido1 ?? "-"} ${row.operario_apellido2 ?? ""} ${row.operario_nombre ?? ""}`.trim() ||
-        "",
+        `${row.operario_apellido1 ?? "-"} ${row.operario_apellido2 ?? ""} ${
+          row.operario_nombre ?? ""
+        }`.trim() || "",
       maquina: row.maquina ?? "-",
       turno_prefijo: row.turno_prefijo
-        ? `${row.turno_prefijo} (${row.turno_entrada ?? ""} - ${row.turno_salida ?? ""})`
+        ? `${row.turno_prefijo} (${row.turno_entrada ?? ""} - ${
+            row.turno_salida ?? ""
+          })`
         : "-",
       fleje_lote: row.fleje_lote ?? "-",
       num_paq_inicial: row.num_paq_inicial ?? 0,

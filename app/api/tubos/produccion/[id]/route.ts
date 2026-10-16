@@ -7,7 +7,7 @@ import {
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: rawId } = await params;
@@ -16,17 +16,17 @@ export async function GET(
     if (isNaN(id) || id <= 0) {
       return NextResponse.json(
         { success: false, message: "ID de producción inválido" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const data = await obtenerProduccionTuboPorIdService(pool, id);
 
     if (!data) {
       return NextResponse.json(
         { success: false, message: "Producción no encontrada" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -35,7 +35,7 @@ export async function GET(
     console.error("Error al obtener detalle de producción:", error);
     return NextResponse.json(
       { success: false, message: "Error interno del servidor" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -56,12 +56,12 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
           success: false,
           error: "ID de producción inválido o no proporcionado.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 2. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Ejecutar el servicio de eliminación
     const resultado = await eliminarProduccionTuboService(pool, produccionId);
@@ -73,7 +73,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
         data: resultado,
         message: "Producción de tubo eliminada correctamente.",
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error) {
     console.error("Error al eliminar la producción de tubo:", error);
@@ -84,7 +84,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
         error:
           "Ocurrió un error interno en el servidor al intentar eliminar la producción.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

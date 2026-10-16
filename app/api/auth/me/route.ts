@@ -20,12 +20,12 @@ export async function GET(request: Request) {
           error:
             "El parámetro 'userId' es obligatorio y debe ser un número entero válido.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 2. Obtener la conexión a la base de datos (seguridad o tubos según corresponda)
-    const pool = await getConnection("seguridad");
+    const pool = await getConnection();
 
     // 3. Ejecutar el servicio de consulta del usuario
     const usuario = await getUserByIdService(pool, userId);
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status },
+      { status }
     );
   }
 }

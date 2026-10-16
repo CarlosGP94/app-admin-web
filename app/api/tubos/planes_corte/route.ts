@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const fechaFin = searchParams.get("fechaCorte_end") || undefined;
 
     // 3. Obtener el Connection Pool correspondiente a la línea de tubos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 4. Mapear parámetros al formato estricto del servicio
     const params: ListarPlanesCorteParams = {
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
           error:
             "El 'ancho_estipulado' y la lista de 'flejes' (al menos uno) son obligatorios.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
         !f.fleje_id ||
         !f.num_flejes ||
         f.peso_unit_definido === undefined ||
-        f.factor_proporcional_peso === undefined,
+        f.factor_proporcional_peso === undefined
     );
 
     if (flejeInvalido) {
@@ -133,12 +133,12 @@ export async function POST(request: Request) {
           error:
             "Todos los flejes deben incluir 'fleje_id', 'num_flejes', 'peso_unit_definido' y 'factor_proporcional_peso'.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 3. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 4. Ejecutar el servicio de creación (gestiona la transacción)
     const resultado = await crearPlanCorteService(pool, body);
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
         message: "Plan de corte creado correctamente.",
         data: resultado,
       },
-      { status: 201 },
+      { status: 201 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en POST /api/planes-corte:", error);
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -185,7 +185,7 @@ export async function PUT(request: Request) {
           success: false,
           error: "El campo 'id' es obligatorio y debe ser un número válido.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -202,7 +202,7 @@ export async function PUT(request: Request) {
           success: false,
           error: `Datos del formulario inválidos: ${errorMessages}`,
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -213,7 +213,7 @@ export async function PUT(request: Request) {
     };
 
     // 4. Obtener pool de conexión y ejecutar servicio
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const resultado = await actualizarPlanCorteService(pool, updateInput);
 
     return NextResponse.json(
@@ -222,7 +222,7 @@ export async function PUT(request: Request) {
         message: "Plan de corte actualizado correctamente.",
         data: resultado,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en PUT /api/planes-corte:", error);
@@ -236,13 +236,13 @@ export async function PUT(request: Request) {
     if (message.includes("no existe")) {
       return NextResponse.json(
         { success: false, error: message },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

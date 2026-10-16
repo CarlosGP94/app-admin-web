@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     const fechaFin = searchParams.get("fechaFin") || undefined;
 
     // 1. Obtener el Connection Pool correspondiente a tubos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 2. Mapear parámetros al formato que espera el servicio de filtros
     const params: ListarFiltrosProdTubosParams = {
@@ -62,7 +62,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -27,12 +27,12 @@ export async function POST(request: Request) {
           error:
             "Los campos 'flejesIds' (array no vacío), 'bobinaId' y 'coladaId' son obligatorios.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 3. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 4. Ejecutar el servicio de asignación
     const resultado = await asignarAuditoriaBobinaService(pool, body);
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         message: "Auditoría asignada correctamente a los flejes.",
         data: resultado,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en POST /api/auditorias/asignar:", error);
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -44,7 +44,7 @@ export interface ListarTubosResponse {
  */
 export async function listarTubosService(
   pool: ConnectionPool,
-  params: ListarTubosParams,
+  params: ListarTubosParams
 ): Promise<ListarTubosResponse> {
   const page = params.page && params.page > 0 ? params.page : 1;
   const pageSize =
@@ -132,7 +132,7 @@ export async function listarTubosService(
             t.creado AS fecha,
             ROW_NUMBER() OVER (ORDER BY ${safeOrderBySql}) AS RowNum,
             COUNT(*) OVER() AS TotalCount
-        FROM Tubos t
+        FROM Tubos_DB_Tubos t
         ${whereClauses}
     )
     SELECT *
@@ -190,7 +190,7 @@ export interface ListarFiltrosTubosResponse {
  */
 export async function listarFiltrosTubosService(
   pool: ConnectionPool,
-  params: FiltrosTubosParams,
+  params: FiltrosTubosParams
 ): Promise<ListarFiltrosTubosResponse> {
   const { filtros } = params;
 
@@ -226,7 +226,7 @@ export async function listarFiltrosTubosService(
     "WHERE 1=1" + aplicarFiltrosComunes(reqCalidades, "calidad");
   const qCalidades = `
     SELECT DISTINCT tc.id, tc.nombre as calidad
-    FROM Tubos t
+    FROM Tubos_DB_Tubos t
     INNER JOIN Tipos_Calidad tc ON t.calidad_id = tc.id
     ${whereCalidades}
     ORDER BY tc.nombre ASC;
@@ -236,8 +236,8 @@ export async function listarFiltrosTubosService(
   const whereTipos = "WHERE 1=1" + aplicarFiltrosComunes(reqTipos, "tipo");
   const qTipos = `
     SELECT DISTINCT tt.id, tt.nombre as tipo
-    FROM Tubos t
-    INNER JOIN Tipos_Tubos tt ON t.tipo_id = tt.id
+    FROM Tubos_DB_Tubos t
+    INNER JOIN Tubos_DB_Tipos_Tubos tt ON t.tipo_id = tt.id
     ${whereTipos}
     ORDER BY tt.nombre ASC;
   `;
@@ -247,7 +247,7 @@ export async function listarFiltrosTubosService(
     "WHERE 1=1" + aplicarFiltrosComunes(reqEspesores, "espesor");
   const qEspesores = `
     SELECT DISTINCT t.espesor
-    FROM Tubos t
+    FROM Tubos_DB_Tubos t
     ${whereEspesores}
     ORDER BY t.espesor ASC;
   `;
@@ -313,7 +313,7 @@ export interface TuboCreateResponse {
  */
 export async function crearTuboService(
   pool: ConnectionPool,
-  payload: TuboCreatePayload,
+  payload: TuboCreatePayload
 ): Promise<TuboCreateResponse> {
   // 1. Transformación de campos según la lógica de negocio
   const medidaInsertar = payload.art_concepto.trim();
@@ -345,7 +345,7 @@ export async function crearTuboService(
     reqTubo.input("ancho_paq", payload.ancho_paq);
 
     const queryInsertTubo = `
-      INSERT INTO Tubos (
+      INSERT INTO Tubos_DB_Tubos (
         calidad_id, tipo_id, activo, art_concepto, medida,
         alto, ancho, diametro, espesor, longitud,
         num_paquetes, num_por_paq, unidades, peso_unitario,
@@ -380,7 +380,7 @@ export async function crearTuboService(
           reqMaquina.input("fleje_id", flejeId);
 
           const queryInsertMaquina = `
-            INSERT INTO Tubos_Maquinas (tubo_id, maquina_id, fleje_id, creado)
+            INSERT INTO Tubos_DB_Rel_Tubos_Maquinas (tubo_id, maquina_id, fleje_id, creado)
             VALUES (@tubo_id, @maquina_id, @fleje_id, GETDATE());
           `;
 
@@ -419,7 +419,7 @@ export interface TuboUpdateResponse {
 
 export async function actualizarTuboService(
   pool: ConnectionPool,
-  payload: TuboUpdatePayload,
+  payload: TuboUpdatePayload
 ): Promise<TuboUpdateResponse> {
   // 1. Transformación de campos según la lógica de negocio
   const medidaInsertar = payload.art_concepto.trim();
@@ -452,7 +452,7 @@ export async function actualizarTuboService(
     reqTubo.input("ancho_paq", payload.ancho_paq);
 
     const queryUpdateTubo = `
-      UPDATE Tubos
+      UPDATE Tubos_DB_Tubos
       SET 
         calidad_id = @calidad_id,
         tipo_id = @tipo_id,
@@ -481,7 +481,7 @@ export async function actualizarTuboService(
     reqDeleteRelaciones.input("tubo_id", payload.id);
 
     const queryDeleteRelaciones = `
-      DELETE FROM Tubos_Maquinas 
+      DELETE FROM Tubos_DB_Rel_Tubos_Maquinas 
       WHERE tubo_id = @tubo_id;
     `;
 
@@ -503,7 +503,7 @@ export async function actualizarTuboService(
           reqMaquina.input("fleje_id", flejeId);
 
           const queryInsertMaquina = `
-            INSERT INTO Tubos_Maquinas (tubo_id, maquina_id, fleje_id, creado)
+            INSERT INTO Tubos_DB_Rel_Tubos_Maquinas (tubo_id, maquina_id, fleje_id, creado)
             VALUES (@tubo_id, @maquina_id, @fleje_id, GETDATE());
           `;
 
@@ -556,7 +556,7 @@ export interface TuboDetalleResponse {
  */
 export async function obtenerTuboPorIdService(
   pool: ConnectionPool,
-  id: number,
+  id: number
 ): Promise<TuboDetalleResponse | null> {
   const reqTubo = pool.request();
   reqTubo.input("id", id);
@@ -568,7 +568,7 @@ export async function obtenerTuboPorIdService(
       alto, ancho, diametro, espesor, longitud,
       num_paquetes, num_por_paq, unidades, peso_unitario,
       peso_total, alto_paq, ancho_paq
-    FROM Tubos
+    FROM Tubos_DB_Tubos
     WHERE id = @id;
   `;
 
@@ -588,7 +588,7 @@ export async function obtenerTuboPorIdService(
       tm.maquina_id,
       m.nombre AS maquina_nombre,
       tm.fleje_id
-    FROM Tubos_Maquinas tm
+    FROM Tubos_DB_Rel_Tubos_Maquinas tm
     INNER JOIN Maquinas m ON tm.maquina_id = m.id
     WHERE tm.tubo_id = @tubo_id;
   `;
@@ -650,7 +650,7 @@ export interface TuboDeleteResponse {
  */
 export async function eliminarTuboService(
   pool: ConnectionPool,
-  id: number,
+  id: number
 ): Promise<TuboDeleteResponse> {
   const transaction = new Transaction(pool);
 
@@ -662,12 +662,12 @@ export async function eliminarTuboService(
     reqDeleteRelaciones.input("tubo_id", id);
 
     const queryDeleteRelaciones = `
-      DELETE FROM Tubos_Maquinas 
+      DELETE FROM Tubos_DB_Rel_Tubos_Maquinas 
       WHERE tubo_id = @tubo_id;
     `;
 
     const resRelaciones = await reqDeleteRelaciones.query(
-      queryDeleteRelaciones,
+      queryDeleteRelaciones
     );
     const relacionesEliminadas = resRelaciones.rowsAffected[0] || 0;
 
@@ -676,7 +676,7 @@ export async function eliminarTuboService(
     reqDeleteTubo.input("id", id);
 
     const queryDeleteTubo = `
-      DELETE FROM Tubos 
+      DELETE FROM Tubos_DB_Tubos 
       WHERE id = @id;
     `;
 
@@ -717,7 +717,7 @@ export async function listarTubosSelectorService(
   pool: ConnectionPool,
   calidadId?: number | null,
   tipoTuboId?: number | null,
-  maquinaId?: number | null,
+  maquinaId?: number | null
 ): Promise<TuboSelectorOption[]> {
   const req = pool.request();
 
@@ -736,14 +736,14 @@ export async function listarTubosSelectorService(
   if (maquinaId !== undefined && maquinaId !== null) {
     req.input("maquinaId", maquinaId);
     whereClause +=
-      " AND EXISTS (SELECT 1 FROM Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
+      " AND EXISTS (SELECT 1 FROM Tubos_DB_Rel_Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
   }
 
   const query = `
     SELECT 
         t.id,
         t.medida
-    FROM Tubos t
+    FROM Tubos_DB_Tubos t
     INNER JOIN Tipos_Calidad tc ON t.calidad_id = tc.id
     INNER JOIN Tipos_Tubos tt ON t.tipo_id = tt.id
     ${whereClause}

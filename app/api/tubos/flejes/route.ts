@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     const espesor = searchParams.get("espesor") || undefined;
 
     // 4. Obtener el Connection Pool correspondiente a la línea de producción
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 5. Mapear parámetros al formato estricto del servicio de flejes
     const params: ListarFlejesParams = {
@@ -81,7 +81,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -107,12 +107,12 @@ export async function POST(request: Request) {
           error:
             "Los campos 'concepto', 'calidad_id', 'ancho' y 'espesor' son obligatorios.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 3. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 4. Ejecutar el servicio de creación
     const resultado = await crearFlejeService(pool, body);
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
         message: "Fleje creado correctamente.",
         data: resultado,
       },
-      { status: 201 },
+      { status: 201 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en POST /api/flejes:", error);
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -163,11 +163,11 @@ export async function PUT(request: Request) {
           error:
             "El 'id' y los campos 'concepto', 'calidad_id', 'ancho' y 'espesor' son obligatorios.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const resultado = await actualizarFlejeService(pool, body);
 
     return NextResponse.json(
@@ -176,7 +176,7 @@ export async function PUT(request: Request) {
         message: "Fleje actualizado correctamente.",
         data: resultado,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en PUT /api/flejes:", error);
@@ -187,7 +187,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

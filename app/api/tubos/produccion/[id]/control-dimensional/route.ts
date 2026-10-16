@@ -16,24 +16,24 @@ export async function GET(request: Request, { params }: RouteParams) {
     if (isNaN(prodTuboId) || prodTuboId <= 0) {
       return NextResponse.json(
         { message: "ID de producción no válido" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 3. Obtener la conexión al pool de base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 4. Ejecutar el servicio que consulta por prodTuboId
     const controlDimensional = await getControlDimensionalByProdTuboIdService(
       pool,
-      prodTuboId,
+      prodTuboId
     );
 
     return NextResponse.json(controlDimensional, { status: 200 });
   } catch (error: unknown) {
     console.error(
       "Error al obtener el control dimensional por Prod_Tubo:",
-      error,
+      error
     );
 
     const message =
@@ -49,13 +49,13 @@ export async function GET(request: Request, { params }: RouteParams) {
           message:
             "Control dimensional no encontrado para este tubo de producción",
         },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     const fechaFin = searchParams.get("fechaCorte_end") || undefined;
 
     // 3. Obtener el Connection Pool correspondiente a la línea de tubos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 4. Mapear parámetros al formato estricto del servicio
     const params: ListarBobinasCortadasParams = {
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

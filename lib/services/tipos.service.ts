@@ -9,7 +9,7 @@ export interface TipoTuboRow {
 }
 
 export async function obtenerTiposTubosService(
-  pool: ConnectionPool,
+  pool: ConnectionPool
 ): Promise<TipoTuboRow[]> {
   const req = pool.request();
 
@@ -20,7 +20,7 @@ export async function obtenerTiposTubosService(
       t.creado,
       t.prefijo,
       t.medida
-    FROM Tipos_Tubos t
+    FROM Tubos_DB_Tipos_Tubos t
     ORDER BY t.nombre ASC;
   `;
 

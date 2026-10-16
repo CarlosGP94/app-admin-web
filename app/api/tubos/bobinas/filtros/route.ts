@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     const fechaFin = searchParams.get("fecha_end") || undefined;
 
     // 2. Obtener el Connection Pool
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Mapear parámetros al formato que espera tu servicio
     const params = {
@@ -61,7 +61,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const fechaFin = searchParams.get("fechaCorte_end") || undefined;
 
     // 2. Obtener el Connection Pool correspondiente a la planta/línea
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Mapear parámetros al formato que espera el servicio de filtros
     const params: ListarFiltrosBobinasCortadasParams = {
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
   } catch (error: unknown) {
     console.error(
       "❌ Error en GET /api/tubos/bobinas_cortadas/filtros:",
-      error,
+      error
     );
 
     const message =
@@ -61,7 +61,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

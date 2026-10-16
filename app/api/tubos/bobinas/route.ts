@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     const fabricanteId = searchParams.get("fabricante") || undefined;
 
     // 4. Obtener el Connection Pool correspondiente a la línea de tubos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 5. Mapear parámetros al formato estricto que requiere el servicio
     const params: ListarBobinasParams = {
@@ -81,7 +81,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -108,12 +108,12 @@ export async function POST(request: Request) {
           error:
             "Los campos 'concepto', 'fabricante_id', 'calidad_id', 'ancho' y 'espesor' son obligatorios.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 3. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 4. Ejecutar el servicio de creación
     const resultado = await crearBobinaService(pool, body);
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
         message: "Bobina creada correctamente.",
         data: resultado,
       },
-      { status: 201 },
+      { status: 201 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en POST /api/bobinas:", error);
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -165,11 +165,11 @@ export async function PUT(request: Request) {
           error:
             "El 'id' y los campos 'concepto', 'fabricante_id', 'calidad_id', 'ancho' y 'espesor' son obligatorios.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const resultado = await actualizarBobinaService(pool, body);
 
     return NextResponse.json(
@@ -178,7 +178,7 @@ export async function PUT(request: Request) {
         message: "Bobina actualizada correctamente.",
         data: resultado,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en PUT /api/bobinas:", error);
@@ -189,7 +189,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

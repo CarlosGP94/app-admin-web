@@ -7,7 +7,7 @@ import {
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1. Resolvemos la promesa para extraer el ID
@@ -19,7 +19,7 @@ export async function GET(
     }
 
     // 2. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Consultar el servicio
     const bobina = await obtenerBobinaPorIdService(pool, id);
@@ -32,13 +32,13 @@ export async function GET(
     if (error instanceof Error && error.message.includes("No se encontró")) {
       return NextResponse.json(
         { message: "Bobina no encontrada" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -59,12 +59,12 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
           success: false,
           error: "ID de bobina inválido o no proporcionado.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 2. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Ejecutar el servicio de eliminación
     const resultado = await eliminarBobinaService(pool, bobinaId);
@@ -76,7 +76,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
           success: false,
           error: `No se encontró ninguna bobina con el ID ${bobinaId}.`,
         },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -87,7 +87,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
         data: resultado,
         message: "Bobina eliminada correctamente.",
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error) {
     console.error("Error al eliminar la bobina:", error);
@@ -98,7 +98,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
         error:
           "Ocurrió un error interno en el servidor al intentar eliminar la bobina.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

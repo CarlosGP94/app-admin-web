@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const fechaInicio = searchParams.get("fechaInicio") || undefined;
     const fechaFin = searchParams.get("fechaFin") || undefined;
 
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     const excelBuffer = await generarExcelProdTubosService(pool, {
       fechaInicio,
@@ -57,7 +57,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       { success: false, error: message },
-      { status: isValidationError ? 400 : 500 },
+      { status: isValidationError ? 400 : 500 }
     );
   }
 }

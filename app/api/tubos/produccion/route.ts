@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     const fechaFin = searchParams.get("fechaCorte_end") || undefined;
 
     // 3. Obtener el Connection Pool correspondiente a la línea de tubos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 4. Mapear parámetros al formato estricto del servicio
     const params: ListarProdTubosParams = {
@@ -80,7 +80,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -108,12 +108,12 @@ export async function POST(request: Request) {
           error:
             "Los campos 'tubo_id', 'maquina_id', 'fleje_id' y 'unidades_objetivo' (mayor a 0) son obligatorios.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 3. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 4. Ejecutar el servicio de creación (gestiona la transacción)
     const resultado = await crearProduccionService(pool, body);
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
         message: "Orden de producción creada correctamente.",
         data: resultado,
       },
-      { status: 201 },
+      { status: 201 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en POST /api/produccion:", error);
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -159,7 +159,7 @@ export async function PUT(request: Request) {
           error:
             "Los campos 'id' y 'tubo_id' son obligatorios para actualizar la producción.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -170,12 +170,12 @@ export async function PUT(request: Request) {
           error:
             "El campo 'tubos_buenos' es obligatorio y no puede ser un número negativo.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // Conexión y ejecución del servicio dentro de la transacción
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const resultado = await actualizarProduccionTuboService(pool, body);
 
     return NextResponse.json(
@@ -184,7 +184,7 @@ export async function PUT(request: Request) {
         message: resultado.mensaje,
         data: resultado,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en PUT /api/tubos/produccion:", error);
@@ -196,7 +196,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const calidadIdValido = calidadId && !isNaN(calidadId) ? calidadId : null;
 
     // 2. Obtención de la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Llamada al servicio pasando el filtro de calidad si existe
     const data = await listarFlejesSelectorService(pool, calidadIdValido);
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -8,8 +8,9 @@ import {
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }, // <-- Tipado como Promise
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  // <-- Tipado como Promise
   try {
     // Resolvemos la promesa para extraer el ID
     const { id: rawId } = await params;
@@ -19,13 +20,13 @@ export async function GET(
       return NextResponse.json({ message: "ID no válido" }, { status: 400 });
     }
 
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const tubo = await obtenerTuboPorIdService(pool, id);
 
     if (!tubo) {
       return NextResponse.json(
         { message: "Tubo no encontrado" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -34,7 +35,7 @@ export async function GET(
     console.error("Error al obtener tubo:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -57,12 +58,12 @@ export async function DELETE(request: Request, { params }: RouteParams) {
           success: false,
           error: "ID de tubo inválido o no proporcionado.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 2. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Ejecutar el servicio de eliminación
     const resultado = await eliminarTuboService(pool, tuboId);
@@ -74,7 +75,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
           success: false,
           error: `No se encontró ningún tubo con el ID ${tuboId}.`,
         },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -85,7 +86,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
         data: resultado,
         message: "Tubo eliminado correctamente.",
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error) {
     console.error("Error al eliminar el tubo:", error);
@@ -96,7 +97,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
         error:
           "Ocurrió un error interno en el servidor al intentar eliminar el tubo.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

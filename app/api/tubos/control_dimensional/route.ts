@@ -20,11 +20,11 @@ export async function PUT(request: Request) {
           error:
             "Los campos 'id', 'maquina_id' y 'tubo_id' son obligatorios para actualizar el control dimensional.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const resultado = await actualizarControlDimensionalService(pool, body);
 
     return NextResponse.json(
@@ -33,7 +33,7 @@ export async function PUT(request: Request) {
         message: "Control dimensional actualizado correctamente.",
         data: resultado,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en PUT /api/control-dimensional:", error);
@@ -44,7 +44,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

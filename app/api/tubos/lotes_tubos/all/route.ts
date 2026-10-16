@@ -8,11 +8,11 @@ export async function GET(request: Request) {
     const fecha = searchParams.get("fecha") || undefined;
     const maquinaId = searchParams.get("maquina_id") || undefined;
 
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const lotes = await obtenerLotesTubosService(
       pool,
       fecha,
-      maquinaId ? parseInt(maquinaId, 10) : undefined,
+      maquinaId ? parseInt(maquinaId, 10) : undefined
     );
 
     return NextResponse.json({ success: true, data: lotes });
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     console.error("Error al obtener los lotes de tubo:", error);
     return NextResponse.json(
       { success: false, message: "Error interno al consultar los lotes" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

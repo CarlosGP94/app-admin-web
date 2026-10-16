@@ -11,7 +11,7 @@ interface RouteParams {
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Resolvemos la promesa para extraer el ID
@@ -22,13 +22,13 @@ export async function GET(
       return NextResponse.json({ message: "ID no válido" }, { status: 400 });
     }
 
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
     const fleje = await obtenerPlanCorteDetalleService(pool, id);
 
     if (!fleje) {
       return NextResponse.json(
         { message: "Plan de corte no encontrado" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -37,7 +37,7 @@ export async function GET(
     console.error("Error al obtener plan de corte:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -54,12 +54,12 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
           success: false,
           error: "ID de plan de corte inválido o no proporcionado.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // 2. Obtener la conexión a la base de datos
-    const pool = await getConnection("tubos");
+    const pool = await getConnection();
 
     // 3. Ejecutar el servicio de eliminación
     const resultado = await eliminarPlanCorteService(pool, planCorteId);
@@ -71,7 +71,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
         data: resultado,
         message: "Plan de corte eliminado correctamente.",
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error) {
     console.error("Error al eliminar el plan de corte:", error);
@@ -82,7 +82,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
         error:
           "Ocurrió un error interno en el servidor al intentar eliminar el plan de corte.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
