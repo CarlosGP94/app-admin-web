@@ -49,7 +49,7 @@ function formatearConceptoTubo(
   altoTxt: string,
   anchoTxt: string,
   diametroTxt: string,
-  espesorTxt: string,
+  espesorTxt: string
 ): string {
   if (diametroTxt) {
     return `${diametroTxt}x${espesorTxt}`;
@@ -85,27 +85,35 @@ export default function TuboForm({
   >([]);
   const [loadingFlejes, setLoadingFlejes] = useState(true);
 
+  console.log("initialData", initialData);
+
   const defaultValues: TuboFormValues = {
-    art_concepto: "",
-    calidad_id: 0,
-    tipo_id: 0,
+    art_concepto: initialData?.art_concepto || "",
+    calidad_id: initialData?.calidad_id || 0,
+    tipo_id: initialData?.tipo_id || 0,
     no_especial: undefined,
-    activo: true,
-    alto: 0,
-    ancho: 0,
-    diametro: 0,
-    espesor: 0,
-    longitud: 0,
-    num_paquetes: 0,
-    num_por_paq: 0,
-    unidades: 0,
-    peso_unitario: 0,
-    peso_total: 10,
-    masa_lineal: 0,
-    alto_paq: 0,
-    ancho_paq: 0,
+    activo: initialData?.activo || false,
+    alto: initialData?.alto || 0,
+    ancho: initialData?.ancho || 0,
+    diametro: initialData?.diametro || 0,
+    espesor: initialData?.espesor || 0,
+    longitud: initialData?.longitud || 0,
+    num_paquetes: initialData?.num_paquetes || 0,
+    num_por_paq: initialData?.num_por_paq || 0,
+    unidades: initialData?.unidades || 0,
+    peso_unitario: initialData?.peso_unitario || 0,
+    peso_total: 0,
+    masa_lineal:
+      initialData?.peso_unitario == 0 ||
+      initialData?.longitud == 0 ||
+      !initialData?.peso_unitario ||
+      !initialData?.longitud
+        ? 0
+        : initialData?.peso_unitario / (initialData?.longitud / 1000),
+    alto_paq: initialData?.alto_paq || 0,
+    ancho_paq: initialData?.ancho_paq || 0,
+    peso_total_paquete: 0,
     maquinasConfig: [],
-    ...initialData,
   };
 
   const {
@@ -157,7 +165,7 @@ export default function TuboForm({
 
     const configMapeada = maquinas.map((m) => {
       const configExistente = initialConfigs.find(
-        (ic) => ic.maquina_id == Number(m.id),
+        (ic) => ic.maquina_id == Number(m.id)
       );
 
       return {
@@ -220,7 +228,7 @@ export default function TuboForm({
         altoTxt,
         anchoTxt,
         diametroTxt,
-        espesorTxt,
+        espesorTxt
       );
     }
 
@@ -231,7 +239,7 @@ export default function TuboForm({
     // Cálculo de la parte entera en metros (longitud en mm / 1000)
     const numLongitud = Number(longitud);
     if (!isNaN(numLongitud)) {
-      const metrosEnteros = Math.floor(numLongitud / 1000);
+      const metrosEnteros = Number((numLongitud / 1000).toFixed(1));
 
       if (metrosEnteros > 0) {
         medida = `${medida} L${metrosEnteros}m`;
@@ -255,7 +263,7 @@ export default function TuboForm({
 
   useEffect(() => {
     const ml = Number(masaLineal) || 0;
-    const l = Number(longitud) || 0; // en milímetros
+    const l = Number(longitud) || 0;
 
     if (l > 0 && ml > 0) {
       // Si la longitud está en mm, pasamos a metros dividiendo entre 1000
@@ -272,7 +280,9 @@ export default function TuboForm({
   useEffect(() => {
     const unidadesTotales = (numPaquetes || 0) * (numPorPaq || 0);
     const calculadoTotal = unidadesTotales * (pesoUnitario || 0);
+    const pesoTotalPorPaq = (numPorPaq || 0) * (pesoUnitario || 0);
     setValue("unidades", unidadesTotales, { shouldValidate: true });
+    setValue("peso_total_paquete", pesoTotalPorPaq, { shouldValidate: true });
     setValue("peso_total", Math.max(1, Number(calculadoTotal.toFixed(2))), {
       shouldValidate: true,
     });
@@ -284,7 +294,7 @@ export default function TuboForm({
     try {
       const url = new URL(
         APP_ROUTES.api.tubos.flejes_all,
-        window.location.origin,
+        window.location.origin
       );
       const response = await fetch(url.toString());
       if (!response.ok) throw new Error("Error al consultar los flejes");
@@ -320,12 +330,12 @@ export default function TuboForm({
   // Callback ejecutado cuando la validación falla al intentar enviar
   const onError = (formErrors: FieldErrors<TuboFormValues>) => {
     const errorInTab1 = camposTab1.some(
-      (field) => formErrors[field] !== undefined,
+      (field) => formErrors[field] !== undefined
     );
     const errorInTab2 = Boolean(formErrors.maquinasConfig);
 
     toast.error(
-      "Hay errores en el formulario. Revisa los campos señalados antes de guardar.",
+      "Hay errores en el formulario. Revisa los campos señalados antes de guardar."
     );
 
     // Cambiar automáticamente al tab que contiene el primer error encontrado
@@ -341,7 +351,9 @@ export default function TuboForm({
       return `Diámetro: ${diametro || 0}mm | Espesor: ${espesor || 0}mm`;
     if (tipoId === 4)
       return `No. Especial: ${noEspecial || "-"} | Espesor: ${espesor || 0}mm`;
-    return `Alto: ${alto || 0}mm | Ancho: ${ancho || 0}mm | Espesor: ${espesor || 0}mm`;
+    return `Alto: ${alto || 0}mm | Ancho: ${ancho || 0}mm | Espesor: ${
+      espesor || 0
+    }mm`;
   };
 
   return (
@@ -576,7 +588,7 @@ export default function TuboForm({
                 </Grid>
                 <Grid size={{ xs: 12, sm: 4 }}>
                   <FormTextField
-                    name="peso_total"
+                    name="peso_total_paquete"
                     type="number"
                     control={control}
                     label="Peso Total del Paquete (kg)"
@@ -596,7 +608,7 @@ export default function TuboForm({
                     name="alto_paq"
                     type="number"
                     control={control}
-                    label="Alto Paquete (mm)"
+                    label="Alto Paquete (uds)"
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -604,7 +616,7 @@ export default function TuboForm({
                     name="ancho_paq"
                     type="number"
                     control={control}
-                    label="Ancho Paquete (mm)"
+                    label="Ancho Paquete (uds)"
                   />
                 </Grid>
               </Grid>
@@ -665,7 +677,9 @@ export default function TuboForm({
                       size="small"
                       color="primary"
                       variant="outlined"
-                      label={`Total: ${unidades || 0} uds (${pesoTotal || 0} kg)`}
+                      label={`Total: ${unidades || 0} uds (${
+                        pesoTotal || 0
+                      } kg)`}
                     />
                   </Stack>
                 </Grid>
@@ -781,7 +795,7 @@ export default function TuboForm({
                                       setValue(
                                         `maquinasConfig.${index}.flejes_ids`,
                                         [],
-                                        { shouldValidate: true },
+                                        { shouldValidate: true }
                                       );
                                     }
                                   }}
