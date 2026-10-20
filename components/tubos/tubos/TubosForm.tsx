@@ -55,7 +55,7 @@ function formatearConceptoTubo(
     return `${diametroTxt}x${espesorTxt}`;
   }
   if (altoTxt && anchoTxt) {
-    return `${altoTxt}x${anchoTxt}x${espesorTxt}`;
+    return `${anchoTxt}x${altoTxt}x${espesorTxt}`;
   }
   if (anchoTxt) {
     return `${anchoTxt}x${anchoTxt}x${espesorTxt}`;
@@ -113,7 +113,7 @@ export default function TuboForm({
             (
               initialData?.peso_unitario /
               (initialData?.longitud / 1000)
-            ).toFixed(2)
+            ).toFixed(3)
           ),
     alto_paq: initialData?.alto_paq || 0,
     ancho_paq: initialData?.ancho_paq || 0,
@@ -286,7 +286,7 @@ export default function TuboForm({
     const unidadesTotales = (numPaquetes || 0) * (numPorPaq || 0);
     const calculadoTotal = unidadesTotales * (pesoUnitario || 0);
     const pesoTotalPorPaq = Number(
-      ((numPorPaq || 0) * (pesoUnitario || 0)).toFixed(2)
+      ((numPorPaq || 0) * (pesoUnitario || 0)).toFixed(3)
     );
     setValue("unidades", unidadesTotales, { shouldValidate: true });
     setValue("peso_total_paquete", pesoTotalPorPaq, { shouldValidate: true });
