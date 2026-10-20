@@ -109,7 +109,12 @@ export default function TuboForm({
       !initialData?.peso_unitario ||
       !initialData?.longitud
         ? 0
-        : initialData?.peso_unitario / (initialData?.longitud / 1000),
+        : Number(
+            (
+              initialData?.peso_unitario /
+              (initialData?.longitud / 1000)
+            ).toFixed(2)
+          ),
     alto_paq: initialData?.alto_paq || 0,
     ancho_paq: initialData?.ancho_paq || 0,
     peso_total_paquete: 0,
@@ -280,7 +285,9 @@ export default function TuboForm({
   useEffect(() => {
     const unidadesTotales = (numPaquetes || 0) * (numPorPaq || 0);
     const calculadoTotal = unidadesTotales * (pesoUnitario || 0);
-    const pesoTotalPorPaq = (numPorPaq || 0) * (pesoUnitario || 0);
+    const pesoTotalPorPaq = Number(
+      ((numPorPaq || 0) * (pesoUnitario || 0)).toFixed(2)
+    );
     setValue("unidades", unidadesTotales, { shouldValidate: true });
     setValue("peso_total_paquete", pesoTotalPorPaq, { shouldValidate: true });
     setValue("peso_total", Math.max(1, Number(calculadoTotal.toFixed(2))), {
