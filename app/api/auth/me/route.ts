@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // 2. Obtener la conexión a la base de datos (seguridad o tubos según corresponda)
+    // 2. Obtener la conexión a la base de datos
     const pool = await getConnection();
 
     // 3. Ejecutar el servicio de consulta del usuario

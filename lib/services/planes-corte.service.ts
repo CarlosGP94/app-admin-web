@@ -43,7 +43,7 @@ export interface PaginatedResult<T> {
  */
 export async function listarPlanesCorteService(
   pool: ConnectionPool,
-  params: ListarPlanesCorteParams,
+  params: ListarPlanesCorteParams
 ): Promise<PaginatedResult<PlanCorte>> {
   const page = Math.max(1, params.page || 1);
   const limit = Math.max(1, params.limit || 10);
@@ -97,7 +97,7 @@ export async function listarPlanesCorteService(
             *,
             ROW_NUMBER() OVER (ORDER BY ${safeOrderCol} ${orderDir}) AS RowNum,
             COUNT(*) OVER() AS TotalCount
-        FROM Planes_Corte
+        FROM Tubos_DB_Planes_Corte
         ${whereSql}
     )
     SELECT *
@@ -116,7 +116,7 @@ export async function listarPlanesCorteService(
       id: row.id,
       ancho_estipulado: row.ancho_estipulado,
       fecha: row.creado,
-    }),
+    })
   );
 
   // Obtenemos el conteo total del registro auxiliar de la primera fila
@@ -152,7 +152,7 @@ export interface ListarFiltrosPlanesCorteResponse {
  */
 export async function listarFiltrosPlanesCorteService(
   pool: ConnectionPool,
-  params: ListarFiltrosPlanesCorteParams,
+  params: ListarFiltrosPlanesCorteParams
 ): Promise<ListarFiltrosPlanesCorteResponse> {
   const { ancho_estipulado, fechaInicio, fechaFin } = params;
 
@@ -174,7 +174,7 @@ export async function listarFiltrosPlanesCorteService(
 
   const qAnchos = `
     SELECT DISTINCT ancho_estipulado
-    FROM Planes_Corte
+    FROM Tubos_DB_Planes_Corte
     ${whereAnchos}
     ORDER BY ancho_estipulado ASC;
   `;
@@ -194,7 +194,7 @@ export async function listarFiltrosPlanesCorteService(
     SELECT 
       MIN(creado) AS minFecha, 
       MAX(creado) AS maxFecha
-    FROM Planes_Corte
+    FROM Tubos_DB_Planes_Corte
     ${whereFechas};
   `;
 
@@ -241,7 +241,7 @@ export interface CrearPlanCorteResponse {
  */
 export async function crearPlanCorteService(
   pool: ConnectionPool,
-  data: CrearPlanCorteInput,
+  data: CrearPlanCorteInput
 ): Promise<CrearPlanCorteResponse> {
   const { ancho_estipulado, flejes } = data;
 
@@ -254,12 +254,12 @@ export async function crearPlanCorteService(
   await transaction.begin();
 
   try {
-    // 2. Insertar el registro principal en Planes_Corte y obtener el ID generado
+    // 2. Insertar el registro principal en Tubos_DB_Planes_Corte y obtener el ID generado
     const reqPlan = transaction.request();
     reqPlan.input("ancho_estipulado", ancho_estipulado);
 
     const queryPlan = `
-      INSERT INTO Planes_Corte (ancho_estipulado, creado)
+      INSERT INTO Tubos_DB_Planes_Corte (ancho_estipulado, creado)
       OUTPUT INSERTED.id, INSERTED.ancho_estipulado, INSERTED.creado
       VALUES (@ancho_estipulado, GETDATE());
     `;
@@ -278,11 +278,11 @@ export async function crearPlanCorteService(
       reqFleje.input("peso_unit_definido", fleje.peso_unit_definido);
       reqFleje.input(
         "factor_proporcional_peso",
-        fleje.factor_proporcional_peso,
+        fleje.factor_proporcional_peso
       );
 
       const queryFleje = `
-        INSERT INTO Flejes_Plan_Corte (
+        INSERT INTO Tubos_DB_Rel_Flejes_Plan_Corte (
           plan_corte_id, 
           fleje_id, 
           num_flejes, 
@@ -349,7 +349,7 @@ export interface PlanCorteDetalleResponse {
  */
 export async function obtenerPlanCorteDetalleService(
   pool: ConnectionPool,
-  planCorteId: number,
+  planCorteId: number
 ): Promise<PlanCorteDetalleResponse | null> {
   const request = pool.request();
   request.input("planCorteId", planCorteId);
@@ -370,8 +370,8 @@ export async function obtenerPlanCorteDetalleService(
       f.ancho,
       f.espesor,
       f.calidad_id
-    FROM Planes_Corte pc
-    LEFT JOIN Flejes_Plan_Corte fpc ON pc.id = fpc.plan_corte_id
+    FROM Tubos_DB_Planes_Corte pc
+    LEFT JOIN Tubos_DB_Rel_Flejes_Plan_Corte fpc ON pc.id = fpc.plan_corte_id
     LEFT JOIN Flejes f ON fpc.fleje_id = f.id
     WHERE pc.id = @planCorteId
     ORDER BY fpc.orden ASC;
@@ -440,7 +440,7 @@ export interface ActualizarPlanCorteResponse {
  */
 export async function actualizarPlanCorteService(
   pool: ConnectionPool,
-  data: ActualizarPlanCorteInput,
+  data: ActualizarPlanCorteInput
 ): Promise<ActualizarPlanCorteResponse> {
   const { id, ancho_estipulado, calidad_id, flejes } = data;
 
@@ -453,13 +453,13 @@ export async function actualizarPlanCorteService(
   await transaction.begin();
 
   try {
-    // 2. Actualizar el registro cabecera en Planes_Corte
+    // 2. Actualizar el registro cabecera en Tubos_DB_Planes_Corte
     const reqPlan = transaction.request();
     reqPlan.input("id", id);
     reqPlan.input("ancho_estipulado", ancho_estipulado);
 
     const queryPlan = `
-      UPDATE Planes_Corte
+      UPDATE Tubos_DB_Planes_Corte
       SET 
         ancho_estipulado = @ancho_estipulado
       WHERE id = @id;
@@ -477,7 +477,7 @@ export async function actualizarPlanCorteService(
     reqDeleteFlejes.input("plan_corte_id", id);
 
     await reqDeleteFlejes.query(`
-      DELETE FROM Flejes_Plan_Corte
+      DELETE FROM Tubos_DB_Rel_Flejes_Plan_Corte
       WHERE plan_corte_id = @plan_corte_id;
     `);
 
@@ -491,11 +491,11 @@ export async function actualizarPlanCorteService(
       reqFleje.input("peso_unit_definido", fleje.peso_unit_definido);
       reqFleje.input(
         "factor_proporcional_peso",
-        fleje.factor_proporcional_peso,
+        fleje.factor_proporcional_peso
       );
 
       const queryFleje = `
-        INSERT INTO Flejes_Plan_Corte (
+        INSERT INTO Tubos_DB_Rel_Flejes_Plan_Corte (
           plan_corte_id, 
           fleje_id, 
           num_flejes, 
@@ -546,7 +546,7 @@ export interface EliminarPlanCorteResponse {
  */
 export async function eliminarPlanCorteService(
   pool: ConnectionPool,
-  id: number,
+  id: number
 ): Promise<EliminarPlanCorteResponse> {
   if (!id || typeof id !== "number") {
     throw new Error("Se debe proporcionar un ID de plan de corte válido.");
@@ -562,7 +562,7 @@ export async function eliminarPlanCorteService(
     reqDeleteFlejes.input("plan_corte_id", id);
 
     const resFlejes = await reqDeleteFlejes.query(`
-      DELETE FROM Flejes_Plan_Corte
+      DELETE FROM Tubos_DB_Rel_Flejes_Plan_Corte
       WHERE plan_corte_id = @plan_corte_id;
     `);
 
@@ -571,7 +571,7 @@ export async function eliminarPlanCorteService(
     reqDeletePlan.input("id", id);
 
     const resPlan = await reqDeletePlan.query(`
-      DELETE FROM Planes_Corte
+      DELETE FROM Tubos_DB_Planes_Corte
       WHERE id = @id;
     `);
 
@@ -599,7 +599,7 @@ export async function eliminarPlanCorteService(
 
 export async function getBobinasPorPlanCorte(
   pool: ConnectionPool,
-  planCorteId: number,
+  planCorteId: number
 ): Promise<{ cabecera: PlanCorteCabecera | null; bobinas: BobinaCortada[] }> {
   const req = pool.request();
   req.input("planCorteId", planCorteId);
@@ -607,7 +607,7 @@ export async function getBobinasPorPlanCorte(
   // 1. Cabecera del plan
   const resCabecera = await req.query(`
     SELECT id, codigo_plan AS codigoPlan, fecha_creacion AS fechaCreacion, estado
-    FROM Planes_Corte
+    FROM Tubos_DB_Planes_Corte
     WHERE id = @planCorteId;
   `);
 
@@ -632,7 +632,7 @@ export async function getBobinasPorPlanCorte(
       bc.creado,
       bc.colada_id AS coladaId,
       CONCAT('Op. #', bc.operario_id) AS operario -- O el campo nombre si haces JOIN con Usuarios
-    FROM Bobinas_Cortadas bc
+    FROM Tubos_DB_Bobinas_Cortadas bc
     WHERE bc.plan_corte_id = @planCorteId
     ORDER BY bc.creado DESC, bc.id DESC;
   `);

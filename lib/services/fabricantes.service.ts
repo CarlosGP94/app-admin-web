@@ -6,7 +6,7 @@ export interface FabricanteRow {
 }
 
 export async function obtenerFabricantesService(
-  pool: ConnectionPool,
+  pool: ConnectionPool
 ): Promise<FabricanteRow[]> {
   const req = pool.request();
 
@@ -14,7 +14,7 @@ export async function obtenerFabricantesService(
     SELECT 
       f.id,
       f.nombre
-    FROM Fabricantes f
+    FROM Tubos_DB_Bobinas_Fabricantes f
     ORDER BY f.nombre ASC;
   `;
 

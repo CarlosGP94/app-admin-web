@@ -11,7 +11,7 @@ export interface CalidadTuboRow {
 }
 
 export async function obtenerCalidadesTubosService(
-  pool: ConnectionPool,
+  pool: ConnectionPool
 ): Promise<CalidadTuboRow[]> {
   const req = pool.request();
 
@@ -24,7 +24,7 @@ export async function obtenerCalidadesTubosService(
       c.label_fleje,
       c.label_tubo,
       c.mostrar_tubos
-    FROM Tipos_Calidad c
+    FROM Tubos_DB_Tipos_Calidad c
     WHERE c.mostrar_tubos = 1
     ORDER BY c.nombre ASC;
   `;

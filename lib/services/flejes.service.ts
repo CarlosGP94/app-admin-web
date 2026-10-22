@@ -44,7 +44,7 @@ export interface ListarFlejesResponse {
 
 export async function listarFlejesService(
   pool: ConnectionPool,
-  params: ListarFlejesParams,
+  params: ListarFlejesParams
 ): Promise<ListarFlejesResponse> {
   const page = params.page && params.page > 0 ? params.page : 1;
   const pageSize =
@@ -115,7 +115,7 @@ export async function listarFlejesService(
             f.creado AS fecha,
             ROW_NUMBER() OVER (ORDER BY ${safeOrderBySql}) AS RowNum,
             COUNT(*) OVER() AS TotalCount
-        FROM Flejes f
+        FROM Tubos_DB_Flejes f
         ${whereClauses}
     )
     SELECT *
@@ -164,7 +164,7 @@ export interface ListarFiltrosFlejesResponse {
 
 export async function listarFiltrosFlejesService(
   pool: ConnectionPool,
-  params: FiltrosFlejesParams,
+  params: FiltrosFlejesParams
 ): Promise<ListarFiltrosFlejesResponse> {
   const { filtros } = params;
 
@@ -194,8 +194,8 @@ export async function listarFiltrosFlejesService(
     "WHERE 1=1" + aplicarFiltrosComunes(reqCalidades, "calidad");
   const qCalidades = `
     SELECT DISTINCT tc.id, tc.nombre as calidad
-    FROM Flejes f
-    INNER JOIN Tipos_Calidad tc ON f.calidad_id = tc.id
+    FROM Tubos_DB_Flejes f
+    INNER JOIN Tubos_DB_Tipos_Calidad tc ON f.calidad_id = tc.id
     ${whereCalidades}
     ORDER BY tc.nombre ASC;
   `;
@@ -205,7 +205,7 @@ export async function listarFiltrosFlejesService(
     "WHERE 1=1" + aplicarFiltrosComunes(reqEspesores, "espesor");
   const qEspesores = `
     SELECT DISTINCT f.espesor
-    FROM Flejes f
+    FROM Tubos_DB_Flejes f
     ${whereEspesores}
     ORDER BY f.espesor ASC;
   `;
@@ -233,7 +233,7 @@ export interface FlejeSelectorOption {
 
 export async function listarFlejesSelectorService(
   pool: ConnectionPool,
-  calidadId?: number | null,
+  calidadId?: number | null
 ): Promise<FlejeSelectorOption[]> {
   const req = pool.request();
 
@@ -250,8 +250,8 @@ export async function listarFlejesSelectorService(
         f.concepto,
         f.peso_medio,
         f.ancho
-    FROM Flejes f
-    INNER JOIN Tipos_Calidad tc ON f.calidad_id = tc.id
+    FROM Tubos_DB_Flejes f
+    INNER JOIN Tubos_DB_Tipos_Calidad tc ON f.calidad_id = tc.id
     ${whereClause}
     ORDER BY 
         tc.nombre ASC,
@@ -299,7 +299,7 @@ export interface CrearFlejeResponse {
 
 export async function crearFlejeService(
   pool: ConnectionPool,
-  data: CrearFlejeDTO,
+  data: CrearFlejeDTO
 ): Promise<CrearFlejeResponse> {
   // 1. Transformación de datos inicial
   const conceptoLimpio = data.concepto.trim();
@@ -324,7 +324,7 @@ export async function crearFlejeService(
     reqFleje.input("calidad_id", Int, data.calidad_id);
 
     const queryInsertFleje = `
-      INSERT INTO Flejes (
+      INSERT INTO Tubos_DB_Flejes (
         ancho,
         espesor,
         peso_total,
@@ -417,7 +417,7 @@ export interface ActualizarFlejeResponse {
 
 export async function actualizarFlejeService(
   pool: ConnectionPool,
-  data: ActualizarFlejeDTO,
+  data: ActualizarFlejeDTO
 ): Promise<ActualizarFlejeResponse> {
   const req = pool.request();
 
@@ -438,7 +438,7 @@ export async function actualizarFlejeService(
   req.input("calidad_id", data.calidad_id);
 
   const query = `
-    UPDATE Flejes
+    UPDATE Tubos_DB_Flejes
     SET 
       ancho = @ancho,
       espesor = @espesor,
@@ -498,7 +498,7 @@ export interface FlejeDeleteResponse {
  */
 export async function eliminarFlejeService(
   pool: ConnectionPool,
-  id: number,
+  id: number
 ): Promise<FlejeDeleteResponse> {
   const transaction = new Transaction(pool);
 
@@ -515,7 +515,7 @@ export async function eliminarFlejeService(
     `;
 
     const resRelaciones = await reqDeleteRelaciones.query(
-      queryDeleteRelaciones,
+      queryDeleteRelaciones
     );
     const relacionesEliminadas = resRelaciones.rowsAffected[0] || 0;
 
@@ -524,7 +524,7 @@ export async function eliminarFlejeService(
     reqDeleteFleje.input("id", Int, id);
 
     const queryDeleteFleje = `
-      DELETE FROM Flejes 
+      DELETE FROM Tubos_DB_Flejes 
       WHERE id = @id;
     `;
 
@@ -575,7 +575,7 @@ export interface FlejeDetalleResponse {
  */
 export async function obtenerFlejePorIdService(
   pool: ConnectionPool,
-  id: number,
+  id: number
 ): Promise<FlejeDetalleResponse | null> {
   const reqFleje = pool.request();
   reqFleje.input("id", id);
@@ -593,7 +593,7 @@ export async function obtenerFlejePorIdService(
       peso_medio,
       peso_total,
       creado
-    FROM Flejes
+    FROM Tubos_DB_Flejes
     WHERE id = @id;
   `;
 
