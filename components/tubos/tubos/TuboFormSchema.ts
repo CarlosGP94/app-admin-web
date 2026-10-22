@@ -28,7 +28,7 @@ export const tuboSchema = z
     masa_lineal: z.number().min(0, "Mínimo 0"),
 
     // Dimensiones Paquete
-    alto_paq: z.number().min(1, "Mínimo 1"),
+    alto_paq: z.number().min(0, "Mínimo 0"),
     ancho_paq: z.number().min(1, "Mínimo 1"),
 
     // TAB 2: Máquinas y Flejes
