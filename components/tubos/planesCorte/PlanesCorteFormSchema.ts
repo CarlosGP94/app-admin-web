@@ -10,10 +10,6 @@ export const flejePlanCorteSchema = z.object({
     .int("El número de flejes debe ser un número entero")
     .min(1, "Debe haber al menos 1 fleje"),
 
-  peso_unit_definido: z
-    .number({ error: "El peso unitario debe ser un número" })
-    .min(0.001, "El peso unitario debe ser mayor a 0"),
-
   factor_proporcional_peso: z
     .number({ error: "El factor proporcional de peso debe ser un número" })
     .min(0, "El factor proporcional no puede ser negativo"),

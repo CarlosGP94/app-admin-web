@@ -36,7 +36,6 @@ import { FormSelect } from "@/components/commons/FormSelect";
 export interface OpcionFleje {
   id: number;
   concepto: string;
-  peso_medio: number;
   ancho: number;
   calidad_id?: number | string;
 }
@@ -60,7 +59,7 @@ export default function PlanCorteForm({
   const [flejeSeleccionado, setFlejeSeleccionado] =
     useState<OpcionFleje | null>(null);
   const [numFlejesAgregar, setNumFlejesAgregar] = useState<number>(1);
-  const [pesoUnitAgregar, setPesoUnitAgregar] = useState<number>(0);
+  const [anchoTotalUtilizado, setAnchoTotalUtilizado] = useState<number>(0);
 
   const defaultValues: PlanCorteFormValues = {
     ancho_estipulado: 0,
@@ -101,7 +100,7 @@ export default function PlanCorteForm({
     try {
       const url = new URL(
         APP_ROUTES.api.tubos.flejes_all,
-        window.location.origin,
+        window.location.origin
       );
       url.searchParams.append("calidad_id", String(calidadId));
 
@@ -119,7 +118,6 @@ export default function PlanCorteForm({
 
   useEffect(() => {
     setFlejeSeleccionado(null);
-    setPesoUnitAgregar(0);
 
     if (calidadIdSeleccionada) {
       void loadFlejesDisponibles(Number(calidadIdSeleccionada));
@@ -132,7 +130,7 @@ export default function PlanCorteForm({
   const flejesFiltrados = useMemo(() => {
     if (!calidadIdSeleccionada) return [];
     return flejesDisponibles.filter(
-      (f) => !f.calidad_id || f.calidad_id === Number(calidadIdSeleccionada),
+      (f) => !f.calidad_id || f.calidad_id === Number(calidadIdSeleccionada)
     );
   }, [flejesDisponibles, calidadIdSeleccionada]);
 
@@ -145,45 +143,19 @@ export default function PlanCorteForm({
 
   // Recalcular 'factor_proporcional_peso' de forma reactiva
   useEffect(() => {
-    if (!anchoEstipulado || anchoEstipulado <= 0) return;
-
+    var nuevoAnchoUtilizado = 0;
     flejesForm.forEach((item, index) => {
-      const infoFleje = mapaFlejes.get(item.fleje_id);
-      if (infoFleje) {
-        const factorCalculado =
-          (infoFleje.ancho * item.num_flejes) / anchoEstipulado;
-        const factorRedondeado = Math.round(factorCalculado * 1000) / 1000;
-
-        if (item.factor_proporcional_peso !== factorRedondeado) {
-          setValue(
-            `flejes.${index}.factor_proporcional_peso`,
-            factorRedondeado,
-            { shouldValidate: true },
-          );
-        }
-      }
+      nuevoAnchoUtilizado += item.ancho * item.num_flejes;
     });
-  }, [anchoEstipulado, flejesForm, mapaFlejes, setValue]);
 
-  // Cálculo acumulado del ancho total ocupado por los flejes agregados
-  const anchoTotalUtilizado = useMemo(() => {
-    return flejesForm.reduce((acc, curr) => {
-      const info = mapaFlejes.get(curr.fleje_id);
-      const anchoFleje = info?.ancho || 0;
-      return acc + anchoFleje * (curr.num_flejes || 0);
-    }, 0);
-  }, [flejesForm, mapaFlejes]);
+    setAnchoTotalUtilizado(nuevoAnchoUtilizado);
+  }, [anchoEstipulado, flejesForm, mapaFlejes, setValue]);
 
   const excedeAnchoEstipulado = anchoTotalUtilizado > anchoEstipulado;
 
   // Manejador al seleccionar una opción del Autocomplete
   const handleFlejeSelect = (fleje: OpcionFleje | null) => {
     setFlejeSeleccionado(fleje);
-    if (fleje) {
-      setPesoUnitAgregar(fleje.peso_medio || 0);
-    } else {
-      setPesoUnitAgregar(0);
-    }
   };
 
   const reindexarOrden = () => {
@@ -211,11 +183,6 @@ export default function PlanCorteForm({
       return;
     }
 
-    if (pesoUnitAgregar <= 0) {
-      toast.error("El peso unitario definido debe ser mayor a 0.");
-      return;
-    }
-
     if (!anchoEstipulado || anchoEstipulado <= 0) {
       toast.error("Debes definir un ancho estipulado mayor a 0 primero.");
       return;
@@ -226,7 +193,7 @@ export default function PlanCorteForm({
 
     if (nuevoAnchoAcumulado > anchoEstipulado) {
       toast.error(
-        `No se puede agregar: El ancho total resultante (${nuevoAnchoAcumulado} mm) supera el ancho estipulado (${anchoEstipulado} mm).`,
+        `No se puede agregar: El ancho total resultante (${nuevoAnchoAcumulado} mm) supera el ancho estipulado (${anchoEstipulado} mm).`
       );
       return;
     }
@@ -237,32 +204,40 @@ export default function PlanCorteForm({
 
     append({
       fleje_id: Number(flejeSeleccionado.id),
+      concepto: flejeSeleccionado?.concepto || "",
       num_flejes: Number(numFlejesAgregar),
-      peso_unit_definido: Number(pesoUnitAgregar),
       factor_proporcional_peso: factorRedondeado,
       orden: fields.length + 1,
     });
 
     setFlejeSeleccionado(null);
     setNumFlejesAgregar(1);
-    setPesoUnitAgregar(0);
   };
 
   const handleDividir = (index: number) => {
     const item = getValues(`flejes.${index}`);
+    console.log("Dividir item:", item);
     if (item.num_flejes <= 1) return;
 
     const cantidadRestante = item.num_flejes - 1;
+    const factorProporciionalNuevo =
+      (item.ancho * cantidadRestante) / anchoEstipulado;
+    const factorRedondeado = Math.round(factorProporciionalNuevo * 1000) / 1000;
+    const factorProporcionalOriginal = (item.ancho * 1) / anchoEstipulado;
+    const factorRedondeadoOriginal =
+      Math.round(factorProporcionalOriginal * 1000) / 1000;
 
     update(index, {
       ...item,
       num_flejes: 1,
+      factor_proporcional_peso: factorRedondeadoOriginal,
     });
 
     append({
       ...item,
       num_flejes: cantidadRestante,
       orden: fields.length + 1,
+      factor_proporcional_peso: factorRedondeado,
     });
 
     setTimeout(reindexarOrden, 0);
@@ -278,9 +253,15 @@ export default function PlanCorteForm({
       return;
     }
 
+    const nuevoFactor =
+      (anterior.ancho * (anterior.num_flejes + actual.num_flejes)) /
+      anchoEstipulado;
+    const factorRedondeado = Math.round(nuevoFactor * 1000) / 1000;
+
     update(index - 1, {
       ...anterior,
       num_flejes: anterior.num_flejes + actual.num_flejes,
+      factor_proporcional_peso: factorRedondeado,
     });
 
     remove(index);
@@ -290,18 +271,16 @@ export default function PlanCorteForm({
   const onSubmit = async (data: PlanCorteFormValues) => {
     if (excedeAnchoEstipulado) {
       toast.error(
-        "El ancho total de los flejes no puede superar el ancho estipulado.",
+        "El ancho total de los flejes no puede superar el ancho estipulado."
       );
       return;
     }
 
     const tieneCamposInvalidos = data.flejes.some(
-      (f) => f.peso_unit_definido <= 0 || f.num_flejes <= 0,
+      (f) => f.peso_unit_definido <= 0 || f.num_flejes <= 0
     );
     if (tieneCamposInvalidos) {
-      toast.error(
-        "Todos los flejes deben tener un Nº de flejes y Peso Unitario mayor a 0.",
-      );
+      toast.error("Todos los flejes deben tener un Nº de flejes.");
       return;
     }
 
@@ -314,15 +293,39 @@ export default function PlanCorteForm({
 
   const onError = (_formErrors: FieldErrors<PlanCorteFormValues>) => {
     toast.error(
-      "Hay errores en el formulario. Revisa los campos requeridos antes de guardar.",
+      "Hay errores en el formulario. Revisa los campos requeridos antes de guardar."
     );
+  };
+
+  const handleChanageNumFlejes = (value: number, index: number) => {
+    const currentItem = getValues(`flejes.${index}`);
+    const anchoActual = currentItem.ancho * currentItem.num_flejes;
+    const nuevoAnchoTotal =
+      anchoTotalUtilizado - anchoActual + currentItem.ancho * value;
+
+    if (nuevoAnchoTotal > anchoEstipulado) {
+      toast.error(
+        `No se puede cambiar: El ancho total resultante (${nuevoAnchoTotal} mm) supera el ancho estipulado (${anchoEstipulado} mm).`
+      );
+      return;
+    }
+
+    const nuevoFactor = (currentItem.ancho * value) / anchoEstipulado;
+
+    setValue(`flejes.${index}.num_flejes`, value, { shouldValidate: true });
+    setValue(
+      `flejes.${index}.factor_proporcional_peso`,
+      Math.round(nuevoFactor * 1000) / 1000,
+      { shouldValidate: true }
+    );
+    setAnchoTotalUtilizado(nuevoAnchoTotal);
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit, onError)} noValidate>
       <Stack spacing={3}>
         {/* ALERTAS GLOBALES DE DIMENSIÓN */}
-        {excedeAnchoEstipulado && (
+        {anchoTotalUtilizado > anchoEstipulado && (
           <Alert severity="error">
             <strong>Error de dimensiones:</strong> La suma de los anchos de los
             flejes ({anchoTotalUtilizado} mm) supera el ancho estipulado (
@@ -375,7 +378,7 @@ export default function PlanCorteForm({
 
             {/* SELECCIÓN Y CONTROLES DE ADICIÓN DE FLEJES */}
             <Grid container spacing={2} sx={{ mb: 3, alignItems: "center" }}>
-              <Grid size={{ xs: 12, sm: 5 }}>
+              <Grid size={{ xs: 12, sm: 7 }}>
                 <Autocomplete<
                   { id: number; label: string },
                   false,
@@ -398,7 +401,6 @@ export default function PlanCorteForm({
                   disabled={loadingFlejes || !calidadIdSeleccionada}
                   size="small"
                   fullWidth
-                  // 🔹 AÑADE ESTAS PROPIEDADES AQUI:
                   clearOnBlur={false}
                   blurOnSelect={true}
                   getOptionLabel={(option) =>
@@ -417,7 +419,7 @@ export default function PlanCorteForm({
                   }}
                   onChange={(_, selected) => {
                     const original = flejesDisponibles.find(
-                      (f) => f.id == selected?.id,
+                      (f) => f.id == selected?.id
                     );
                     handleFlejeSelect(original || null);
                   }}
@@ -439,23 +441,9 @@ export default function PlanCorteForm({
                   fullWidth
                   value={numFlejesAgregar}
                   slotProps={{ htmlInput: { min: 1 } }}
-                  onChange={(e) =>
-                    setNumFlejesAgregar(Math.max(1, Number(e.target.value)))
-                  }
-                />
-              </Grid>
-
-              <Grid size={{ xs: 6, sm: 2 }}>
-                <TextField
-                  label="Peso Unit. (kg)"
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={pesoUnitAgregar}
-                  slotProps={{ htmlInput: { min: 0.01, step: 0.01 } }}
-                  onChange={(e) =>
-                    setPesoUnitAgregar(Math.max(0, Number(e.target.value)))
-                  }
+                  onChange={(e) => {
+                    setNumFlejesAgregar(Math.max(1, Number(e.target.value)));
+                  }}
                 />
               </Grid>
 
@@ -542,19 +530,10 @@ export default function PlanCorteForm({
                         </Grid>
 
                         {/* Nombre del Fleje */}
-                        <Grid size={{ xs: 12, sm: 2 }}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {flejeInfo?.concepto ||
-                              `Fleje ID: ${fieldItem.fleje_id}`}
+                            {fieldItem?.concepto}
                           </Typography>
-                          {flejeInfo?.ancho && (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              Ancho: {flejeInfo.ancho} mm
-                            </Typography>
-                          )}
                         </Grid>
 
                         {/* Cantidad de Flejes */}
@@ -565,33 +544,8 @@ export default function PlanCorteForm({
                             control={control}
                             label="Nº Flejes"
                             size="small"
-                          />
-                        </Grid>
-
-                        {/* Peso Unitario Definido */}
-                        <Grid size={{ xs: 6, sm: 2 }}>
-                          <FormTextField
-                            name={`flejes.${index}.peso_unit_definido`}
-                            type="number"
-                            control={control}
-                            label="Peso Unit."
-                            size="small"
-                          />
-                        </Grid>
-
-                        {/* Peso Total (Solo Lectura) */}
-                        <Grid size={{ xs: 6, sm: 2 }}>
-                          <TextField
-                            label="Peso Total (kg)"
-                            type="number"
-                            size="small"
-                            value={pesoTotalCalculado}
-                            disabled
-                            fullWidth
-                            slotProps={{
-                              input: {
-                                readOnly: true,
-                              },
+                            onChange={(value) => {
+                              handleChanageNumFlejes(value, index);
                             }}
                           />
                         </Grid>
@@ -706,8 +660,8 @@ export default function PlanCorteForm({
           {isSubmitting
             ? "Guardando..."
             : isEditing
-              ? "Actualizar Plan de Corte"
-              : "Crear Plan de Corte"}
+            ? "Actualizar Plan de Corte"
+            : "Crear Plan de Corte"}
         </Button>
       </Box>
     </Box>
