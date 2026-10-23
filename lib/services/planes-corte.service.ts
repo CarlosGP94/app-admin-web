@@ -218,7 +218,6 @@ export async function listarFiltrosPlanesCorteService(
 export interface FlejePlanCorteInput {
   fleje_id: number;
   num_flejes: number;
-  peso_unit_definido: number;
   factor_proporcional_peso: number;
   orden: number;
 }
@@ -275,7 +274,6 @@ export async function crearPlanCorteService(
       reqFleje.input("fleje_id", fleje.fleje_id);
       reqFleje.input("num_flejes", fleje.num_flejes);
       reqFleje.input("orden", fleje.orden);
-      reqFleje.input("peso_unit_definido", fleje.peso_unit_definido);
       reqFleje.input(
         "factor_proporcional_peso",
         fleje.factor_proporcional_peso
@@ -286,7 +284,6 @@ export async function crearPlanCorteService(
           plan_corte_id, 
           fleje_id, 
           num_flejes, 
-          peso_unit_definido, 
           orden,
           creado, 
           factor_proporcional_peso
@@ -296,7 +293,6 @@ export async function crearPlanCorteService(
           @fleje_id, 
           @num_flejes,
           @orden,
-          @peso_unit_definido, 
           GETDATE(), 
           @factor_proporcional_peso
         );
@@ -326,10 +322,8 @@ export interface FlejePlanCorteDetalle {
   plan_corte_id: number;
   fleje_id: number;
   num_flejes: number;
-  peso_unit_definido: number;
   factor_proporcional_peso: number;
   orden: number;
-  // Campos complementarios opcionales del fleje para renderizar en UI
   concepto?: string;
   ancho?: number;
   espesor?: number;
@@ -363,7 +357,6 @@ export async function obtenerPlanCorteDetalleService(
       fpc.id AS fpc_id,
       fpc.fleje_id,
       fpc.num_flejes,
-      fpc.peso_unit_definido,
       fpc.factor_proporcional_peso,
       fpc.orden,
       f.concepto,
@@ -394,7 +387,6 @@ export async function obtenerPlanCorteDetalleService(
       plan_corte_id: Number(row.plan_id),
       fleje_id: Number(row.fleje_id),
       num_flejes: Number(row.num_flejes),
-      peso_unit_definido: Number(row.peso_unit_definido),
       factor_proporcional_peso: Number(row.factor_proporcional_peso),
       orden: Number(row.orden),
       concepto: row.concepto ?? "",
@@ -415,7 +407,6 @@ export async function obtenerPlanCorteDetalleService(
 export interface FlejePlanCorteInput {
   fleje_id: number;
   num_flejes: number;
-  peso_unit_definido: number;
   factor_proporcional_peso: number;
   orden: number;
 }
@@ -488,7 +479,6 @@ export async function actualizarPlanCorteService(
       reqFleje.input("fleje_id", fleje.fleje_id);
       reqFleje.input("num_flejes", fleje.num_flejes);
       reqFleje.input("orden", fleje.orden);
-      reqFleje.input("peso_unit_definido", fleje.peso_unit_definido);
       reqFleje.input(
         "factor_proporcional_peso",
         fleje.factor_proporcional_peso
@@ -499,7 +489,6 @@ export async function actualizarPlanCorteService(
           plan_corte_id, 
           fleje_id, 
           num_flejes, 
-          peso_unit_definido, 
           orden,
           creado, 
           factor_proporcional_peso
@@ -508,7 +497,6 @@ export async function actualizarPlanCorteService(
           @plan_corte_id, 
           @fleje_id, 
           @num_flejes, 
-          @peso_unit_definido, 
           @orden,
           GETDATE(), 
           @factor_proporcional_peso

@@ -120,10 +120,7 @@ export async function POST(request: Request) {
     // Validar que cada fleje tenga sus datos requeridos
     const flejeInvalido = body.flejes.some(
       (f: FlejeInput) =>
-        !f.fleje_id ||
-        !f.num_flejes ||
-        f.peso_unit_definido === undefined ||
-        f.factor_proporcional_peso === undefined
+        !f.fleje_id || !f.num_flejes || f.factor_proporcional_peso === undefined
     );
 
     if (flejeInvalido) {

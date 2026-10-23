@@ -85,6 +85,8 @@ export default function TuboForm({
   >([]);
   const [loadingFlejes, setLoadingFlejes] = useState(true);
 
+  console.log("initialData", initialData);
+
   const defaultValues: TuboFormValues = {
     art_concepto: initialData?.art_concepto || "",
     calidad_id: initialData?.calidad_id || 0,
@@ -856,8 +858,8 @@ export default function TuboForm({
           {isSubmitting
             ? "Guardando..."
             : isEditing
-            ? "Actualizar Tubo"
-            : "Crear Tubo"}
+              ? "Actualizar Tubo"
+              : "Crear Tubo"}
         </Button>
       </Box>
     </Box>
