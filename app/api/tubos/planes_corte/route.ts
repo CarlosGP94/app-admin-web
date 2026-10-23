@@ -87,7 +87,7 @@ export async function GET(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -113,17 +113,14 @@ export async function POST(request: Request) {
           error:
             "El 'ancho_estipulado' y la lista de 'flejes' (al menos uno) son obligatorios.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     // Validar que cada fleje tenga sus datos requeridos
     const flejeInvalido = body.flejes.some(
       (f: FlejeInput) =>
-        !f.fleje_id ||
-        !f.num_flejes ||
-        f.peso_unit_definido === undefined ||
-        f.factor_proporcional_peso === undefined,
+        !f.fleje_id || !f.num_flejes || f.factor_proporcional_peso === undefined
     );
 
     if (flejeInvalido) {
@@ -133,7 +130,7 @@ export async function POST(request: Request) {
           error:
             "Todos los flejes deben incluir 'fleje_id', 'num_flejes', 'peso_unit_definido' y 'factor_proporcional_peso'.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -150,7 +147,7 @@ export async function POST(request: Request) {
         message: "Plan de corte creado correctamente.",
         data: resultado,
       },
-      { status: 201 },
+      { status: 201 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en POST /api/planes-corte:", error);
@@ -164,7 +161,7 @@ export async function POST(request: Request) {
         success: false,
         error: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -185,7 +182,7 @@ export async function PUT(request: Request) {
           success: false,
           error: "El campo 'id' es obligatorio y debe ser un número válido.",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -202,7 +199,7 @@ export async function PUT(request: Request) {
           success: false,
           error: `Datos del formulario inválidos: ${errorMessages}`,
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -222,7 +219,7 @@ export async function PUT(request: Request) {
         message: "Plan de corte actualizado correctamente.",
         data: resultado,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error: unknown) {
     console.error("❌ Error en PUT /api/planes-corte:", error);
@@ -236,13 +233,13 @@ export async function PUT(request: Request) {
     if (message.includes("no existe")) {
       return NextResponse.json(
         { success: false, error: message },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

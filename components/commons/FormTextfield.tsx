@@ -9,6 +9,7 @@ type FormTextFieldProps<TFieldValues extends FieldValues> = {
   name: Path<TFieldValues>;
   control: Control<TFieldValues>;
   label: string;
+  onChange?: (value: string | number) => void;
   type?:
     | "text"
     | "number"
@@ -28,6 +29,7 @@ export function FormTextField<TFieldValues extends FieldValues>({
   name,
   control,
   label,
+  onChange,
   type = "text",
   required = false,
   isNumber = type === "number",
@@ -58,9 +60,17 @@ export function FormTextField<TFieldValues extends FieldValues>({
           onChange={(e) => {
             if (isNumber) {
               const val = e.target.value;
-              field.onChange(val === "" ? "" : Number(val));
+              if (onChange) {
+                onChange(val === "" ? "" : Number(val));
+              } else {
+                field.onChange(val === "" ? "" : Number(val));
+              }
             } else {
-              field.onChange(e.target.value);
+              if (onChange) {
+                onChange(val === "" ? "" : Number(val));
+              } else {
+                field.onChange(e.target.value);
+              }
             }
           }}
           slotProps={{

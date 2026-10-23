@@ -43,7 +43,7 @@ export interface PaginatedResult<T> {
  */
 export async function listarPlanesCorteService(
   pool: ConnectionPool,
-  params: ListarPlanesCorteParams,
+  params: ListarPlanesCorteParams
 ): Promise<PaginatedResult<PlanCorte>> {
   const page = Math.max(1, params.page || 1);
   const limit = Math.max(1, params.limit || 10);
@@ -116,7 +116,7 @@ export async function listarPlanesCorteService(
       id: row.id,
       ancho_estipulado: row.ancho_estipulado,
       fecha: row.creado,
-    }),
+    })
   );
 
   // Obtenemos el conteo total del registro auxiliar de la primera fila
@@ -152,7 +152,7 @@ export interface ListarFiltrosPlanesCorteResponse {
  */
 export async function listarFiltrosPlanesCorteService(
   pool: ConnectionPool,
-  params: ListarFiltrosPlanesCorteParams,
+  params: ListarFiltrosPlanesCorteParams
 ): Promise<ListarFiltrosPlanesCorteResponse> {
   const { ancho_estipulado, fechaInicio, fechaFin } = params;
 
@@ -241,7 +241,7 @@ export interface CrearPlanCorteResponse {
  */
 export async function crearPlanCorteService(
   pool: ConnectionPool,
-  data: CrearPlanCorteInput,
+  data: CrearPlanCorteInput
 ): Promise<CrearPlanCorteResponse> {
   const { ancho_estipulado, flejes } = data;
 
@@ -275,10 +275,9 @@ export async function crearPlanCorteService(
       reqFleje.input("fleje_id", fleje.fleje_id);
       reqFleje.input("num_flejes", fleje.num_flejes);
       reqFleje.input("orden", fleje.orden);
-      reqFleje.input("peso_unit_definido", fleje.peso_unit_definido);
       reqFleje.input(
         "factor_proporcional_peso",
-        fleje.factor_proporcional_peso,
+        fleje.factor_proporcional_peso
       );
 
       const queryFleje = `
@@ -286,7 +285,6 @@ export async function crearPlanCorteService(
           plan_corte_id, 
           fleje_id, 
           num_flejes, 
-          peso_unit_definido, 
           orden,
           creado, 
           factor_proporcional_peso
@@ -296,7 +294,6 @@ export async function crearPlanCorteService(
           @fleje_id, 
           @num_flejes,
           @orden,
-          @peso_unit_definido, 
           GETDATE(), 
           @factor_proporcional_peso
         );
@@ -349,7 +346,7 @@ export interface PlanCorteDetalleResponse {
  */
 export async function obtenerPlanCorteDetalleService(
   pool: ConnectionPool,
-  planCorteId: number,
+  planCorteId: number
 ): Promise<PlanCorteDetalleResponse | null> {
   const request = pool.request();
   request.input("planCorteId", planCorteId);
@@ -363,7 +360,6 @@ export async function obtenerPlanCorteDetalleService(
       fpc.id AS fpc_id,
       fpc.fleje_id,
       fpc.num_flejes,
-      fpc.peso_unit_definido,
       fpc.factor_proporcional_peso,
       fpc.orden,
       f.concepto,
@@ -394,7 +390,6 @@ export async function obtenerPlanCorteDetalleService(
       plan_corte_id: Number(row.plan_id),
       fleje_id: Number(row.fleje_id),
       num_flejes: Number(row.num_flejes),
-      peso_unit_definido: Number(row.peso_unit_definido),
       factor_proporcional_peso: Number(row.factor_proporcional_peso),
       orden: Number(row.orden),
       concepto: row.concepto ?? "",
@@ -415,7 +410,6 @@ export async function obtenerPlanCorteDetalleService(
 export interface FlejePlanCorteInput {
   fleje_id: number;
   num_flejes: number;
-  peso_unit_definido: number;
   factor_proporcional_peso: number;
   orden: number;
 }
@@ -440,7 +434,7 @@ export interface ActualizarPlanCorteResponse {
  */
 export async function actualizarPlanCorteService(
   pool: ConnectionPool,
-  data: ActualizarPlanCorteInput,
+  data: ActualizarPlanCorteInput
 ): Promise<ActualizarPlanCorteResponse> {
   const { id, ancho_estipulado, calidad_id, flejes } = data;
 
@@ -488,10 +482,9 @@ export async function actualizarPlanCorteService(
       reqFleje.input("fleje_id", fleje.fleje_id);
       reqFleje.input("num_flejes", fleje.num_flejes);
       reqFleje.input("orden", fleje.orden);
-      reqFleje.input("peso_unit_definido", fleje.peso_unit_definido);
       reqFleje.input(
         "factor_proporcional_peso",
-        fleje.factor_proporcional_peso,
+        fleje.factor_proporcional_peso
       );
 
       const queryFleje = `
@@ -499,7 +492,6 @@ export async function actualizarPlanCorteService(
           plan_corte_id, 
           fleje_id, 
           num_flejes, 
-          peso_unit_definido, 
           orden,
           creado, 
           factor_proporcional_peso
@@ -508,7 +500,6 @@ export async function actualizarPlanCorteService(
           @plan_corte_id, 
           @fleje_id, 
           @num_flejes, 
-          @peso_unit_definido, 
           @orden,
           GETDATE(), 
           @factor_proporcional_peso
@@ -546,7 +537,7 @@ export interface EliminarPlanCorteResponse {
  */
 export async function eliminarPlanCorteService(
   pool: ConnectionPool,
-  id: number,
+  id: number
 ): Promise<EliminarPlanCorteResponse> {
   if (!id || typeof id !== "number") {
     throw new Error("Se debe proporcionar un ID de plan de corte válido.");
@@ -599,7 +590,7 @@ export async function eliminarPlanCorteService(
 
 export async function getBobinasPorPlanCorte(
   pool: ConnectionPool,
-  planCorteId: number,
+  planCorteId: number
 ): Promise<{ cabecera: PlanCorteCabecera | null; bobinas: BobinaCortada[] }> {
   const req = pool.request();
   req.input("planCorteId", planCorteId);
