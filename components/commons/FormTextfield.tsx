@@ -58,8 +58,8 @@ export function FormTextField<TFieldValues extends FieldValues>({
           label={displayLabel}
           value={field.value ?? ""}
           onChange={(e) => {
+            const val = e.target.value;
             if (isNumber) {
-              const val = e.target.value;
               if (onChange) {
                 onChange(val === "" ? "" : Number(val));
               } else {

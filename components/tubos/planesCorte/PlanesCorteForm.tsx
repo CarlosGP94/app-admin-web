@@ -143,7 +143,7 @@ export default function PlanCorteForm({
 
   // Recalcular 'factor_proporcional_peso' de forma reactiva
   useEffect(() => {
-    var nuevoAnchoUtilizado = 0;
+    let nuevoAnchoUtilizado = 0;
     flejesForm.forEach((item, index) => {
       nuevoAnchoUtilizado += item.ancho * item.num_flejes;
     });
@@ -203,6 +203,7 @@ export default function PlanCorteForm({
     const factorRedondeado = Math.round(factor * 1000) / 1000;
 
     append({
+      ancho: flejeSeleccionado?.ancho || 0,
       fleje_id: Number(flejeSeleccionado.id),
       concepto: flejeSeleccionado?.concepto || "",
       num_flejes: Number(numFlejesAgregar),
@@ -273,14 +274,6 @@ export default function PlanCorteForm({
       toast.error(
         "El ancho total de los flejes no puede superar el ancho estipulado."
       );
-      return;
-    }
-
-    const tieneCamposInvalidos = data.flejes.some(
-      (f) => f.peso_unit_definido <= 0 || f.num_flejes <= 0
-    );
-    if (tieneCamposInvalidos) {
-      toast.error("Todos los flejes deben tener un Nº de flejes.");
       return;
     }
 
@@ -498,9 +491,6 @@ export default function PlanCorteForm({
                   const currentItem = flejesForm[index] || fieldItem;
 
                   const numFlejes = Number(currentItem.num_flejes) || 0;
-                  const pesoUnit = Number(currentItem.peso_unit_definido) || 0;
-                  const pesoTotalCalculado =
-                    Math.round(numFlejes * pesoUnit * 100) / 100;
 
                   return (
                     <Paper
@@ -545,7 +535,13 @@ export default function PlanCorteForm({
                             label="Nº Flejes"
                             size="small"
                             onChange={(value) => {
-                              handleChanageNumFlejes(value, index);
+                              let newValue: number;
+                              if (typeof value == "number") {
+                                newValue = value;
+                              } else {
+                                newValue = Number(value);
+                              }
+                              handleChanageNumFlejes(newValue, index);
                             }}
                           />
                         </Grid>
@@ -660,8 +656,8 @@ export default function PlanCorteForm({
           {isSubmitting
             ? "Guardando..."
             : isEditing
-            ? "Actualizar Plan de Corte"
-            : "Crear Plan de Corte"}
+              ? "Actualizar Plan de Corte"
+              : "Crear Plan de Corte"}
         </Button>
       </Box>
     </Box>

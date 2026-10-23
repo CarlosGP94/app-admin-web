@@ -218,7 +218,6 @@ export async function listarFiltrosPlanesCorteService(
 export interface FlejePlanCorteInput {
   fleje_id: number;
   num_flejes: number;
-  peso_unit_definido: number;
   factor_proporcional_peso: number;
   orden: number;
 }
@@ -323,10 +322,8 @@ export interface FlejePlanCorteDetalle {
   plan_corte_id: number;
   fleje_id: number;
   num_flejes: number;
-  peso_unit_definido: number;
   factor_proporcional_peso: number;
   orden: number;
-  // Campos complementarios opcionales del fleje para renderizar en UI
   concepto?: string;
   ancho?: number;
   espesor?: number;

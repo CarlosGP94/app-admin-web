@@ -4,7 +4,8 @@ export const flejePlanCorteSchema = z.object({
   fleje_id: z
     .number({ error: "El ID del fleje debe ser un número" })
     .min(1, "Debes seleccionar un fleje válido"),
-
+  ancho: z.number({ error: "El número de flejes debe ser un número" }),
+  concepto: z.string(),
   num_flejes: z
     .number({ error: "El número de flejes debe ser un número" })
     .int("El número de flejes debe ser un número entero")
