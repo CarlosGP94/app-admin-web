@@ -159,9 +159,9 @@ export async function listarBobinasCortadasService(
             b.calidad_id,
             ROW_NUMBER() OVER (ORDER BY ${safeOrderCol} ${orderDir}) AS RowNum,
             COUNT(*) OVER() AS TotalCount
-        FROM Bobinas_Cortadas as bc
-        LEFT JOIN Bobinas as b ON bc.bobina_id = b.id
-        LEFT JOIN Bobina_Coladas as bcol ON bc.colada_id = bcol.id
+        FROM Tubos_DB_Bobinas_Cortadas as bc
+        LEFT JOIN Tubos_DB_Bobinas as b ON bc.bobina_id = b.id
+        LEFT JOIN Tubos_DB_Bobina_Coladas as bcol ON bc.colada_id = bcol.id
         LEFT JOIN Turnos as t ON bc.turno_id = t.id
         LEFT JOIN Operarios as o ON bc.operario_id = o.id
         ${whereSql}
@@ -258,9 +258,9 @@ export async function listarFiltrosBobinasCortadasService(
 
   const qColadas = `
     SELECT DISTINCT bcol.id, bcol.colada AS colada
-    FROM Bobinas_Cortadas bc
-    INNER JOIN Bobinas b ON bc.bobina_id = b.id
-    INNER JOIN Bobina_Coladas bcol ON bc.colada_id = bcol.id
+    FROM Tubos_DB_Bobinas_Cortadas bc
+    INNER JOIN Tubos_DB_Bobinas b ON bc.bobina_id = b.id
+    INNER JOIN Tubos_DB_Bobina_Coladas bcol ON bc.colada_id = bcol.id
     ${whereColadas}
     ORDER BY bcol.colada ASC;
   `;
@@ -281,10 +281,10 @@ export async function listarFiltrosBobinasCortadasService(
 
   const qFabricantes = `
     SELECT DISTINCT f.id, f.nombre
-    FROM Bobinas_Cortadas bc
-    INNER JOIN Bobinas b ON bc.bobina_id = b.id
-    INNER JOIN Fabricantes f ON b.fabricante_id = f.id
-    LEFT JOIN Bobina_Coladas bcol ON bc.colada_id = bcol.id
+    FROM Tubos_DB_Bobinas_Cortadas bc
+    INNER JOIN Tubos_DB_Bobinas b ON bc.bobina_id = b.id
+    INNER JOIN Tubos_DB_Bobinas_Fabricantes f ON b.fabricante_id = f.id
+    LEFT JOIN Tubos_DB_Bobina_Coladas bcol ON bc.colada_id = bcol.id
     ${whereFabricantes}
     ORDER BY f.nombre ASC;
   `;
@@ -303,9 +303,9 @@ export async function listarFiltrosBobinasCortadasService(
     SELECT 
       MIN(bc.creado) AS minFecha, 
       MAX(bc.creado) AS maxFecha
-    FROM Bobinas_Cortadas bc
-    LEFT JOIN Bobinas b ON bc.bobina_id = b.id
-    LEFT JOIN Bobina_Coladas bcol ON bc.colada_id = bcol.id
+    FROM Tubos_DB_Bobinas_Cortadas bc
+    LEFT JOIN Tubos_DB_Bobinas b ON bc.bobina_id = b.id
+    LEFT JOIN Tubos_DB_Bobina_Coladas bcol ON bc.colada_id = bcol.id
     ${whereFechas};
   `;
 
@@ -375,13 +375,13 @@ export async function actualizarColadaBobinasCortadasService(
 
         // Comprobamos si ya existe el fabricante o lo insertamos
         const resFabricante = await reqFabricante.query(`
-          IF EXISTS (SELECT 1 FROM Fabricantes WHERE nombre = @nombre)
+          IF EXISTS (SELECT 1 FROM Tubos_DB_Bobinas_Fabricantes WHERE nombre = @nombre)
           BEGIN
-            SELECT id FROM Fabricantes WHERE nombre = @nombre;
+            SELECT id FROM Tubos_DB_Bobinas_Fabricantes WHERE nombre = @nombre;
           END
           ELSE
           BEGIN
-            INSERT INTO Fabricantes (nombre)
+            INSERT INTO Tubos_DB_Bobinas_Fabricantes (nombre)
             OUTPUT INSERTED.id
             VALUES (@nombre);
           END
@@ -408,7 +408,7 @@ export async function actualizarColadaBobinasCortadasService(
       reqColada.input("colada", colada_nombre.trim());
 
       const resColada = await reqColada.query(`
-        INSERT INTO Bobina_Coladas (fabricante_id, colada)
+        INSERT INTO Tubos_DB_Bobina_Coladas (fabricante_id, colada)
         OUTPUT INSERTED.id
         VALUES (@fabricante_id, @colada);
       `);
@@ -429,7 +429,7 @@ export async function actualizarColadaBobinasCortadasService(
     });
 
     const updateQuery = `
-      UPDATE Bobinas_Cortadas
+      UPDATE Tubos_DB_Bobinas_Cortadas
       SET colada_id = @colada_id
       WHERE id IN (${paramsList.join(", ")});
     `;

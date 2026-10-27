@@ -35,7 +35,7 @@ export interface ListarBobinasResponse {
 
 export async function listarBobinasService(
   pool: ConnectionPool,
-  params: ListarBobinasParams,
+  params: ListarBobinasParams
 ): Promise<ListarBobinasResponse> {
   const page = params.page && params.page > 0 ? params.page : 1;
   const pageSize =
@@ -111,7 +111,7 @@ export async function listarBobinasService(
             b.creado AS fecha,
             ROW_NUMBER() OVER (ORDER BY ${safeOrderBySql}) AS RowNum,
             COUNT(*) OVER() AS TotalCount
-        FROM Bobinas b
+        FROM Tubos_DB_Bobinas b
         ${whereClauses}
     )
     SELECT *
@@ -164,7 +164,7 @@ export interface ListarFiltrosBobinasResponse {
 
 export async function listarFiltrosBobinasService(
   pool: ConnectionPool,
-  params: FiltrosBobinasParams,
+  params: FiltrosBobinasParams
 ): Promise<ListarFiltrosBobinasResponse> {
   const { filtros } = params;
 
@@ -278,7 +278,7 @@ export interface CrearBobinaResponse {
 
 export async function crearBobinaService(
   pool: ConnectionPool,
-  data: CrearBobinaDTO,
+  data: CrearBobinaDTO
 ): Promise<CrearBobinaResponse> {
   // 1. Transformación de datos inicial
   const conceptoLimpio = data.concepto.trim();
@@ -397,7 +397,7 @@ export interface ActualizarBobinaResponse {
 
 export async function actualizarBobinaService(
   pool: ConnectionPool,
-  data: ActualizarBobinaDTO,
+  data: ActualizarBobinaDTO
 ): Promise<ActualizarBobinaResponse> {
   const req = pool.request();
 
@@ -484,7 +484,7 @@ export interface DetalleBobinaResponse {
 
 export async function obtenerBobinaPorIdService(
   pool: ConnectionPool,
-  id: number,
+  id: number
 ): Promise<DetalleBobinaResponse> {
   const req = pool.request();
   req.input("id", id);
@@ -542,7 +542,7 @@ export interface BobinaDeleteResponse {
  */
 export async function eliminarBobinaService(
   pool: ConnectionPool,
-  id: number,
+  id: number
 ): Promise<BobinaDeleteResponse> {
   const transaction = new Transaction(pool);
 

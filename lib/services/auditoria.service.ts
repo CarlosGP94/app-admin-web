@@ -19,7 +19,7 @@ export interface AsignarAuditoriaResultado {
  */
 export async function asignarAuditoriaBobinaService(
   pool: ConnectionPool,
-  payload: AsignarAuditoriaPayload,
+  payload: AsignarAuditoriaPayload
 ): Promise<AsignarAuditoriaResultado> {
   const { flejesIds, bobinaId, coladaId } = payload;
   const transaction = new Transaction(pool);
@@ -37,7 +37,7 @@ export async function asignarAuditoriaBobinaService(
 
     const queryBuscarColada = `
       SELECT id 
-      FROM Bobina_Coladas 
+      FROM Tubos_DB_Bobina_Coladas 
       WHERE colada = @coladaId;
     `;
 
@@ -53,7 +53,7 @@ export async function asignarAuditoriaBobinaService(
 
       const queryBuscarBobina = `
         SELECT fabricante_id 
-        FROM Bobinas 
+        FROM Tubos_DB_Bobinas 
         WHERE id = @bobinaId;
       `;
 
@@ -71,7 +71,7 @@ export async function asignarAuditoriaBobinaService(
       reqInsertColada.input("fabricante_id", fabricanteId);
 
       const queryInsertColada = `
-        INSERT INTO Bobina_Coladas (colada, fabricante_id)
+        INSERT INTO Tubos_DB_Bobina_Coladas (colada, fabricante_id)
         OUTPUT INSERTED.id
         VALUES (@colada, @fabricante_id);
       `;
@@ -93,7 +93,7 @@ export async function asignarAuditoriaBobinaService(
 
       const queryFleje = `
         SELECT auditoria_id 
-        FROM Lotes_Flejes 
+        FROM Tubos_DB_Lotes_Flejes 
         WHERE id = @flejeId;
       `;
 
@@ -113,7 +113,7 @@ export async function asignarAuditoriaBobinaService(
         reqUpdateAuditoria.input("colada_id", finalColadaId);
 
         const queryUpdateAuditoria = `
-          UPDATE Auditoria_Bobinas
+          UPDATE Tubos_DB_Auditoria_Bobinas
           SET bobina_id = @bobina_id,
               colada_id = @colada_id
           WHERE id = @id;
@@ -128,13 +128,14 @@ export async function asignarAuditoriaBobinaService(
         reqInsertAuditoria.input("colada_id", finalColadaId);
 
         const queryInsertAuditoria = `
-          INSERT INTO Auditoria_Bobinas (bobina_id, colada_id)
+          INSERT INTO Tubos_DB_Auditoria_Bobinas (bobina_id, colada_id)
           OUTPUT INSERTED.id
           VALUES (@bobina_id, @colada_id);
         `;
 
-        const resInsertAuditoria =
-          await reqInsertAuditoria.query(queryInsertAuditoria);
+        const resInsertAuditoria = await reqInsertAuditoria.query(
+          queryInsertAuditoria
+        );
         const nuevaAuditoriaId = resInsertAuditoria.recordset[0].id;
 
         // Actualizar el Lote_Fleje con el nuevo ID de auditoría
@@ -143,7 +144,7 @@ export async function asignarAuditoriaBobinaService(
         reqUpdateFleje.input("auditoria_id", nuevaAuditoriaId);
 
         const queryUpdateFleje = `
-          UPDATE Lotes_Flejes
+          UPDATE Tubos_DB_Lotes_Flejes
           SET auditoria_id = @auditoria_id
           WHERE id = @flejeId;
         `;

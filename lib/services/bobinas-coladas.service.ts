@@ -39,8 +39,8 @@ export async function listarBobinasColadasPorBobinaIdService(
       bc.id,
       bc.colada,
       bc.creado
-    FROM Bobina_Coladas bc
-    INNER JOIN Bobinas_Cortadas bcort ON bcort.colada_id = bc.id
+    FROM Tubos_DB_Bobina_Coladas bc
+    INNER JOIN Tubos_DB_Bobinas_Cortadas bcort ON bcort.colada_id = bc.id
     WHERE bcort.bobina_id = @bobinaId
     ORDER BY bc.id DESC;
   `;
@@ -98,7 +98,7 @@ export async function listarColadasParaSeleccionarService(
       bc.colada,
       bc.fabricante_id,
       bc.creado
-    FROM Bobina_Coladas bc
+    FROM Tubos_DB_Bobina_Coladas bc
     WHERE bc.fabricante_id = @fabricanteId
     ORDER BY bc.colada ASC;
   `;

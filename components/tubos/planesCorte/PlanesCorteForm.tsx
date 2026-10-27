@@ -656,8 +656,8 @@ export default function PlanCorteForm({
           {isSubmitting
             ? "Guardando..."
             : isEditing
-              ? "Actualizar Plan de Corte"
-              : "Crear Plan de Corte"}
+            ? "Actualizar Plan de Corte"
+            : "Crear Plan de Corte"}
         </Button>
       </Box>
     </Box>

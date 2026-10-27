@@ -110,7 +110,7 @@ export async function listarSalidasPaqsService(
             spt.creado,
             ROW_NUMBER() OVER (ORDER BY ${safeOrderCol} ${orderDir}) AS RowNum,
             COUNT(*) OVER() AS TotalCount
-        FROM Tubos_DB_Salidas_Paqs_Tubos AS spt
+        FROM Tubos_DB_Salidas_Paqs AS spt
         LEFT JOIN Tubos_DB_Tubos AS t ON spt.tubo_id = t.id
         LEFT JOIN Operarios AS o ON spt.operario_id = o.id
         ${whereSql}
@@ -209,7 +209,7 @@ export async function listarFiltrosSalidasPaquetesService(
   }
   const qCalidades = `
     SELECT DISTINCT tc.id, tc.nombre as calidad
-    FROM Tubos_DB_Salidas_Paqs_Tubos sp
+    FROM Tubos_DB_Salidas_Paqs sp
     INNER JOIN Tubos_DB_Tubos t ON sp.tubo_id = t.id
     INNER JOIN Tubos_DB_Tipos_Calidad tc ON t.calidad_id = tc.id
     ${whereCalidades}
@@ -232,7 +232,7 @@ export async function listarFiltrosSalidasPaquetesService(
   }
   const qOperarios = `
     SELECT DISTINCT o.id, o.nombre + ' ' + o.apellido1 + ' ' + o.apellido2 AS nombre_completo
-    FROM Tubos_DB_Salidas_Paqs_Tubos sp
+    FROM Tubos_DB_Salidas_Paqs sp
     INNER JOIN Operarios o ON sp.operario_id = o.id
     LEFT JOIN Tubos_DB_Tubos t ON sp.tubo_id = t.id
     ${whereOperarios}
@@ -253,7 +253,7 @@ export async function listarFiltrosSalidasPaquetesService(
     SELECT 
       MIN(sp.creado) AS minFecha, 
       MAX(sp.creado) AS maxFecha
-    FROM Tubos_DB_Salidas_Paqs_Tubos sp
+    FROM Tubos_DB_Salidas_Paqs sp
     LEFT JOIN Tubos_DB_Tubos t ON sp.tubo_id = t.id
     ${whereFechas};
   `;

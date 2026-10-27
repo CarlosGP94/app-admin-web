@@ -347,9 +347,9 @@ export async function listarFiltrosProdTubosService(
   }
   const qCalidades = `
     SELECT DISTINCT tc.id, tc.nombre as calidad
-    FROM Prod_Tubos pt
-    INNER JOIN Tubos t ON pt.tubo_id = t.id
-    INNER JOIN Tipos_Calidad tc ON t.calidad_id = tc.id
+    FROM Tubos_DB_Prod_Tubos pt
+    INNER JOIN Tubos_DB_Tubos t ON pt.tubo_id = t.id
+    INNER JOIN Tubos_DB_Tipos_Calidad tc ON t.calidad_id = tc.id
     ${whereCalidades}
     ORDER BY tc.nombre ASC; 
   `;
@@ -370,7 +370,7 @@ export async function listarFiltrosProdTubosService(
   }
   if (maquinaId) {
     whereTurnos +=
-      " AND EXISTS (SELECT 1 FROM Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
+      " AND EXISTS (SELECT 1 FROM Tubos_DB_Rel_Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
     reqTurnos.input("maquinaId", maquinaId);
   }
   if (fInicioParam) {
@@ -383,9 +383,9 @@ export async function listarFiltrosProdTubosService(
   }
   const qTurnos = `
     SELECT DISTINCT tu.id, tu.prefijo
-    FROM Prod_Tubos pt
+    FROM Tubos_DB_Prod_Tubos pt
     INNER JOIN Turnos tu ON pt.turno_id = tu.id
-    LEFT JOIN Tubos t ON pt.tubo_id = t.id
+    LEFT JOIN Tubos_DB_Tubos t ON pt.tubo_id = t.id
     ${whereTurnos}
     ORDER BY tu.prefijo ASC;
   `;
@@ -418,9 +418,9 @@ export async function listarFiltrosProdTubosService(
   }
   const qMaquinas = `
     SELECT DISTINCT m.id, m.maquina
-    FROM Prod_Tubos pt
-    INNER JOIN Tubos t ON pt.tubo_id = t.id
-    INNER JOIN Tubos_Maquinas tm ON t.id = tm.tubo_id
+    FROM Tubos_DB_Prod_Tubos pt
+    INNER JOIN Tubos_DB_Tubos t ON pt.tubo_id = t.id
+    INNER JOIN Tubos_DB_Rel_Tubos_Maquinas tm ON t.id = tm.tubo_id
     INNER JOIN Maquinas m ON tm.maquina_id = m.id
     ${whereMaquinas}
     ORDER BY m.maquina ASC;
@@ -442,7 +442,7 @@ export async function listarFiltrosProdTubosService(
   }
   if (maquinaId) {
     whereOperarios +=
-      " AND EXISTS (SELECT 1 FROM Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
+      " AND EXISTS (SELECT 1 FROM Tubos_DB_Rel_Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
     reqOperarios.input("maquinaId", maquinaId);
   }
   if (fInicioParam) {
@@ -455,9 +455,9 @@ export async function listarFiltrosProdTubosService(
   }
   const qOperarios = `
     SELECT DISTINCT o.id, o.nombre + ' ' + o.apellido1 + ' ' + o.apellido2 AS nombre_completo
-    FROM Prod_Tubos pt
+    FROM Tubos_DB_Prod_Tubos pt
     INNER JOIN Operarios o ON pt.operario_id = o.id
-    LEFT JOIN Tubos t ON pt.tubo_id = t.id
+    LEFT JOIN Tubos_DB_Tubos t ON pt.tubo_id = t.id
     ${whereOperarios}
     ORDER BY nombre_completo ASC;
   `;
@@ -478,7 +478,7 @@ export async function listarFiltrosProdTubosService(
   }
   if (maquinaId) {
     whereEspesores +=
-      " AND EXISTS (SELECT 1 FROM Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
+      " AND EXISTS (SELECT 1 FROM Tubos_DB_Rel_Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
     reqEspesores.input("maquinaId", maquinaId);
   }
   if (fInicioParam) {
@@ -491,8 +491,8 @@ export async function listarFiltrosProdTubosService(
   }
   const qEspesores = `
     SELECT DISTINCT t.espesor
-    FROM Prod_Tubos pt
-    INNER JOIN Tubos t ON pt.tubo_id = t.id
+    FROM Tubos_DB_Prod_Tubos pt
+    INNER JOIN Tubos_DB_Tubos t ON pt.tubo_id = t.id
     ${whereEspesores}
     ORDER BY t.espesor ASC;
   `;
@@ -517,7 +517,7 @@ export async function listarFiltrosProdTubosService(
   }
   if (maquinaId) {
     whereEstructural +=
-      " AND EXISTS (SELECT 1 FROM Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
+      " AND EXISTS (SELECT 1 FROM Tubos_DB_Rel_Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
     reqEstructural.input("maquinaId", maquinaId);
   }
   if (fInicioParam) {
@@ -534,8 +534,8 @@ export async function listarFiltrosProdTubosService(
         WHEN t.tipo_id <> 3 AND t.tipo_id <> 4 AND t.espesor > 2 THEN 'SI'
         ELSE 'NO'
       END AS es_estructural
-    FROM Prod_Tubos pt
-    INNER JOIN Tubos t ON pt.tubo_id = t.id
+    FROM Tubos_DB_Prod_Tubos pt
+    INNER JOIN Tubos_DB_Tubos t ON pt.tubo_id = t.id
     ${whereEstructural};
   `;
 
@@ -559,15 +559,15 @@ export async function listarFiltrosProdTubosService(
   }
   if (maquinaId) {
     whereFechas +=
-      " AND EXISTS (SELECT 1 FROM Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
+      " AND EXISTS (SELECT 1 FROM Tubos_DB_Rel_Tubos_Maquinas tm WHERE tm.tubo_id = t.id AND tm.maquina_id = @maquinaId)";
     reqFechas.input("maquinaId", maquinaId);
   }
   const qFechas = `
     SELECT 
       MIN(pt.creado) AS minFecha, 
       MAX(pt.creado) AS maxFecha
-    FROM Prod_Tubos pt
-    LEFT JOIN Tubos t ON pt.tubo_id = t.id
+    FROM Tubos_DB_Prod_Tubos pt
+    LEFT JOIN Tubos_DB_Tubos t ON pt.tubo_id = t.id
     ${whereFechas};
   `;
 
@@ -656,7 +656,7 @@ export async function crearProduccionService(
 
     const qValidarTubo = `
       SELECT id, art_concepto, activo 
-      FROM Tubos 
+      FROM Tubos_DB_Tubos 
       WHERE id = @tubo_id;
     `;
     const resValidar = await reqValidar.query(qValidarTubo);
@@ -834,12 +834,12 @@ export async function obtenerProduccionTuboPorIdService(
       -- Datos del Lote de Tubo
       l.lote AS lote_nombre
 
-    FROM Prod_Tubos p
+    FROM Tubos_DB_Prod_Tubos p
     LEFT JOIN Operarios o ON p.operario_id = o.id
     LEFT JOIN Turnos tr ON p.turno_id = tr.id
     LEFT JOIN Maquinas m ON p.maquina_id = m.id
-    LEFT JOIN Tubos t ON p.tubo_id = t.id
-    LEFT JOIN Lotes_Tubos l ON p.lote_tubo_id = l.id
+    LEFT JOIN Tubos_DB_Tubos t ON p.tubo_id = t.id
+    LEFT JOIN Tubos_DB_Lotes_Tubos l ON p.lote_tubo_id = l.id
     WHERE p.id = @id;
   `;
 
@@ -943,7 +943,7 @@ async function actualizarStockTubo(
 
   const resTubo = await reqGetTubo.query(`
     SELECT unidades, num_por_paq, peso_unitario 
-    FROM Tubos 
+    FROM Tubos_DB_Tubos 
     WHERE id = @tubo_id;
   `);
 
@@ -975,7 +975,7 @@ async function actualizarStockTubo(
   reqUpdateTubo.input("peso_total", nuevoPesoTotal);
 
   await reqUpdateTubo.query(`
-    UPDATE Tubos
+    UPDATE Tubos_DB_Tubos
     SET 
       unidades = @unidades,
       num_paquetes = @num_paquetes,
@@ -1001,7 +1001,7 @@ async function obtenerOCrearLoteId(
   // 1. Buscar lote existente por día, mes, año, máquina y turno
   const resLote = await reqLote.query(`
     SELECT id 
-    FROM Lotes_Tubos 
+    FROM Tubos_DB_Lotes_Tubos 
     WHERE CAST(creado AS DATE) = CAST(@fecha AS DATE)
       AND maquina_id = @maquina_id
       AND turno_id = @turno_id;
@@ -1046,7 +1046,7 @@ async function obtenerOCrearLoteId(
   reqInsertLote.input("turno_id", turnoId);
 
   const resInsert = await reqInsertLote.query(`
-    INSERT INTO Lotes_Tubos (lote, creado, maquina_id, turno_id)
+    INSERT INTO Tubos_DB_Lotes_Tubos (lote, creado, maquina_id, turno_id)
     OUTPUT INSERTED.id
     VALUES (@lote, @creado, @maquina_id, @turno_id);
   `);
@@ -1076,7 +1076,7 @@ export async function actualizarProduccionTuboService(
         maquina_id,
         creado,
         lote_tubo_id
-      FROM Prod_Tubos 
+      FROM Tubos_DB_Prod_Tubos 
       WHERE id = @id;
     `);
 
@@ -1150,7 +1150,7 @@ export async function actualizarProduccionTuboService(
     reqUpdateProd.input("creado", fechaNueva);
 
     const queryUpdateProd = `
-      UPDATE Prod_Tubos
+      UPDATE Tubos_DB_Prod_Tubos
       SET 
         turno_id = @turno_id,
         tubo_id = @tubo_id,
@@ -1176,7 +1176,7 @@ export async function actualizarProduccionTuboService(
       reqUpdateControl.input("creado", fechaNueva);
 
       const queryUpdateControl = `
-        UPDATE Control_Dimensional
+        UPDATE Tubos_DB_Control_Dimensional
         SET 
           tubo_id = @tubo_id,
           maquina_id = @maquina_id,
@@ -1376,28 +1376,28 @@ export async function obtenerProdLotesTubosConFlejesService(
       b_col_aud.id AS auditoria_colada_id,
       b_col_aud.colada AS auditoria_colada_nombre
 
-    FROM Prod_Tubos pt
-    LEFT JOIN Lotes_Tubos lt ON pt.lote_tubo_id = lt.id
+    FROM Tubos_DB_Prod_Tubos pt
+    LEFT JOIN Tubos_DB_Lotes_Tubos lt ON pt.lote_tubo_id = lt.id
     LEFT JOIN Maquinas m ON lt.maquina_id = m.id
 
     -- CRUCE SOLICITADO: lft.tubo_id = pt.tubo_id AND lft.lote_tubo_id = pt.lote_tubo_id
-    LEFT JOIN Tubos t ON pt.tubo_id = t.id
+    LEFT JOIN Tubos_DB_Tubos t ON pt.tubo_id = t.id
 
-    LEFT JOIN lotes_flejes_Tubos lft 
+    LEFT JOIN Tubos_DB_Rel_Lotes_Flejes_Tubos lft 
       ON lft.tubo_id = pt.tubo_id 
      AND lft.lote_tubo_id = pt.lote_tubo_id
     
-    LEFT JOIN Lotes_Flejes lf ON lft.lote_fleje_id = lf.id
+    LEFT JOIN Tubos_DB_Lotes_Flejes lf ON lft.lote_fleje_id = lf.id
     
     -- Relaciones para obtener Bobina y Colada Real
-    LEFT JOIN Bobinas_Cortadas bc ON lf.bobina_cortada_id = bc.id
-    LEFT JOIN Bobinas b_real ON bc.bobina_id = b_real.id
-    LEFT JOIN Bobina_Coladas col_real ON lf.colada_id = col_real.id
+    LEFT JOIN Tubos_DB_Bobinas_Cortadas bc ON lf.bobina_cortada_id = bc.id
+    LEFT JOIN Tubos_DB_Bobinas b_real ON bc.bobina_id = b_real.id
+    LEFT JOIN Tubos_DB_Bobina_Coladas col_real ON lf.colada_id = col_real.id
 
     -- Relaciones para obtener Auditoría (si existe)
-    LEFT JOIN Auditoria_Bobinas ab ON lf.auditoria_id = ab.id
-    LEFT JOIN Bobinas_Cortadas b_aud ON ab.bobina_id = b_aud.id
-    LEFT JOIN Bobina_Coladas b_col_aud ON ab.colada_id = b_col_aud.id
+    LEFT JOIN Tubos_DB_Auditoria_Bobinas ab ON lf.auditoria_id = ab.id
+    LEFT JOIN Tubos_DB_Bobinas_Cortadas b_aud ON ab.bobina_id = b_aud.id
+    LEFT JOIN Tubos_DB_Bobina_Coladas b_col_aud ON ab.colada_id = b_col_aud.id
 
     WHERE pt.id IN (${idParams.join(", ")})
     ORDER BY lt.creado DESC, lf.id DESC;
@@ -1534,18 +1534,18 @@ export async function generarExcelProdTubosService(
       tr.salida AS turno_salida,
       lft.num_paq_inicial,
       lft.num_paq_final
-    FROM Prod_Tubos pt
+    FROM Tubos_DB_Prod_Tubos pt
     LEFT JOIN Maquinas m ON m.id = pt.maquina_id
     LEFT JOIN Turnos tr ON tr.id = pt.turno_id
     LEFT JOIN Operarios o ON o.id = pt.operario_id
-    LEFT JOIN Lotes_Tubos lt ON lt.id = pt.lote_tubo_id
-    LEFT JOIN Tubos t ON t.id = pt.tubo_id
-    LEFT JOIN Lotes_Flejes_Tubos lft ON lft.tubo_id = pt.tubo_id AND lft.lote_tubo_id = pt.lote_tubo_id
-    LEFT JOIN Lotes_Flejes lf ON lf.id = lft.lote_fleje_id
-    LEFT JOIN Auditoria_Bobinas ab ON ab.id = lf.auditoria_id
-    LEFT JOIN Bobina_Coladas bc ON bc.id = ab.colada_id
-    LEFT JOIN Bobinas b ON b.id = ab.bobina_id
-    LEFT JOIN Fabricantes f ON f.id = b.fabricante_id
+    LEFT JOIN Tubos_DB_Lotes_Tubos lt ON lt.id = pt.lote_tubo_id
+    LEFT JOIN Tubos_DB_Tubos t ON t.id = pt.tubo_id
+    LEFT JOIN Tubos_DB_Rel_Lotes_Flejes_Tubos lft ON lft.tubo_id = pt.tubo_id AND lft.lote_tubo_id = pt.lote_tubo_id
+    LEFT JOIN Tubos_DB_Lotes_Flejes lf ON lf.id = lft.lote_fleje_id
+    LEFT JOIN Tubos_DB_Auditoria_Bobinas ab ON ab.id = lf.auditoria_id
+    LEFT JOIN Tubos_DB_Bobina_Coladas bc ON bc.id = ab.colada_id
+    LEFT JOIN Tubos_DB_Bobinas b ON b.id = ab.bobina_id
+    LEFT JOIN Tubos_DB_Bobinas_Fabricantes f ON f.id = b.fabricante_id
     ${whereSQL}
     ORDER BY pt.creado DESC, lf.id DESC;
   `;
@@ -1553,13 +1553,6 @@ export async function generarExcelProdTubosService(
   const resultado = await req.query(query);
 
   const rows = resultado.recordset;
-
-  // Si no hay datos devueltos para el filtro
-  if (!rows || rows.length === 0) {
-    throw new Error(
-      "No se encontraron registros de producción para los filtros especificados."
-    );
-  }
 
   // ==========================================
   // 4. VALIDACIÓN DE INCONSISTENCIA DE COLADAS

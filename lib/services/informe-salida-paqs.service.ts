@@ -7,7 +7,6 @@ import { getConnection } from "@/lib/db";
 export interface SalidaPaqueteReportRow {
   tubo: string;
   num_paqs: number;
-  resto: number;
   fecha: string;
   creado: Date | string;
 }
@@ -48,7 +47,7 @@ function formatDate(dateVal: Date | string | null | undefined): string {
 async function obtenerDatosInforme(
   pool: ConnectionPool,
   fechaInicio?: string,
-  fechaFin?: string,
+  fechaFin?: string
 ): Promise<SalidaPaqueteReportRow[]> {
   const request = pool.request();
   const whereClauses: string[] = [];
@@ -70,13 +69,12 @@ async function obtenerDatosInforme(
     SELECT 
       ISNULL(t.art_concepto, 'Desconocido') AS tubo,
       ISNULL(sp.num_paqs, 0) AS num_paqs,
-      ISNULL(sp.resto, 0) AS resto,
       sp.creado AS creado,
       CONVERT(VARCHAR, sp.creado, 103) AS fecha
-    FROM Salidas_Paqs_Tubos sp
-    LEFT JOIN Tubos t ON sp.tubo_id = t.id
-    LEFT JOIN Tipos_Calidad tc ON t.calidad_id = tc.id
-    LEFT JOIN Tipos_Tubos tt ON t.tipo_id = tt.id
+    FROM Tubos_DB_Salidas_Paqs sp
+    LEFT JOIN Tubos_DB_Tubos t ON sp.tubo_id = t.id
+    LEFT JOIN Tubos_DB_Tipos_Calidad tc ON t.calidad_id = tc.id
+    LEFT JOIN Tubos_DB_Tipos_Tubos tt ON t.tipo_id = tt.id
     ${whereSql}
     ORDER BY 
       sp.creado DESC,
@@ -99,16 +97,12 @@ async function obtenerDatosInforme(
 function generarHtmlInforme(
   reportRows: SalidaPaqueteReportRow[],
   fechaInicio?: string,
-  fechaFin?: string,
+  fechaFin?: string
 ): string {
   // 1. Totales generales
   const totalPaquetes = reportRows.reduce(
     (acc, row) => acc + Number(row.num_paqs || 0),
-    0,
-  );
-  const totalResto = reportRows.reduce(
-    (acc, row) => acc + Number(row.resto || 0),
-    0,
+    0
   );
 
   // 2. Paginar filas
@@ -151,16 +145,17 @@ function generarHtmlInforme(
       const rowsHtml = pageRows.length
         ? pageRows
             .map((row) => {
-              const paqsRestoStr =
-                row.resto > 0
-                  ? `${row.num_paqs} / ${row.resto}`
-                  : `${row.num_paqs}`;
+              const paqsRestoStr = `${row.num_paqs}`;
 
               return `
                 <tr>
-                  <td class="text-left">${escapeHtml(row.tubo.toLocaleUpperCase())}</td>
+                  <td class="text-left">${escapeHtml(
+                    row.tubo.toLocaleUpperCase()
+                  )}</td>
                   <td class="text-center">${escapeHtml(paqsRestoStr)}</td>
-                  <td class="text-right">${escapeHtml(row.fecha || formatDate(row.creado))}</td>
+                  <td class="text-right">${escapeHtml(
+                    row.fecha || formatDate(row.creado)
+                  )}</td>
                 </tr>`;
             })
             .join("")
@@ -199,7 +194,8 @@ function generarHtmlInforme(
                   <tfoot>
                     <tr class="grand-total">
                       <td class="text-left" style="width: 50%">Total general</td>
-                      <td class="text-center" style="width: 25%">${totalPaquetes}${totalResto > 0 ? ` / ${totalResto}` : ""}</td>
+                      <td class="text-center" style="width: 25%">${totalPaquetes}
+                </td>
                       <td class="text-right" style="width: 25%">-</td>
                     </tr>
                   </tfoot>
@@ -283,12 +279,12 @@ export async function informeSalidaPaquetes({
   fechaFin,
   path: destinationPath,
 }: InformeSalidaPaquetesOptions = {}): Promise<Buffer> {
-  const pool = await getConnection("tubos");
+  const pool = await getConnection();
   const reportRows = await obtenerDatosInforme(pool, fechaInicio, fechaFin);
 
   if (reportRows.length === 0) {
     throw new Error(
-      "No se encontraron salidas de paquetes en el rango de fechas indicado.",
+      "No se encontraron salidas de paquetes en el rango de fechas indicado."
     );
   }
 
