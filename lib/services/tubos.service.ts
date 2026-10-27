@@ -227,7 +227,7 @@ export async function listarFiltrosTubosService(
   const qCalidades = `
     SELECT DISTINCT tc.id, tc.nombre as calidad
     FROM Tubos_DB_Tubos t
-    INNER JOIN Tipos_Calidad tc ON t.calidad_id = tc.id
+    INNER JOIN Tubos_DB_Tipos_Calidad tc ON t.calidad_id = tc.id
     ${whereCalidades}
     ORDER BY tc.nombre ASC;
   `;
@@ -744,8 +744,8 @@ export async function listarTubosSelectorService(
         t.id,
         t.medida
     FROM Tubos_DB_Tubos t
-    INNER JOIN Tipos_Calidad tc ON t.calidad_id = tc.id
-    INNER JOIN Tipos_Tubos tt ON t.tipo_id = tt.id
+    INNER JOIN Tubos_DB_Tipos_Calidad tc ON t.calidad_id = tc.id
+    INNER JOIN Tubos_DB_Tipos_Tubos tt ON t.tipo_id = tt.id
     ${whereClause}
     ORDER BY 
         tc.nombre ASC,

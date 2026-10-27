@@ -66,7 +66,7 @@ function formatPaquetes(val: number | null | undefined): number {
  */
 async function obtenerDatosInforme(
   pool: ConnectionPool,
-  ids?: number[],
+  ids?: number[]
 ): Promise<TuboReportRow[]> {
   const request = pool.request();
   const whereClauses: string[] = ["t.activo = 1", "t.unidades > 0"];
@@ -88,9 +88,9 @@ async function obtenerDatosInforme(
       ISNULL(t.unidades, 0) AS unidades,
       ISNULL(t.num_paquetes, 0) AS paquetes,
       ISNULL(t.peso_total, 0) AS peso
-    FROM Tubos t
-    LEFT JOIN Tipos_Calidad tc ON t.calidad_id = tc.id
-    LEFT JOIN Tipos_Tubos tt ON t.tipo_id = tt.id
+    FROM Tubos_DB_Tubos t
+    LEFT JOIN Tubos_DB_Tipos_Calidad tc ON t.calidad_id = tc.id
+    LEFT JOIN Tubos_DB_Tipos_Tubos tt ON t.tipo_id = tt.id
     WHERE ${whereClauses.join(" AND ")}
     ORDER BY 
       tc.nombre ASC,
@@ -139,15 +139,15 @@ function generarHtmlInforme(reportRows: TuboReportRow[]): string {
 
       const subtotalUnidades = group.rows.reduce(
         (acc, row) => acc + Number(row.unidades || 0),
-        0,
+        0
       );
       const subtotalPaquetes = group.rows.reduce(
         (acc, row) => acc + Number(row.paquetes || 0),
-        0,
+        0
       );
       const subtotalPeso = group.rows.reduce(
         (acc, row) => acc + Number(row.peso || 0),
-        0,
+        0
       );
 
       safeRows.push({
@@ -169,15 +169,15 @@ function generarHtmlInforme(reportRows: TuboReportRow[]): string {
   // 2. Totales generales
   const totalUnidades = reportRows.reduce(
     (acc, row) => acc + Number(row.unidades || 0),
-    0,
+    0
   );
   const totalPaquetes = reportRows.reduce(
     (acc, row) => acc + Number(row.paquetes || 0),
-    0,
+    0
   );
   const totalPeso = reportRows.reduce(
     (acc, row) => acc + Number(row.peso || 0),
-    0,
+    0
   );
 
   // 3. Paginar controlando el peso de cada elemento
@@ -238,10 +238,18 @@ function generarHtmlInforme(reportRows: TuboReportRow[]): string {
                 <td colspan="4" style="height: 4px; padding: 0; border: none;"></td>
               </tr>
               <tr class="subtotal-row" style="font-weight: 700; background: #f4f4f4; color: #000080; font-size: 14px;">
-                <td class="text-left" style="padding: 8px 0;">Subtotal de ${escapeHtml(row.calidad)}</td>
-                <td class="text-right" style="padding: 8px 0;">${row.unidades}</td>
-                <td class="text-right" style="padding: 8px 0;">${formatPaquetes(row.paquetes)}</td>
-                <td class="text-right" style="padding: 8px 0;">${formatPeso(row.peso)}</td>
+                <td class="text-left" style="padding: 8px 0;">Subtotal de ${escapeHtml(
+                  row.calidad
+                )}</td>
+                <td class="text-right" style="padding: 8px 0;">${
+                  row.unidades
+                }</td>
+                <td class="text-right" style="padding: 8px 0;">${formatPaquetes(
+                  row.paquetes
+                )}</td>
+                <td class="text-right" style="padding: 8px 0;">${formatPeso(
+                  row.peso
+                )}</td>
               </tr>
               <tr class="subtotal-spacer">
                 <td colspan="4" style="height: 6px; padding: 0; border: none;"></td>
@@ -250,7 +258,9 @@ function generarHtmlInforme(reportRows: TuboReportRow[]): string {
 
           return `
             <tr>
-              <td class="text-left">${escapeHtml(row.medida?.toUpperCase())}</td>
+              <td class="text-left">${escapeHtml(
+                row.medida?.toUpperCase()
+              )}</td>
               <td class="text-right">${row.unidades}</td>
               <td class="text-right">${formatPaquetes(row.paquetes)}</td>
               <td class="text-right">${formatPeso(row.peso)}</td>
@@ -293,8 +303,12 @@ function generarHtmlInforme(reportRows: TuboReportRow[]): string {
                     <tr class="grand-total">
                       <td class="text-left" style="width: 45%">Total general</td>
                       <td class="text-right" style="width: 18%">${totalUnidades}</td>
-                      <td class="text-right" style="width: 18%">${formatPaquetes(totalPaquetes)}</td>
-                      <td class="text-right" style="width: 19%">${formatPeso(totalPeso)}</td>
+                      <td class="text-right" style="width: 18%">${formatPaquetes(
+                        totalPaquetes
+                      )}</td>
+                      <td class="text-right" style="width: 19%">${formatPeso(
+                        totalPeso
+                      )}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -376,12 +390,12 @@ export async function informeTubos({
   path: destinationPath,
   ids,
 }: InformeTubosOptions = {}): Promise<Buffer> {
-  const pool = await getConnection("tubos");
+  const pool = await getConnection();
   const reportRows = await obtenerDatosInforme(pool, ids);
 
   if (reportRows.length === 0) {
     throw new Error(
-      "No se encontraron tubos activos con unidades disponibles en el inventario.",
+      "No se encontraron tubos activos con unidades disponibles en el inventario."
     );
   }
 

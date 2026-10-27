@@ -46,7 +46,7 @@ function formatPeso(pesoInKg: number | null | undefined): string {
  */
 async function obtenerDatosInforme(
   pool: ConnectionPool,
-  ids?: number[],
+  ids?: number[]
 ): Promise<FlejeReportRow[]> {
   const request = pool.request();
   const whereClauses: string[] = ["f.activo = 1", "f.unidades > 0"];
@@ -67,8 +67,8 @@ async function obtenerDatosInforme(
       ISNULL(f.concepto, '-') AS concepto,
       ISNULL(f.unidades, 0) AS unidades,
       f.peso_total AS peso
-    FROM Flejes f
-    LEFT JOIN Tipos_Calidad tc ON f.calidad_id = tc.id
+    FROM Tubos_DB_Flejes f
+    LEFT JOIN Tubos_DB_Tipos_Calidad tc ON f.calidad_id = tc.id
     WHERE ${whereClauses.join(" AND ")}
     ORDER BY 
       tc.nombre ASC,
@@ -115,11 +115,11 @@ function generarHtmlInforme(reportRows: FlejeReportRow[]): string {
 
       const subtotalUnidades = group.rows.reduce(
         (acc, row) => acc + Number(row.unidades || 0),
-        0,
+        0
       );
       const subtotalPeso = group.rows.reduce(
         (acc, row) => acc + Number(row.peso || 0),
-        0,
+        0
       );
 
       safeRows.push({
@@ -140,11 +140,11 @@ function generarHtmlInforme(reportRows: FlejeReportRow[]): string {
   // 2. Totales generales
   const totalUnidades = reportRows.reduce(
     (acc, row) => acc + Number(row.unidades || 0),
-    0,
+    0
   );
   const totalPeso = reportRows.reduce(
     (acc, row) => acc + Number(row.peso || 0),
-    0,
+    0
   );
 
   // 3. Paginar controlando el peso de cada elemento
@@ -205,9 +205,15 @@ function generarHtmlInforme(reportRows: FlejeReportRow[]): string {
                 <td colspan="3" style="height: 4px; padding: 0; border: none;"></td>
               </tr>
               <tr class="subtotal-row" style="font-weight: 700; background: #f4f4f4; color: #000080; font-size: 14px;">
-                <td class="text-left" style="padding: 8px 0;">Subtotal de ${escapeHtml(row.calidad)}</td>
-                <td class="text-right" style="padding: 8px 0;">${row.unidades}</td>
-                <td class="text-right" style="padding: 8px 0;">${formatPeso(row.peso)}</td>
+                <td class="text-left" style="padding: 8px 0;">Subtotal de ${escapeHtml(
+                  row.calidad
+                )}</td>
+                <td class="text-right" style="padding: 8px 0;">${
+                  row.unidades
+                }</td>
+                <td class="text-right" style="padding: 8px 0;">${formatPeso(
+                  row.peso
+                )}</td>
               </tr>
               <tr class="subtotal-spacer">
                 <td colspan="3" style="height: 6px; padding: 0; border: none;"></td>
@@ -216,7 +222,9 @@ function generarHtmlInforme(reportRows: FlejeReportRow[]): string {
 
           return `
             <tr>
-              <td class="text-left">${escapeHtml(row.concepto?.toUpperCase())}</td>
+              <td class="text-left">${escapeHtml(
+                row.concepto?.toUpperCase()
+              )}</td>
               <td class="text-right">${row.unidades}</td>
               <td class="text-right">${formatPeso(row.peso)}</td>
             </tr>`;
@@ -257,7 +265,9 @@ function generarHtmlInforme(reportRows: FlejeReportRow[]): string {
                     <tr class="grand-total">
                       <td class="text-left" style="width: 50%">Total general</td>
                       <td class="text-right" style="width: 25%">${totalUnidades}</td>
-                      <td class="text-right" style="width: 25%">${formatPeso(totalPeso)}</td>
+                      <td class="text-right" style="width: 25%">${formatPeso(
+                        totalPeso
+                      )}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -340,12 +350,12 @@ export async function informeFlejes({
   ids,
 }: InformeFlejesOptions = {}): Promise<Buffer> {
   // Asegúrate de cambiar el identificador de conexión si tu BD de flejes es otra (ej. "flejes" o "default")
-  const pool = await getConnection("tubos");
+  const pool = await getConnection();
   const reportRows = await obtenerDatosInforme(pool, ids);
 
   if (reportRows.length === 0) {
     throw new Error(
-      "No se encontraron flejes activos con unidades disponibles en el inventario.",
+      "No se encontraron flejes activos con unidades disponibles en el inventario."
     );
   }
 

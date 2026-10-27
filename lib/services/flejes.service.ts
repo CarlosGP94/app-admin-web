@@ -510,7 +510,7 @@ export async function eliminarFlejeService(
     reqDeleteRelaciones.input("fleje_id", Int, id);
 
     const queryDeleteRelaciones = `
-      DELETE FROM Tubos_Maquinas 
+      DELETE FROM Tubos_DB_Rel_Tubos_Maquinas 
       WHERE fleje_id = @fleje_id;
     `;
 

@@ -45,7 +45,7 @@ function formatPeso(pesoInTn: number | null | undefined): string {
  */
 async function obtenerDatosInforme(
   pool: ConnectionPool,
-  ids?: number[],
+  ids?: number[]
 ): Promise<BobinaReportRow[]> {
   const request = pool.request();
   const whereClauses: string[] = ["b.activa = 1", "b.unidades > 0"];
@@ -66,8 +66,8 @@ async function obtenerDatosInforme(
       ISNULL(b.concepto, '-') AS concepto,
       ISNULL(b.unidades, 0) AS unidades,
       (ISNULL(b.unidades, 0) * ISNULL(b.peso_medio, 0)) AS peso
-    FROM Bobinas b
-    LEFT JOIN Tipos_Calidad tc ON b.calidad_id = tc.id
+    FROM Tubos_DB_Bobinas b
+    LEFT JOIN Tubos_DB_Tipos_Calidad tc ON b.calidad_id = tc.id
     WHERE ${whereClauses.join(" AND ")}
     ORDER BY 
       tc.nombre ASC,
@@ -112,11 +112,11 @@ function generarHtmlInforme(reportRows: BobinaReportRow[]): string {
 
       const subtotalUnidades = group.rows.reduce(
         (acc, row) => acc + Number(row.unidades || 0),
-        0,
+        0
       );
       const subtotalPeso = group.rows.reduce(
         (acc, row) => acc + Number(row.peso || 0),
-        0,
+        0
       );
 
       safeRows.push({
@@ -137,11 +137,11 @@ function generarHtmlInforme(reportRows: BobinaReportRow[]): string {
   // 2. Totales generales
   const totalUnidades = reportRows.reduce(
     (acc, row) => acc + Number(row.unidades || 0),
-    0,
+    0
   );
   const totalPeso = reportRows.reduce(
     (acc, row) => acc + Number(row.peso || 0),
-    0,
+    0
   );
 
   // 3. Paginar controlando el peso de cada elemento
@@ -202,9 +202,15 @@ function generarHtmlInforme(reportRows: BobinaReportRow[]): string {
                 <td colspan="3" style="height: 4px; padding: 0; border: none;"></td>
               </tr>
               <tr class="subtotal-row" style="font-weight: 700; background: #f4f4f4; color: #000080; font-size: 14px;">
-                <td class="text-left" style="padding: 8px 0;">Subtotal de ${escapeHtml(row.calidad)}</td>
-                <td class="text-right" style="padding: 8px 0;">${row.unidades}</td>
-                <td class="text-right" style="padding: 8px 0;">${formatPeso(row.peso)}</td>
+                <td class="text-left" style="padding: 8px 0;">Subtotal de ${escapeHtml(
+                  row.calidad
+                )}</td>
+                <td class="text-right" style="padding: 8px 0;">${
+                  row.unidades
+                }</td>
+                <td class="text-right" style="padding: 8px 0;">${formatPeso(
+                  row.peso
+                )}</td>
               </tr>
               <tr class="subtotal-spacer">
                 <td colspan="3" style="height: 6px; padding: 0; border: none;"></td>
@@ -213,7 +219,9 @@ function generarHtmlInforme(reportRows: BobinaReportRow[]): string {
 
           return `
             <tr>
-              <td class="text-left">${escapeHtml(row.concepto?.toUpperCase())}</td>
+              <td class="text-left">${escapeHtml(
+                row.concepto?.toUpperCase()
+              )}</td>
               <td class="text-right">${row.unidades}</td>
               <td class="text-right">${formatPeso(row.peso)}</td>
             </tr>`;
@@ -254,7 +262,9 @@ function generarHtmlInforme(reportRows: BobinaReportRow[]): string {
                     <tr class="grand-total">
                       <td class="text-left" style="width: 50%">Total general</td>
                       <td class="text-right" style="width: 25%">${totalUnidades}</td>
-                      <td class="text-right" style="width: 25%">${formatPeso(totalPeso)}</td>
+                      <td class="text-right" style="width: 25%">${formatPeso(
+                        totalPeso
+                      )}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -337,12 +347,12 @@ export async function informeBobinas({
   ids,
 }: InformeBobinasOptions = {}): Promise<Buffer> {
   // Ajusta el nombre del pool de conexión si utilizas otra clave en tu helper (ej. "bobinas" o "tubos")
-  const pool = await getConnection("tubos");
+  const pool = await getConnection();
   const reportRows = await obtenerDatosInforme(pool, ids);
 
   if (reportRows.length === 0) {
     throw new Error(
-      "No se encontraron bobinas activas con unidades disponibles en el inventario.",
+      "No se encontraron bobinas activas con unidades disponibles en el inventario."
     );
   }
 

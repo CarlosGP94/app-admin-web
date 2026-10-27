@@ -201,8 +201,8 @@ export async function listarFiltrosBobinasService(
     "WHERE 1=1" + aplicarFiltrosComunes(reqFabricantes, "fabricante");
   const qFabricantes = `
     SELECT DISTINCT f.id, f.nombre
-    FROM Bobinas b
-    INNER JOIN Fabricantes f ON b.fabricante_id = f.id
+    FROM Tubos_DB_Bobinas b
+    INNER JOIN Tubos_DB_Bobinas_Fabricantes f ON b.fabricante_id = f.id
     ${whereFabricantes}
     ORDER BY f.nombre ASC;
   `;
@@ -212,8 +212,8 @@ export async function listarFiltrosBobinasService(
     "WHERE 1=1" + aplicarFiltrosComunes(reqCalidades, "calidad");
   const qCalidades = `
     SELECT DISTINCT tc.id, tc.nombre as calidad
-    FROM Bobinas b
-    INNER JOIN Tipos_Calidad tc ON b.calidad_id = tc.id
+    FROM Tubos_DB_Bobinas b
+    INNER JOIN Tubos_DB_Tipos_Calidad tc ON b.calidad_id = tc.id
     ${whereCalidades}
     ORDER BY tc.nombre ASC;
   `;
@@ -223,7 +223,7 @@ export async function listarFiltrosBobinasService(
     "WHERE 1=1" + aplicarFiltrosComunes(reqEspesores, "espesor");
   const qEspesores = `
     SELECT DISTINCT b.espesor
-    FROM Bobinas b
+    FROM Tubos_DB_Bobinas b
     ${whereEspesores}
     ORDER BY b.espesor ASC;
   `;
@@ -303,7 +303,7 @@ export async function crearBobinaService(
     reqBobina.input("unidades", data.unidades);
 
     const queryInsertBobina = `
-      INSERT INTO bobinas (
+      INSERT INTO Tubos_DB_Bobinas (
         fabricante_id,
         calidad_id,
         concepto,
@@ -418,7 +418,7 @@ export async function actualizarBobinaService(
   req.input("unidades", data.unidades);
 
   const query = `
-    UPDATE bobinas
+    UPDATE Tubos_DB_Bobinas
     SET 
       fabricante_id = @fabricante_id,
       calidad_id = @calidad_id,
@@ -502,7 +502,7 @@ export async function obtenerBobinaPorIdService(
       unidades,
       activa,
       creado
-    FROM bobinas
+    FROM Tubos_DB_Bobinas
     WHERE id = @id;
   `;
 
@@ -554,7 +554,7 @@ export async function eliminarBobinaService(
     reqDeleteBobina.input("id", id);
 
     const queryDeleteBobina = `
-      DELETE FROM Bobinas 
+      DELETE FROM Tubos_DB_Bobinas 
       WHERE id = @id;
     `;
 
