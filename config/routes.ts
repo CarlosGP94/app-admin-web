@@ -163,6 +163,13 @@ export const APP_ROUTES = {
       login: "/api/auth/login",
       me: "/api/auth/me",
     },
+    general: {
+      maquinas: "/api/general/maquinas",
+      turnos: "/api/general/turnos",
+      operarios: "/api/general/operarios",
+      regiones: "/api/general/regiones",
+    },
+    mallas: {},
     tubos: {
       maquinas: "/api/tubos/maquinas",
       tipos: "/api/tubos/tipos",
