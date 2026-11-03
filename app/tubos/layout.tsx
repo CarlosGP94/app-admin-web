@@ -11,6 +11,7 @@ import React, {
 import DashboardLayout from "@/components/commons/DashboardLayout";
 import { APP_ROUTES } from "@/config/routes";
 import { Bounce, ToastContainer } from "react-toastify";
+import { TIPO_PROD_TUBOS } from "@/config/constants";
 
 export interface CalidadOption {
   id: number;
@@ -69,14 +70,14 @@ interface TubosModuleContextType {
 }
 
 const TubosModuleContext = createContext<TubosModuleContextType | undefined>(
-  undefined,
+  undefined
 );
 
 export const useTubosModule = () => {
   const context = useContext(TubosModuleContext);
   if (!context) {
     throw new Error(
-      "useTubosModule debe ser utilizado dentro de TubosProvider",
+      "useTubosModule debe ser utilizado dentro de TubosProvider"
     );
   }
   return context;
@@ -119,30 +120,30 @@ export default function TubosProvider({
       try {
         const urlCalidades = new URL(
           APP_ROUTES.api.tubos.calidades,
-          window.location.origin,
+          window.location.origin
         );
         const urlTipos = new URL(
           APP_ROUTES.api.tubos.tipos,
-          window.location.origin,
+          window.location.origin
         );
         const urlMaquinas = new URL(
           APP_ROUTES.api.tubos.maquinas, // Asegúrate de tener la ruta en tu config de routes (o APP_ROUTES.api.maquinas)
-          window.location.origin,
+          window.location.origin
         );
 
         const urlFabricantes = new URL(
           APP_ROUTES.api.tubos.fabricantes, // Asegúrate de tener la ruta en tu config de routes (o APP_ROUTES.api.fabricantes)
-          window.location.origin,
+          window.location.origin
         );
 
         const urlTurnos = new URL(
           APP_ROUTES.api.tubos.turnos,
-          window.location.origin,
+          window.location.origin
         );
 
         const urlOperarios = new URL(
           APP_ROUTES.api.tubos.operarios,
-          window.location.origin,
+          window.location.origin
         );
 
         // Consultamos los tres catálogos en paralelo
@@ -251,7 +252,7 @@ export default function TubosProvider({
         theme="light"
         transition={Bounce}
       />
-      <DashboardLayout>{children}</DashboardLayout>
+      <DashboardLayout type={TIPO_PROD_TUBOS}>{children}</DashboardLayout>
     </TubosModuleContext.Provider>
   );
 }

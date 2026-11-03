@@ -59,7 +59,7 @@ export default function SelectorLineaPage() {
       descripcion:
         "Supervisión de electrosoldado, control de mallas standard y especiales, y estado de la maquinaria activa.",
       icono: <GridOnOutlined sx={{ fontSize: "3.2rem" }} />,
-      ruta: APP_ROUTES.mantenimiento.path,
+      ruta: APP_ROUTES.mallas.path,
     },
   ];
 
@@ -156,7 +156,10 @@ export default function SelectorLineaPage() {
               px: 3,
               py: 1,
               fontWeight: 600,
-              boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.35)}`,
+              boxShadow: `0 4px 14px ${alpha(
+                theme.palette.primary.main,
+                0.35
+              )}`,
               textTransform: "none",
             }}
           >
@@ -216,7 +219,10 @@ export default function SelectorLineaPage() {
                 "&:hover": {
                   transform: "translateY(-6px)",
                   borderColor: alpha(theme.palette.primary.main, 0.5),
-                  boxShadow: `0 12px 28px ${alpha(theme.palette.primary.main, 0.12)}`,
+                  boxShadow: `0 12px 28px ${alpha(
+                    theme.palette.primary.main,
+                    0.12
+                  )}`,
                   "& .icon-container": {
                     bgcolor: "primary.main",
                     color: "#ffffff",
@@ -305,7 +311,10 @@ export default function SelectorLineaPage() {
                     gap: 0.8,
                     mt: "auto",
                     pt: 2,
-                    borderTop: `1px stroke ${alpha(theme.palette.divider, 0.5)}`,
+                    borderTop: `1px stroke ${alpha(
+                      theme.palette.divider,
+                      0.5
+                    )}`,
                   }}
                 >
                   <Typography

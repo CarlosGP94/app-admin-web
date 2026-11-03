@@ -6,9 +6,11 @@ import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { APP_ROUTES } from "@/config/routes";
+import { TIPO_PROD_MALLAS, TIPO_PROD_TUBOS } from "@/config/constants";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  type: typeof TIPO_PROD_MALLAS | typeof TIPO_PROD_TUBOS;
 }
 
 // 🗺️ Diccionario de títulos mapeados por sus rutas
@@ -71,7 +73,10 @@ const ROUTE_TITLES: Record<string, string> = {
     APP_ROUTES.tubos.subRoutes.lotes_tubos_coladas.label,
 };
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({
+  children,
+  type,
+}: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const pathname = usePathname();
@@ -92,7 +97,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       if (routePattern.includes(":")) {
         // Convierte p.ej. '/tubos/planes-corte/:id/bobinas' en un Regex -> /^\/tubos\/planes-corte\/[^\/]+\/bobinas$/
         const regexPattern = new RegExp(
-          "^" + routePattern.replace(/:[a-zA-Z0-9_]+/g, "[^/]+") + "$",
+          "^" + routePattern.replace(/:[a-zA-Z0-9_]+/g, "[^/]+") + "$"
         );
 
         if (regexPattern.test(pathname)) {
@@ -119,7 +124,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       {/* 1. Menú de navegación lateral */}
       <Sidebar
-        title="Producción de Tubos"
+        type={type}
+        title={
+          type === TIPO_PROD_MALLAS
+            ? "Producción de Mallas"
+            : "Producción de Tubos"
+        }
         mobileOpen={mobileOpen}
         onClose={handleDrawerToggle}
       />

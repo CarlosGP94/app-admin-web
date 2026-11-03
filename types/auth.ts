@@ -15,7 +15,8 @@ export type PermissionCode =
   | "tubos:flejes:editar"
   | "tubos:tubos:ver"
   | "tubos:tubos:nuevo"
-  | "tubos:tubos:editar";
+  | "tubos:tubos:editar"
+  | "mallas:dashboard:ver";
 
 export interface User {
   id: number;

@@ -11,6 +11,7 @@ import React, {
 import DashboardLayout from "@/components/commons/DashboardLayout";
 import { APP_ROUTES } from "@/config/routes";
 import { Bounce, ToastContainer } from "react-toastify";
+import { TIPO_PROD_MALLAS } from "@/config/constants";
 
 export interface RegionOption {
   id: number;
@@ -171,8 +172,8 @@ export default function TubosProvider({
         loadingTurnos,
         operarios,
         loadingOperarios,
-        regiones: [],
-        loadingRegiones: false,
+        regiones,
+        loadingRegiones,
       }}
     >
       <ToastContainer
@@ -188,7 +189,7 @@ export default function TubosProvider({
         theme="light"
         transition={Bounce}
       />
-      <DashboardLayout>{children}</DashboardLayout>
+      <DashboardLayout type={TIPO_PROD_MALLAS}>{children}</DashboardLayout>
     </MallasModuleContext.Provider>
   );
 }

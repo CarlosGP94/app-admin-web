@@ -34,9 +34,11 @@ import { APP_ROUTES } from "@/config/routes";
 import { useAuth } from "@/context/AuthContext";
 import { hasPermission } from "@/lib/services/auth.service";
 import { PermissionCode } from "@/types/auth";
+import { TIPO_PROD_MALLAS, TIPO_PROD_TUBOS } from "@/config/constants";
 
 interface SidebarProps {
   title?: string;
+  type: typeof TIPO_PROD_TUBOS | typeof TIPO_PROD_MALLAS;
   mobileOpen: boolean;
   onClose: () => void;
 }
@@ -60,7 +62,7 @@ const isRouteActive = (currentPath: string, targetPattern: string): boolean => {
   const escapedPattern = cleanedPattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const finalRegexStr = escapedPattern.replace(
     new RegExp(placeholder, "g"),
-    "[^/]+",
+    "[^/]+"
   );
 
   try {
@@ -75,6 +77,7 @@ const isRouteActive = (currentPath: string, targetPattern: string): boolean => {
 export default function Sidebar({
   title = "",
   mobileOpen,
+  type,
   onClose,
 }: SidebarProps) {
   const { user } = useAuth();
@@ -84,14 +87,14 @@ export default function Sidebar({
   const sidebarWidth = theme.customSpacing.sidebarWidth;
 
   const [openInventario, setOpenInventario] = useState(
-    pathname.startsWith("/tubos/inventario"),
+    pathname.startsWith("/tubos/inventario")
   );
 
   const handleInventarioClick = () => {
     setOpenInventario(!openInventario);
   };
 
-  // 1. Definimos los elementos asignándoles su permiso correspondiente desde APP_ROUTES
+  // Tubos
   const rawMenuItems: MenuItem[] = [
     {
       text: "Inicio Tubos",
@@ -181,6 +184,28 @@ export default function Sidebar({
     },
   ];
 
+  // Mallas
+  const rawMallasMenuItems: MenuItem[] = [
+    {
+      text: "Inicio Mallas",
+      icon: <DashboardOutlined />,
+      path: APP_ROUTES.mallas.path,
+      paths: [APP_ROUTES.mallas.path],
+    },
+    {
+      text: "Listado de Mallas",
+      icon: <ContentCutOutlined />,
+      path: APP_ROUTES.mallas.subRoutes.mallas.path,
+      paths: [
+        APP_ROUTES.mallas.subRoutes.mallas.path,
+        APP_ROUTES.mallas.subRoutes.mallas_create.path,
+        APP_ROUTES.mallas.subRoutes.mallas_edit.path(":id"),
+      ],
+      permission: APP_ROUTES.mallas.subRoutes.mallas
+        .permission as PermissionCode,
+    },
+  ];
+
   // 2. Función helper para saber si el usuario posee permiso sobre un ítem
   const canAccess = (item: MenuItem) => {
     if (!item.permission) return true;
@@ -188,8 +213,12 @@ export default function Sidebar({
   };
 
   // 3. Filtrar ítems principales e inventario según los permisos del usuario
-  const menuItems = rawMenuItems.filter(canAccess);
-  const inventarioItems = rawInventarioItems.filter(canAccess);
+  const menuItems =
+    type === "mallas"
+      ? rawMallasMenuItems.filter(canAccess)
+      : rawMenuItems.filter(canAccess);
+  const inventarioItems =
+    type === "mallas" ? [] : rawInventarioItems.filter(canAccess);
 
   const renderListItemButton = (item: MenuItem, isSubItem = false) => {
     const isActive = item.paths.some((p) => isRouteActive(pathname, p));
@@ -271,7 +300,8 @@ export default function Sidebar({
             letterSpacing: 0.5,
           }}
         >
-          LÍNEA DE TUBOS
+          {(type === TIPO_PROD_MALLAS && "LÍNEA DE MALLAS") ||
+            (type === TIPO_PROD_TUBOS && "LÍNEA DE TUBOS")}
         </Typography>
       </Box>
 
@@ -342,7 +372,7 @@ export default function Sidebar({
             >
               <List component="div" disablePadding sx={{ mt: 0.5 }}>
                 {inventarioItems.map((subItem) =>
-                  renderListItemButton(subItem, true),
+                  renderListItemButton(subItem, true)
                 )}
               </List>
             </Collapse>

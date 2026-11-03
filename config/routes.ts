@@ -158,6 +158,28 @@ export const APP_ROUTES = {
       },
     },
   },
+  mallas: {
+    path: "/mallas",
+    label: "Línea de Producción de Mallas",
+    permission: "mallas:dashboard:ver",
+    subRoutes: {
+      mallas: {
+        path: "/mallas/mallas",
+        permission: "mallas:mallas:ver",
+        label: "Mallas",
+      },
+      mallas_create: {
+        path: "/mallas/mallas/nuevo",
+        permission: "mallas:mallas:nuevo",
+        label: "Inventario de Malla / Nueva",
+      },
+      mallas_edit: {
+        path: (id: string) => `/mallas/mallas/${id}/editar`,
+        permission: "mallas:mallas:editar",
+        label: "Inventario de Malla / Editar",
+      },
+    },
+  },
   api: {
     auth: {
       login: "/api/auth/login",
@@ -169,7 +191,10 @@ export const APP_ROUTES = {
       operarios: "/api/general/operarios",
       regiones: "/api/general/regiones",
     },
-    mallas: {},
+    mallas: {
+      mallas: "/api/mallas/mallas",
+      mallas_detalle: (id: string) => `/api/mallas/mallas/${id}`,
+    },
     tubos: {
       maquinas: "/api/tubos/maquinas",
       tipos: "/api/tubos/tipos",
