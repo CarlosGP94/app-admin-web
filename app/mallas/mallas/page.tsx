@@ -25,6 +25,10 @@ import ProtectedRoute from "@/components/commons/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { tienePermiso } from "@/utils/functions";
 
+interface IOption {
+  id: number;
+  nombre: string;
+}
 interface Malla {
   id: number;
   codigo: string;
@@ -122,7 +126,7 @@ export function MallasView() {
     currentFilters: CurrentFilter[]
   ): Promise<Record<string, (string | number | FilterOption)[]>> => {
     const url = new URL(
-      APP_ROUTES.api.tubos.tubos_filtros,
+      APP_ROUTES.api.mallas.mallas_filtros,
       window.location.origin
     );
 
@@ -141,21 +145,27 @@ export function MallasView() {
     });
 
     const response = await fetch(url.toString());
-    if (!response.ok) throw new Error("Error al consultar los tubos");
+    if (!response.ok)
+      throw new Error("Error al consultar los filtros de mallas");
     const result = await response.json();
+    console.log("result filters", result);
     return {
-      /*       calidad: result.data.calidades.map((c: Calidad) => ({
-        label: c.nombre,
-        value: c.id,
+      regiones: result.data.regiones.map((r: IOption) => ({
+        label: r.nombre,
+        value: r.id,
       })),
-      tipo: result.data.tipos.map((t: Tipo) => ({
-        label: t.nombre,
-        value: t.id,
+      diametros: result.data.diametros.map((d: number) => ({
+        label: d.toString(),
+        value: d,
       })),
-      espesor: result.data.espesores.map((e: number) => ({
-        label: e.toString(),
-        value: e,
-      })), */
+      longitudinales: result.data.longitudinales.map((l: number) => ({
+        label: l.toString(),
+        value: l,
+      })),
+      transversales: result.data.transversales.map((t: number) => ({
+        label: t.toString(),
+        value: t,
+      })),
     };
   };
 
@@ -168,7 +178,7 @@ export function MallasView() {
       });
       return { success: true };
     } catch (error) {
-      console.error("Error al eliminar el tubo:", error);
+      console.error("Error al eliminar la malla:", error);
       return { success: false, error: (error as string) || String(error) };
     }
   };
@@ -193,7 +203,40 @@ export function MallasView() {
     handleClearAllFilters,
     handleFilter,
   } = useDataTable({
-    initFilters: [],
+    initFilters: [
+      {
+        name: "regiones",
+        label: "Región",
+        type: "select",
+        value: null,
+        defaultLabel: "Todas las regiones",
+        options: [],
+      },
+      {
+        name: "diametros",
+        label: "Diámetro",
+        type: "select",
+        value: null,
+        defaultLabel: "Todos los diámetros",
+        options: [],
+      },
+      {
+        name: "longitudinales",
+        label: "Longitudinales",
+        type: "select",
+        value: null,
+        defaultLabel: "Todos los longitudinales",
+        options: [],
+      },
+      {
+        name: "transversales",
+        label: "Transversales",
+        type: "select",
+        value: null,
+        defaultLabel: "Todos los transversales",
+        options: [],
+      },
+    ],
     onDeleteConfirm: onDeleteConfirm,
     fetchData: fecthData,
     fetchFilters: fecthFilters,
@@ -276,14 +319,14 @@ const columns = (
     width: 180,
     label: "Código Artículo",
     align: "left",
-    sortable: true,
+    sortable: false,
   },
   {
     id: "codigo",
     width: 200,
     label: "Malla",
     align: "left",
-    sortable: true,
+    sortable: false,
   },
   {
     id: "activo",

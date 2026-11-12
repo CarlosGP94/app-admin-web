@@ -204,6 +204,54 @@ export default function Sidebar({
       permission: APP_ROUTES.mallas.subRoutes.mallas
         .permission as PermissionCode,
     },
+    {
+      text: "Plantillas",
+      icon: <ContentCutOutlined />,
+      path: APP_ROUTES.mallas.subRoutes.plantillas.path,
+      paths: [
+        APP_ROUTES.mallas.subRoutes.plantillas.path,
+        APP_ROUTES.mallas.subRoutes.plantillas_create.path,
+        APP_ROUTES.mallas.subRoutes.plantillas_edit.path(":id"),
+      ],
+      permission: APP_ROUTES.mallas.subRoutes.plantillas
+        .permission as PermissionCode,
+    },
+    {
+      text: "Certificados",
+      icon: <ContentCutOutlined />,
+      path: APP_ROUTES.mallas.subRoutes.certificados.path,
+      paths: [
+        APP_ROUTES.mallas.subRoutes.certificados.path,
+        APP_ROUTES.mallas.subRoutes.certificados_create.path,
+        APP_ROUTES.mallas.subRoutes.certificados_edit.path(":id"),
+      ],
+      permission: APP_ROUTES.mallas.subRoutes.certificados
+        .permission as PermissionCode,
+    },
+    {
+      text: "Producciones",
+      icon: <ContentCutOutlined />,
+      path: APP_ROUTES.mallas.subRoutes.producciones.path,
+      paths: [
+        APP_ROUTES.mallas.subRoutes.producciones.path,
+        APP_ROUTES.mallas.subRoutes.producciones_create.path,
+        APP_ROUTES.mallas.subRoutes.producciones_edit.path(":id"),
+      ],
+      permission: APP_ROUTES.mallas.subRoutes.producciones
+        .permission as PermissionCode,
+    },
+    {
+      text: "Registro de Etiquetas",
+      icon: <ContentCutOutlined />,
+      path: APP_ROUTES.mallas.subRoutes.etiquetas.path,
+      paths: [
+        APP_ROUTES.mallas.subRoutes.etiquetas.path,
+        APP_ROUTES.mallas.subRoutes.etiquetas_create.path,
+        APP_ROUTES.mallas.subRoutes.etiquetas_edit.path(":id"),
+      ],
+      permission: APP_ROUTES.mallas.subRoutes.etiquetas
+        .permission as PermissionCode,
+    },
   ];
 
   // 2. Función helper para saber si el usuario posee permiso sobre un ítem

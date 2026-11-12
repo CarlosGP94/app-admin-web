@@ -1,3 +1,6 @@
+import path from "path";
+import { pl } from "zod/v4/locales";
+
 export interface RouteItem {
   path: string;
   label: string;
@@ -178,6 +181,66 @@ export const APP_ROUTES = {
         permission: "mallas:mallas:editar",
         label: "Inventario de Malla / Editar",
       },
+      plantillas: {
+        path: "/mallas/plantillas",
+        permission: "mallas:plantillas:ver",
+        label: "Plantillas",
+      },
+      plantillas_create: {
+        path: "/mallas/plantillas/nuevo",
+        permission: "mallas:plantillas:nuevo",
+        label: "Plantilla / Nueva",
+      },
+      plantillas_edit: {
+        path: (id: string) => `/mallas/plantillas/${id}/editar`,
+        permission: "mallas:plantillas:editar",
+        label: "Plantilla / Editar",
+      },
+      producciones: {
+        path: "/mallas/producciones",
+        permission: "mallas:producciones:ver",
+        label: "Producciones",
+      },
+      producciones_create: {
+        path: "/mallas/producciones/nuevo",
+        permission: "mallas:producciones:nuevo",
+        label: "Producción / Nueva",
+      },
+      producciones_edit: {
+        path: (id: string) => `/mallas/producciones/${id}/editar`,
+        permission: "mallas:producciones:editar",
+        label: "Producción / Editar",
+      },
+      etiquetas: {
+        path: "/mallas/etiquetas",
+        permission: "mallas:etiquetas:ver",
+        label: "Registro de Etiquetas",
+      },
+      etiquetas_create: {
+        path: "/mallas/etiquetas/nuevo",
+        permission: "mallas:etiquetas:nuevo",
+        label: "Registro de Etiqueta / Nueva",
+      },
+      etiquetas_edit: {
+        path: (id: string) => `/mallas/etiquetas/${id}/editar`,
+        permission: "mallas:etiquetas:editar",
+        label: "Registro de Etiqueta / Editar",
+      },
+      certificados: {
+        path: "/mallas/certificados",
+        permission: "mallas:certificados:ver",
+        label: "Certificados",
+      },
+      certificados_create: {
+        path: "/mallas/certificados/nuevo",
+        permission: "mallas:certificados:nuevo",
+        label: "Certificado / Nuevo",
+      },
+      certificados_edit: {
+        path: (id: string) => `/mallas/certificados/${id}/editar`,
+        permission: "mallas:certificados:editar",
+        label: "Certificado / Editar",
+      },
     },
   },
   api: {
@@ -194,7 +257,21 @@ export const APP_ROUTES = {
     mallas: {
       mallas: "/api/mallas/mallas",
       mallas_detalle: (id: string) => `/api/mallas/mallas/${id}`,
+      mallas_filtros: "/api/mallas/mallas/filtros",
+      plantillas: "/api/mallas/plantillas",
+      plantillas_detalle: (id: string) => `/api/mallas/plantillas/${id}`,
+      plantillas_filtros: "/api/mallas/plantillas/filtros",
+      producciones: "/api/mallas/producciones",
+      producciones_detalle: (id: string) => `/api/mallas/producciones/${id}`,
+      producciones_filtros: "/api/mallas/producciones/filtros",
+      etiquetas: "/api/mallas/etiquetas",
+      etiquetas_detalle: (id: string) => `/api/mallas/etiquetas/${id}`,
+      etiquetas_filtros: "/api/mallas/etiquetas/filtros",
+      certificados: "/api/mallas/certificados",
+      certificados_detalle: (id: string) => `/api/mallas/certificados/${id}`,
+      certificados_filtros: "/api/mallas/certificados/filtros",
     },
+
     tubos: {
       maquinas: "/api/tubos/maquinas",
       tipos: "/api/tubos/tipos",

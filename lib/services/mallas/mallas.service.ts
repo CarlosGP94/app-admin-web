@@ -164,16 +164,18 @@ export async function listarMallasService(
 export interface FiltrosMallasParams {
   filtros?: {
     busqueda?: string;
-    calidadId?: number;
-    tipoId?: number;
-    espesor?: number;
+    diametro?: number;
+    longitudinales?: number;
+    transversales?: number;
+    regionId?: number;
   };
 }
 
 export interface ListarFiltrosMallasResponse {
-  calidades: Array<{ id: number; nombre: string }>;
-  tipos: Array<{ id: number; nombre: string }>;
-  espesores: number[];
+  regiones: Array<{ id: number; nombre: string }>;
+  diametros: number[];
+  transversales: number[];
+  longitudinales: number[];
 }
 
 /**
@@ -185,81 +187,106 @@ export async function listarFiltrosMallasService(
 ): Promise<ListarFiltrosMallasResponse> {
   const { filtros } = params;
 
-  const calidadId = filtros?.calidadId;
-  const tipoId = filtros?.tipoId;
-  const espesor = filtros?.espesor;
+  const regionId = filtros?.regionId;
+  const diametro = filtros?.diametro;
+  const longitudinales = filtros?.longitudinales;
+  const transversales = filtros?.transversales;
 
-  const reqCalidades = pool.request();
-  const reqTipos = pool.request();
-  const reqEspesores = pool.request();
+  const reqRegiones = pool.request();
+  const reqDiametros = pool.request();
+  const reqLongitudinales = pool.request();
+  const reqTransversales = pool.request();
 
   // Helper para inyectar dependencias dinámicas evitando que un filtro se anule a sí mismo en su propio selector
   const aplicarFiltrosComunes = (req: Request, omitir: string) => {
     let sql = "";
 
-    if (calidadId && omitir !== "calidad") {
-      sql += " AND t.calidad_id = @calidadId";
-      req.input("calidadId", calidadId);
+    if (regionId && omitir !== "region") {
+      sql += " AND m.region_id = @regionId";
+      req.input("regionId", regionId);
     }
-    if (tipoId && omitir !== "tipo") {
-      sql += " AND t.tipo_id = @tipoId";
-      req.input("tipoId", tipoId);
+    if (diametro && omitir !== "diametro") {
+      sql += " AND m.diametro = @diametro";
+      req.input("diametro", diametro);
     }
-    if (espesor && omitir !== "espesor") {
-      sql += " AND t.espesor = @espesor";
-      req.input("espesor", espesor);
+    if (longitudinales && omitir !== "longitudinales") {
+      sql += " AND m.longitudinales = @longitudinales";
+      req.input("longitudinales", longitudinales);
+    }
+    if (transversales && omitir !== "transversales") {
+      sql += " AND m.transversales = @transversales";
+      req.input("transversales", transversales);
     }
     return sql;
   };
 
   // --- QUERY 1: CALIDADES ---
-  const whereCalidades =
-    "WHERE 1=1" + aplicarFiltrosComunes(reqCalidades, "calidad");
-  const qCalidades = `
-    SELECT DISTINCT tc.id, tc.nombre as calidad
-    FROM Mallas_DB_Mallas t
-    INNER JOIN Mallas_DB_Tipos_Calidad tc ON t.calidad_id = tc.id
-    ${whereCalidades}
-    ORDER BY tc.nombre ASC;
-  `;
+  const whereRegiones =
+    "WHERE 1=1" + aplicarFiltrosComunes(reqRegiones, "region");
 
-  // --- QUERY 2: TIPOS ---
-  const whereTipos = "WHERE 1=1" + aplicarFiltrosComunes(reqTipos, "tipo");
-  const qTipos = `
-    SELECT DISTINCT tt.id, tt.nombre as tipo
-    FROM Mallas_DB_Mallas t
-    INNER JOIN Mallas_DB_Tipos_Mallas tt ON t.tipo_id = tt.id
-    ${whereTipos}
-    ORDER BY tt.nombre ASC;
+  const qRegiones = `
+    SELECT DISTINCT r.id, r.region
+    FROM Mallas_DB_Mallas m
+    INNER JOIN Regiones r ON m.region_id = r.id
+    ${whereRegiones}
+    ORDER BY r.region ASC;
   `;
 
   // --- QUERY 3: ESPESORES ---
-  const whereEspesores =
-    "WHERE 1=1" + aplicarFiltrosComunes(reqEspesores, "espesor");
-  const qEspesores = `
-    SELECT DISTINCT t.espesor
-    FROM Mallas_DB_Mallas t
-    ${whereEspesores}
-    ORDER BY t.espesor ASC;
+  const whereDiametros =
+    "WHERE 1=1" +
+    "AND m.diametro IS NOT NULL" +
+    aplicarFiltrosComunes(reqDiametros, "diametro");
+  const qDiametros = `
+    SELECT DISTINCT m.diametro
+    FROM Mallas_DB_Mallas m
+    ${whereDiametros}
+    ORDER BY m.diametro ASC;
+  `;
+
+  // --- QUERY 3: ESPESORES ---
+  const whereLongitudinales =
+    "WHERE 1=1" +
+    "AND m.longitudinales IS NOT NULL" +
+    aplicarFiltrosComunes(reqLongitudinales, "longitudinales");
+  const qLongitudinales = `
+    SELECT DISTINCT m.longitudinales
+    FROM Mallas_DB_Mallas m
+    ${whereLongitudinales}
+    ORDER BY m.longitudinales ASC;
+  `;
+
+  // --- QUERY 3: ESPESORES ---
+  const whereTransversales =
+    "WHERE 1=1" +
+    "AND m.transversales IS NOT NULL" +
+    aplicarFiltrosComunes(reqTransversales, "transversales");
+  const qTransversales = `
+    SELECT DISTINCT m.transversales
+    FROM Mallas_DB_Mallas m
+    ${whereTransversales}
+    ORDER BY m.transversales ASC;
   `;
 
   // Ejecución paralela en el Connection Pool
-  const [resCalidades, resTipos, resEspesores] = await Promise.all([
-    reqCalidades.query(qCalidades),
-    reqTipos.query(qTipos),
-    reqEspesores.query(qEspesores),
-  ]);
+  const [resRegiones, resDiametros, resLongitudinales, resTransversales] =
+    await Promise.all([
+      reqRegiones.query(qRegiones),
+      reqDiametros.query(qDiametros),
+      reqLongitudinales.query(qLongitudinales),
+      reqTransversales.query(qTransversales),
+    ]);
 
   return {
-    calidades: resCalidades.recordset.map((row) => ({
+    regiones: resRegiones.recordset.map((row) => ({
       id: row.id,
-      nombre: row.calidad,
+      nombre: row.region,
     })),
-    tipos: resTipos.recordset.map((row) => ({
-      id: row.id,
-      nombre: row.tipo,
-    })),
-    espesores: resEspesores.recordset.map((row) => row.espesor),
+    diametros: resDiametros.recordset.map((row) => row.diametro),
+    longitudinales: resLongitudinales.recordset.map(
+      (row) => row.longitudinales
+    ),
+    transversales: resTransversales.recordset.map((row) => row.transversales),
   };
 }
 
