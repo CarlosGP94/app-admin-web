@@ -1,24 +1,17 @@
-import { ConnectionPool, Request, Transaction } from "mssql";
-
-export interface FiltrosCertificados {
-  buscar?: string;
-  fechaInicio?: string;
-  fechaFin?: string;
-}
+import type { ConnectionPool } from "mssql";
 
 export interface ListarCertificadosParams {
   page?: number;
   pageSize?: number;
-  orderBy?: "codigo" | "lote" | "creado";
+  orderBy?: "certificado" | "creado";
   orderDir?: "ASC" | "DESC";
-  filtros?: FiltrosCertificados;
+  buscar?: string;
 }
 
 export interface CertificadoRow {
   id: number;
-  codigo: string;
-  lote: string;
-  observacion?: string;
+  certificado: string;
+  imagen: string | null;
   creado: string;
 }
 
@@ -29,8 +22,18 @@ export interface ListarCertificadosResponse {
   pageSize: number;
 }
 
+function mapCertificadoRow(row: Record<string, unknown>): CertificadoRow {
+  return {
+    id: Number(row.id),
+    certificado: row.certificado != null ? String(row.certificado) : "",
+    imagen: row.imagen != null ? String(row.imagen) : null,
+    creado: row.creado ? new Date(row.creado as string | Date).toISOString() : "",
+  };
+}
+
 /**
- * Servicio para listar, paginar, ordenar y filtrar los certificados
+ * Lista los certificados de forma paginada. No aplica filtros por fecha,
+ * solo la búsqueda opcional por nombre de certificado.
  */
 export async function listarCertificadosService(
   pool: ConnectionPool,
@@ -43,248 +46,119 @@ export async function listarCertificadosService(
   const rowStart = (page - 1) * pageSize + 1;
   const rowEnd = page * pageSize;
 
-  const { filtros, orderBy, orderDir = "DESC" } = params;
+  const { orderBy, orderDir = "DESC", buscar } = params;
   const req = pool.request();
 
-  // 1. Construcción dinámica de Cláusulas WHERE
-  let whereClauses = "WHERE 1=1";
-
-  if (filtros?.buscar) {
-    whereClauses += " AND (c.codigo LIKE @buscar OR c.lote LIKE @buscar)";
-    req.input("buscar", `%${filtros.buscar}%`);
-  }
-
-  // Rango de fechas sobre el campo 'creado'
-  if (filtros?.fechaInicio && filtros?.fechaFin) {
-    whereClauses +=
-      " AND c.creado >= @fechaInicio AND c.creado <= DATEADD(day, 1, CAST(@fechaFin AS DATETIME2))";
-    req.input("fechaInicio", filtros.fechaInicio);
-    req.input("fechaFin", filtros.fechaFin);
-  } else if (filtros?.fechaInicio) {
-    whereClauses += " AND c.creado >= @fechaInicio";
-    req.input("fechaInicio", filtros.fechaInicio);
-  } else if (filtros?.fechaFin) {
-    whereClauses +=
-      " AND c.creado <= DATEADD(day, 1, CAST(@fechaFin AS DATETIME2))";
-    req.input("fechaFin", filtros.fechaFin);
-  }
-
-  // 2. Determinar orden seguro
-  let safeOrderBySql = "";
+  let safeOrderBySql = "id DESC";
   if (orderBy) {
     const columnasPermitidas: Record<string, string> = {
-      codigo: "c.codigo",
-      lote: "c.lote",
-      creado: "c.creado",
+      certificado: "certificado",
+      creado: "creado",
     };
     const dir = orderDir.toUpperCase() === "DESC" ? "DESC" : "ASC";
     safeOrderBySql = `${columnasPermitidas[orderBy]} ${dir}`;
-  } else {
-    safeOrderBySql = "c.id DESC";
   }
 
-  // 3. Query paginada con CTE
+  req.input("buscar", buscar ? `%${buscar}%` : null);
+  req.input("rowStart", rowStart);
+  req.input("rowEnd", rowEnd);
+
   const query = `
     WITH CertificadosPaginados AS (
         SELECT
-            c.id,
-            c.codigo,
-            c.lote,
-            c.observacion,
-            c.creado,
+            id,
+            certificado,
+            imagen,
+            creado,
             ROW_NUMBER() OVER (ORDER BY ${safeOrderBySql}) AS RowNum,
             COUNT(*) OVER() AS TotalCount
-        FROM Mallas_DB_Certificados c
-        ${whereClauses}
+        FROM Mallas_DB_Certificados
+        WHERE (@buscar IS NULL OR certificado LIKE @buscar)
     )
     SELECT *
     FROM CertificadosPaginados
     WHERE RowNum BETWEEN @rowStart AND @rowEnd;
   `;
 
-  req.input("rowStart", rowStart);
-  req.input("rowEnd", rowEnd);
-
   const resultado = await req.query(query);
   const rows = resultado.recordset;
-  const total = rows.length > 0 ? rows[0].TotalCount : 0;
+  const total = rows.length > 0 ? Number(rows[0].TotalCount) : 0;
 
   return {
-    data: rows.map((row) => ({
-      id: row.id,
-      codigo: row.codigo,
-      lote: row.lote,
-      observacion: row.observacion,
-      creado: row.creado ? new Date(row.creado).toISOString() : "",
-    })),
+    data: rows.map(mapCertificadoRow),
     total,
     page,
     pageSize,
   };
 }
 
-export interface FiltrosCertificadosParams {
-  filtros?: {
-    busqueda?: string;
-    fechaInicio?: string;
-    fechaFin?: string;
-  };
-}
-
-export interface ListarFiltrosCertificadosResponse {
-  rangoFechas: {
-    minFecha: string | null;
-    maxFecha: string | null;
-  };
-}
-
-/**
- * Servicio para obtener selectores y rango de fechas de certificados
- */
-export async function listarFiltrosCertificadosService(
-  pool: ConnectionPool,
-  params: FiltrosCertificadosParams
-): Promise<ListarFiltrosCertificadosResponse> {
-  const { filtros } = params;
-  const fechaInicio = filtros?.fechaInicio;
-  const fechaFin = filtros?.fechaFin;
-
-  const reqFechas = pool.request();
-
-  let whereFechas = "WHERE 1=1";
-  if (fechaInicio && fechaFin) {
-    whereFechas +=
-      " AND creado >= @fechaInicio AND creado <= DATEADD(day, 1, CAST(@fechaFin AS DATETIME2))";
-    reqFechas.input("fechaInicio", fechaInicio);
-    reqFechas.input("fechaFin", fechaFin);
-  } else if (fechaInicio) {
-    whereFechas += " AND creado >= @fechaInicio";
-    reqFechas.input("fechaInicio", fechaInicio);
-  } else if (fechaFin) {
-    whereFechas +=
-      " AND creado <= DATEADD(day, 1, CAST(@fechaFin AS DATETIME2))";
-    reqFechas.input("fechaFin", fechaFin);
-  }
-
-  const qFechas = `
-    SELECT 
-      MIN(creado) AS minFecha, 
-      MAX(creado) AS maxFecha
-    FROM Mallas_DB_Certificados
-    ${whereFechas};
-  `;
-
-  const resFechas = await reqFechas.query(qFechas);
-  const rangoRow = resFechas.recordset[0] || {};
-
-  return {
-    rangoFechas: {
-      minFecha: rangoRow.minFecha
-        ? new Date(rangoRow.minFecha).toISOString()
-        : null,
-      maxFecha: rangoRow.maxFecha
-        ? new Date(rangoRow.maxFecha).toISOString()
-        : null,
-    },
-  };
-}
-
 // --- CREAR CERTIFICADO ---
 export interface CertificadoCreatePayload {
-  codigo: string;
-  lote: string;
-  observacion?: string;
+  certificado: string;
+  imagen?: string | null;
 }
 
 export interface CertificadoCreateResponse {
   id: number;
-  codigo: string;
+  certificado: string;
 }
 
 export async function crearCertificadoService(
   pool: ConnectionPool,
   payload: CertificadoCreatePayload
 ): Promise<CertificadoCreateResponse> {
-  const transaction = new Transaction(pool);
+  const certificado = payload.certificado.trim();
+  const req = pool.request();
+  req.input("certificado", certificado);
+  req.input("imagen", payload.imagen ?? null);
 
-  try {
-    await transaction.begin();
+  const res = await req.query(`
+    INSERT INTO Mallas_DB_Certificados (certificado, imagen)
+    OUTPUT INSERTED.id
+    VALUES (@certificado, @imagen);
+  `);
 
-    const req = new Request(transaction);
-    req.input("codigo", payload.codigo.trim());
-    req.input("lote", payload.lote.trim());
-    req.input("observacion", payload.observacion || null);
-
-    const query = `
-        INSERT INTO Mallas_DB_Certificados (
-          codigo, lote, observacion, creado
-        )
-        OUTPUT INSERTED.id
-        VALUES (
-          @codigo, @lote, @observacion, SYSDATETIME()
-        );
-      `;
-
-    const res = await req.query(query);
-    const nuevoId = res.recordset[0].id;
-
-    await transaction.commit();
-
-    return {
-      id: nuevoId,
-      codigo: payload.codigo,
-    };
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
-  }
+  return {
+    id: Number(res.recordset[0].id),
+    certificado,
+  };
 }
 
 // --- ACTUALIZAR CERTIFICADO ---
-export interface CertificadoUpdatePayload extends CertificadoCreatePayload {
+export interface CertificadoUpdatePayload {
   id: number;
+  certificado: string;
+  imagen: string | null;
 }
 
 export interface CertificadoUpdateResponse {
   id: number;
-  codigo: string;
+  certificado: string;
+  actualizado: boolean;
 }
 
 export async function actualizarCertificadoService(
   pool: ConnectionPool,
   payload: CertificadoUpdatePayload
 ): Promise<CertificadoUpdateResponse> {
-  const transaction = new Transaction(pool);
+  const certificado = payload.certificado.trim();
+  const req = pool.request();
+  req.input("id", payload.id);
+  req.input("certificado", certificado);
+  req.input("imagen", payload.imagen);
 
-  try {
-    await transaction.begin();
+  const res = await req.query(`
+    UPDATE Mallas_DB_Certificados
+    SET certificado = @certificado,
+        imagen = @imagen
+    WHERE id = @id;
+  `);
 
-    const req = new Request(transaction);
-    req.input("id", payload.id);
-    req.input("codigo", payload.codigo.trim());
-    req.input("lote", payload.lote.trim());
-    req.input("observacion", payload.observacion || null);
-
-    const query = `
-        UPDATE Mallas_DB_Certificados
-        SET 
-          codigo = @codigo,
-          lote = @lote,
-          observacion = @observacion
-        WHERE id = @id;
-      `;
-
-    await req.query(query);
-    await transaction.commit();
-
-    return {
-      id: payload.id,
-      codigo: payload.codigo,
-    };
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
-  }
+  return {
+    id: payload.id,
+    certificado,
+    actualizado: (res.rowsAffected[0] || 0) > 0,
+  };
 }
 
 // --- OBTENER POR ID ---
@@ -295,60 +169,101 @@ export async function obtenerCertificadoPorIdService(
   const req = pool.request();
   req.input("id", id);
 
-  const query = `
-    SELECT id, codigo, lote, observacion, creado
+  const res = await req.query(`
+    SELECT id, certificado, imagen, creado
     FROM Mallas_DB_Certificados
     WHERE id = @id;
-  `;
+  `);
 
-  const res = await req.query(query);
   if (res.recordset.length === 0) return null;
 
-  const row = res.recordset[0];
-  return {
-    id: row.id,
-    codigo: row.codigo,
-    lote: row.lote,
-    observacion: row.observacion,
-    creado: row.creado ? new Date(row.creado).toISOString() : "",
-  };
+  return mapCertificadoRow(res.recordset[0]);
 }
 
 // --- ELIMINAR CERTIFICADO ---
 export interface CertificadoDeleteResponse {
   id: number;
   eliminado: boolean;
+  imagen: string | null;
 }
 
 export async function eliminarCertificadoService(
   pool: ConnectionPool,
   id: number
 ): Promise<CertificadoDeleteResponse> {
-  const transaction = new Transaction(pool);
+  const req = pool.request();
+  req.input("id", id);
 
-  try {
-    await transaction.begin();
+  const res = await req.query(`
+    DELETE FROM Mallas_DB_Certificados
+    OUTPUT DELETED.imagen
+    WHERE id = @id;
+  `);
 
-    const req = new Request(transaction);
-    req.input("id", id);
-
-    const query = `
-        DELETE FROM Mallas_DB_Certificados 
-        WHERE id = @id;
-      `;
-
-    const res = await req.query(query);
-    const eliminado = (res.rowsAffected[0] || 0) > 0;
-
-    if (!eliminado) {
-      await transaction.rollback();
-      return { id, eliminado: false };
-    }
-
-    await transaction.commit();
-    return { id, eliminado: true };
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
+  if (res.recordset.length === 0) {
+    return { id, eliminado: false, imagen: null };
   }
+
+  const imagen = res.recordset[0].imagen
+    ? String(res.recordset[0].imagen)
+    : null;
+
+  return { id, eliminado: true, imagen };
+}
+
+// --- SELECTOR Y PREVISUALIZACIÓN ---
+export interface CertificadoOpcion {
+  id: number;
+  certificado: string;
+  imagen: string | null;
+}
+
+/**
+ * Devuelve los certificados disponibles para alimentar el selector del
+ * formulario de mallas.
+ */
+export async function listarCertificadosOpcionesService(
+  pool: ConnectionPool
+): Promise<CertificadoOpcion[]> {
+  const req = pool.request();
+
+  const resultado = await req.query(`
+    SELECT id, certificado, imagen
+    FROM Mallas_DB_Certificados
+    ORDER BY certificado ASC;
+  `);
+
+  return resultado.recordset.map((row) => ({
+    id: Number(row.id),
+    certificado: row.certificado != null ? String(row.certificado) : "",
+    imagen: row.imagen ? String(row.imagen) : null,
+  }));
+}
+
+/**
+ * Obtiene el certificado asociado a una malla (por su certificado_id) para
+ * resolver la ruta de la imagen que se previsualiza en el formulario.
+ */
+export async function obtenerCertificadoImagenService(
+  pool: ConnectionPool,
+  id: number
+): Promise<CertificadoOpcion | null> {
+  const req = pool.request();
+  req.input("id", id);
+
+  const resultado = await req.query(`
+    SELECT id, certificado, imagen
+    FROM Mallas_DB_Certificados
+    WHERE id = @id;
+  `);
+
+  if (resultado.recordset.length === 0) return null;
+
+  const row = resultado.recordset[0];
+
+  return {
+    id: Number(row.id),
+    certificado: row.certificado != null ? String(row.certificado) : "",
+    imagen: row.imagen ? String(row.imagen) : null,
+  };
 }

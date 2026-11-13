@@ -385,6 +385,7 @@ const useDataTable = <T extends { id: string | number }>({
   const handleFilter = async () => {
     setPage(1);
     setSortModel([]);
+    await loadData(1, searchTerm, filters);
   };
 
   const handleReloadData = async () => {

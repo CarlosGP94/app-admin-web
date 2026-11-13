@@ -246,7 +246,7 @@ export function MallasView() {
     <Box
       sx={{
         width: "100%",
-        minHeight: "calc(100vh - 114px)",
+        minHeight: "calc(100vh - 124px)",
         display: "flex",
         flexDirection: "column",
       }}
@@ -281,7 +281,7 @@ export function MallasView() {
           />
         </Box>
       )}
-      <Box sx={{ height: "calc(100vh - 285px)", overflow: "hidden" }}>
+      <Box sx={{ height: "calc(100vh - 345px)", overflow: "hidden" }}>
         <Table<Malla>
           sortModel={sortModel}
           onSortModelChange={handleSortModel}
@@ -352,16 +352,16 @@ const columns = (
   {
     id: "largo",
     label: "Largo (mm)",
-    width: 140,
+    width: 120,
     align: "center",
-    sortable: true,
+    sortable: false,
   },
   {
     id: "ancho",
     label: "Ancho (mm)",
-    width: 150,
+    width: 120,
     align: "center",
-    sortable: true,
+    sortable: false,
   },
   {
     id: "longitudinales",
@@ -378,7 +378,7 @@ const columns = (
     sortable: true,
   },
   {
-    id: "fecha",
+    id: "creado",
     label: "FECHA CREACIÓN",
     width: 150,
     align: "center",

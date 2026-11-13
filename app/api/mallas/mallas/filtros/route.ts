@@ -13,14 +13,18 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // 1. Extraer los filtros aplicados actualmente desde la URL
+    // 1. Extraer los filtros aplicados actualmente desde la URL.
+    // Se aceptan los nombres que envía la tabla (plurales) y los singulares
+    // históricos para no romper consumidores existentes.
     const busqueda = searchParams.get("search") || undefined;
-    const regionId = searchParams.get("regionId")
-      ? Number(searchParams.get("regionId"))
-      : undefined;
-    const diametro = searchParams.get("diametro")
-      ? Number(searchParams.get("diametro"))
-      : undefined;
+
+    const regionParam =
+      searchParams.get("regiones") ?? searchParams.get("regionId");
+    const diametroParam =
+      searchParams.get("diametros") ?? searchParams.get("diametro");
+
+    const regionId = regionParam ? Number(regionParam) : undefined;
+    const diametro = diametroParam ? Number(diametroParam) : undefined;
     const transversales = searchParams.get("transversales")
       ? Number(searchParams.get("transversales"))
       : undefined;

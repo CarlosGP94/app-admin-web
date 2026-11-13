@@ -24,6 +24,11 @@ export const PERMISOS = {
       auditoria: "tubos:produccion:auditoria",
     },
   },
+  mallas: {
+    producciones: {
+      excel: "mallas:producciones:excel",
+    },
+  },
 };
 
 export const APP_ROUTES = {
@@ -264,11 +269,15 @@ export const APP_ROUTES = {
       producciones: "/api/mallas/producciones",
       producciones_detalle: (id: string) => `/api/mallas/producciones/${id}`,
       producciones_filtros: "/api/mallas/producciones/filtros",
+      producciones_excel: "/api/mallas/producciones/excel",
       etiquetas: "/api/mallas/etiquetas",
       etiquetas_detalle: (id: string) => `/api/mallas/etiquetas/${id}`,
       etiquetas_filtros: "/api/mallas/etiquetas/filtros",
       certificados: "/api/mallas/certificados",
       certificados_detalle: (id: string) => `/api/mallas/certificados/${id}`,
+      certificados_opciones: "/api/mallas/certificados/opciones",
+      certificados_imagen: (id: number | string) =>
+        `/api/mallas/certificados/${id}/imagen`,
       certificados_filtros: "/api/mallas/certificados/filtros",
     },
 

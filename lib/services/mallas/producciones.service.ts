@@ -395,9 +395,75 @@ export async function crearProduccionMallaService(
   }
 }
 
+export interface ProduccionMallaCreateResponse {
+  id: number;
+  lote: string;
+}
+
+export async function crearProduccionesMallaBatchService(
+  pool: ConnectionPool,
+  payloads: ProduccionMallaCreatePayload[]
+): Promise<ProduccionMallaCreateResponse[]> {
+  if (!payloads || payloads.length === 0) {
+    return [];
+  }
+
+  const transaction = new Transaction(pool);
+  const resultados: ProduccionMallaCreateResponse[] = [];
+
+  try {
+    await transaction.begin();
+
+    for (const payload of payloads) {
+      const req = new Request(transaction);
+      req.input("turno_id", payload.turno_id);
+      req.input("malla_id", payload.malla_id);
+      req.input("paquete", payload.paquete);
+      req.input("lote", payload.lote.trim());
+      req.input("unidades", payload.unidades);
+      req.input("sl", payload.sl);
+      req.input("st", payload.st);
+      req.input("longitudinales", payload.longitudinales);
+      req.input("transversales", payload.transversales);
+      req.input("diametro", payload.diametro);
+      req.input("observacion", payload.observacion || null);
+      req.input("ancho", payload.ancho);
+      req.input("largo", payload.largo);
+      req.input("maquina_id", payload.maquina_id);
+
+      const query = `
+        INSERT INTO Mallas_DB_Produccion (
+          turno_id, malla_id, paquete, lote, unidades, sl, st,
+          longitudinales, transversales, diametro, observacion,
+          ancho, largo, maquina_id, creado
+        )
+        OUTPUT INSERTED.id
+        VALUES (
+          @turno_id, @malla_id, @paquete, @lote, @unidades, @sl, @st,
+          @longitudinales, @transversales, @diametro, @observacion,
+          @ancho, @largo, @maquina_id, SYSDATETIME()
+        );
+      `;
+
+      const res = await req.query(query);
+      const nuevoId = res.recordset[0].id;
+
+      resultados.push({
+        id: nuevoId,
+        lote: payload.lote,
+      });
+    }
+
+    await transaction.commit();
+    return resultados;
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
 // --- ACTUALIZAR PRODUCCIÓN ---
-export interface ProduccionMallaUpdatePayload
-  extends ProduccionMallaCreatePayload {
+export interface ProduccionMallaUpdatePayload extends ProduccionMallaCreatePayload {
   id: number;
 }
 
@@ -502,4 +568,109 @@ export async function eliminarProduccionMallaService(
     await transaction.rollback();
     throw error;
   }
+}
+
+// --- OBTENER PRODUCCIÓN POR ID ---
+export interface ProduccionMallaDetalle extends ProduccionMallaRow {
+  malla_designacion?: string;
+  impreso?: number;
+}
+
+export async function obtenerProduccionMallaPorIdService(
+  pool: ConnectionPool,
+  id: number
+): Promise<ProduccionMallaDetalle | null> {
+  const req = new Request(pool);
+  req.input("id", id);
+
+  const query = `
+    SELECT
+      p.id,
+      p.turno_id,
+      p.malla_id,
+      mm.codigo AS malla_codigo,
+      mm.designacion AS malla_designacion,
+      p.paquete,
+      p.lote,
+      p.unidades,
+      p.sl,
+      p.st,
+      p.longitudinales,
+      p.transversales,
+      p.diametro,
+      p.observacion,
+      p.ancho,
+      p.largo,
+      p.maquina_id,
+      m.nombre AS maquina_nombre,
+      p.creado,
+      p.impreso
+    FROM Mallas_DB_Produccion p
+    LEFT JOIN Maquinas m ON p.maquina_id = m.id
+    LEFT JOIN Mallas_DB_Mallas mm ON p.malla_id = mm.id
+    WHERE p.id = @id;
+  `;
+
+  const res = await req.query(query);
+  const row = res.recordset[0];
+
+  if (!row) return null;
+
+  return {
+    id: Number(row.id),
+    turno_id: Number(row.turno_id),
+    malla_id: row.malla_id == null ? 0 : Number(row.malla_id),
+    malla_codigo: row.malla_codigo ?? undefined,
+    malla_designacion: row.malla_designacion ?? undefined,
+    paquete: Number(row.paquete),
+    lote: row.lote,
+    unidades: Number(row.unidades),
+    sl: Number(row.sl),
+    st: Number(row.st),
+    longitudinales: Number(row.longitudinales),
+    transversales: Number(row.transversales),
+    diametro: Number(row.diametro),
+    observacion: row.observacion ?? "",
+    ancho: Number(row.ancho),
+    largo: Number(row.largo),
+    maquina_id: Number(row.maquina_id),
+    maquina_nombre: row.maquina_nombre ?? undefined,
+    creado: row.creado ? new Date(row.creado).toISOString() : "",
+    impreso: Number(row.impreso ?? 0),
+  };
+}
+
+// --- ACTUALIZAR SOLO LA MALLA DE UNA PRODUCCIÓN ---
+export interface ActualizarMallaProduccionParams {
+  id: number;
+  malla_id: number;
+}
+
+export interface ActualizarMallaProduccionResponse {
+  id: number;
+  malla_id: number;
+  actualizado: boolean;
+}
+
+export async function actualizarMallaProduccionService(
+  pool: ConnectionPool,
+  payload: ActualizarMallaProduccionParams
+): Promise<ActualizarMallaProduccionResponse> {
+  const req = new Request(pool);
+  req.input("id", payload.id);
+  req.input("malla_id", payload.malla_id);
+
+  const query = `
+    UPDATE Mallas_DB_Produccion
+    SET malla_id = @malla_id
+    WHERE id = @id;
+  `;
+
+  const res = await req.query(query);
+
+  return {
+    id: payload.id,
+    malla_id: payload.malla_id,
+    actualizado: (res.rowsAffected[0] || 0) > 0,
+  };
 }

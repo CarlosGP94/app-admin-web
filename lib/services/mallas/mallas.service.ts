@@ -2,6 +2,14 @@ import { ConnectionPool, Request, Transaction } from "mssql";
 
 export interface FiltrosMallas {
   buscar?: string;
+  regionId?: number;
+  diametro?: number;
+  ancho?: number;
+  largo?: number;
+  sl?: number;
+  st?: number;
+  longitudinales?: number;
+  transversales?: number;
 }
 
 export interface ListarMallasParams {
@@ -31,6 +39,9 @@ export interface MallaRow {
   unidades_por_paquete: number;
   sl: number;
   st: number;
+  ancho: number;
+  largo: number;
+  diametro: number;
   region_id: number;
   action_id: number;
   creado: string;
@@ -65,8 +76,51 @@ export async function listarMallasService(
   let whereClauses = "WHERE 1=1";
 
   if (filtros?.buscar) {
-    whereClauses += " AND t.art_concepto LIKE @buscar";
+    whereClauses += " AND m.art_concepto LIKE @buscar";
     req.input("buscar", `%${filtros.buscar}%`);
+  }
+
+  if (filtros?.regionId !== undefined && filtros?.regionId !== null) {
+    whereClauses += " AND m.region_id = @regionId";
+    req.input("regionId", filtros.regionId);
+  }
+
+  if (filtros?.diametro !== undefined && filtros?.diametro !== null) {
+    whereClauses += " AND m.diametro = @diametro";
+    req.input("diametro", filtros.diametro);
+  }
+
+  if (filtros?.ancho !== undefined && filtros?.ancho !== null) {
+    whereClauses += " AND m.ancho = @ancho";
+    req.input("ancho", filtros.ancho);
+  }
+
+  if (filtros?.largo !== undefined && filtros?.largo !== null) {
+    whereClauses += " AND m.largo = @largo";
+    req.input("largo", filtros.largo);
+  }
+
+  if (filtros?.sl !== undefined && filtros?.sl !== null) {
+    whereClauses += " AND m.sl = @sl";
+    req.input("sl", filtros.sl);
+  }
+
+  if (filtros?.st !== undefined && filtros?.st !== null) {
+    whereClauses += " AND m.st = @st";
+    req.input("st", filtros.st);
+  }
+
+  if (
+    filtros?.longitudinales !== undefined &&
+    filtros?.longitudinales !== null
+  ) {
+    whereClauses += " AND m.longitudinales = @longitudinales";
+    req.input("longitudinales", filtros.longitudinales);
+  }
+
+  if (filtros?.transversales !== undefined && filtros?.transversales !== null) {
+    whereClauses += " AND m.transversales = @transversales";
+    req.input("transversales", filtros.transversales);
   }
 
   // 2. Determinar el orden seguro para inyectar en ROW_NUMBER()
@@ -136,8 +190,8 @@ export async function listarMallasService(
 
   return {
     data: rows.map((row) => ({
-      id: row.id,
-      action_id: row.id,
+      id: Number(row.id),
+      action_id: Number(row.id),
       art_concepto: row.art_concepto,
       art_codigo: row.art_codigo,
       codigo: row.codigo,
@@ -152,7 +206,7 @@ export async function listarMallasService(
       transversales: row.transversales,
       unidades_por_paquete: row.unidades_por_paquete,
       peso_por_paquete: row.peso_por_paquete,
-      region_id: row.region_id,
+      region_id: Number(row.region_id),
       creado: row.fecha ? new Date(row.fecha).toISOString() : "",
     })),
     total,
@@ -201,19 +255,27 @@ export async function listarFiltrosMallasService(
   const aplicarFiltrosComunes = (req: Request, omitir: string) => {
     let sql = "";
 
-    if (regionId && omitir !== "region") {
+    if (regionId !== undefined && regionId !== null && omitir !== "region") {
       sql += " AND m.region_id = @regionId";
       req.input("regionId", regionId);
     }
-    if (diametro && omitir !== "diametro") {
+    if (diametro !== undefined && diametro !== null && omitir !== "diametro") {
       sql += " AND m.diametro = @diametro";
       req.input("diametro", diametro);
     }
-    if (longitudinales && omitir !== "longitudinales") {
+    if (
+      longitudinales !== undefined &&
+      longitudinales !== null &&
+      omitir !== "longitudinales"
+    ) {
       sql += " AND m.longitudinales = @longitudinales";
       req.input("longitudinales", longitudinales);
     }
-    if (transversales && omitir !== "transversales") {
+    if (
+      transversales !== undefined &&
+      transversales !== null &&
+      omitir !== "transversales"
+    ) {
       sql += " AND m.transversales = @transversales";
       req.input("transversales", transversales);
     }
@@ -234,8 +296,7 @@ export async function listarFiltrosMallasService(
 
   // --- QUERY 3: ESPESORES ---
   const whereDiametros =
-    "WHERE 1=1" +
-    "AND m.diametro IS NOT NULL" +
+    "WHERE 1=1 AND m.diametro IS NOT NULL" +
     aplicarFiltrosComunes(reqDiametros, "diametro");
   const qDiametros = `
     SELECT DISTINCT m.diametro
@@ -246,8 +307,7 @@ export async function listarFiltrosMallasService(
 
   // --- QUERY 3: ESPESORES ---
   const whereLongitudinales =
-    "WHERE 1=1" +
-    "AND m.longitudinales IS NOT NULL" +
+    "WHERE 1=1 AND m.longitudinales IS NOT NULL" +
     aplicarFiltrosComunes(reqLongitudinales, "longitudinales");
   const qLongitudinales = `
     SELECT DISTINCT m.longitudinales
@@ -258,8 +318,7 @@ export async function listarFiltrosMallasService(
 
   // --- QUERY 3: ESPESORES ---
   const whereTransversales =
-    "WHERE 1=1" +
-    "AND m.transversales IS NOT NULL" +
+    "WHERE 1=1 AND m.transversales IS NOT NULL" +
     aplicarFiltrosComunes(reqTransversales, "transversales");
   const qTransversales = `
     SELECT DISTINCT m.transversales
@@ -279,7 +338,7 @@ export async function listarFiltrosMallasService(
 
   return {
     regiones: resRegiones.recordset.map((row) => ({
-      id: row.id,
+      id: Number(row.id),
       nombre: row.region,
     })),
     diametros: resDiametros.recordset.map((row) => row.diametro),
@@ -307,12 +366,93 @@ export interface MallaCreatePayload {
   sl: number;
   st: number;
   region_id: number;
+  certificado_id?: number | null;
 }
 
 export interface MallaCreateResponse {
   id: number;
   art_concepto: string;
   codigo: string;
+}
+
+export class MallaDuplicadaError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MallaDuplicadaError";
+  }
+}
+
+/**
+ * Normaliza el certificado asociado: cualquier valor vacío o <= 0 se guarda
+ * como NULL (sin certificado).
+ */
+function normalizarCertificadoId(
+  certificadoId?: number | null
+): number | null {
+  return certificadoId && certificadoId > 0 ? certificadoId : null;
+}
+
+/**
+ * Valida que no exista otra malla con el mismo Código de ADM, Código o la
+ * misma combinación de ancho, largo, diámetro, transversales y longitudinales.
+ * En actualización se excluye la propia malla mediante `excludeId`.
+ */
+async function validarUnicidadMalla(
+  transaction: Transaction,
+  payload: MallaCreatePayload,
+  excludeId?: number
+): Promise<void> {
+  const req = new Request(transaction);
+  req.input("art_codigo", payload.art_codigo);
+  req.input("codigo", payload.codigo);
+  req.input("ancho", payload.ancho);
+  req.input("largo", payload.largo);
+  req.input("diametro", payload.diametro);
+  req.input("transversales", payload.transversales);
+  req.input("longitudinales", payload.longitudinales);
+
+  if (excludeId !== undefined) {
+    req.input("id", excludeId);
+  }
+
+  const query = `
+    SELECT
+      SUM(CASE WHEN art_codigo = @art_codigo THEN 1 ELSE 0 END) AS dup_art_codigo,
+      SUM(CASE WHEN codigo = @codigo THEN 1 ELSE 0 END) AS dup_codigo,
+      SUM(
+        CASE
+          WHEN ancho = @ancho
+            AND largo = @largo
+            AND diametro = @diametro
+            AND transversales = @transversales
+            AND longitudinales = @longitudinales
+          THEN 1 ELSE 0
+        END
+      ) AS dup_dimensiones
+    FROM Mallas_DB_Mallas
+    ${excludeId !== undefined ? "WHERE id <> @id" : ""};
+  `;
+
+  const resultado = await req.query(query);
+  const row = resultado.recordset[0] ?? {};
+
+  if (Number(row.dup_art_codigo) > 0) {
+    throw new MallaDuplicadaError(
+      `Ya existe una malla con el Código de ADM "${payload.art_codigo}".`
+    );
+  }
+
+  if (Number(row.dup_codigo) > 0) {
+    throw new MallaDuplicadaError(
+      `Ya existe una malla con el Código "${payload.codigo}".`
+    );
+  }
+
+  if (Number(row.dup_dimensiones) > 0) {
+    throw new MallaDuplicadaError(
+      "Ya existe una malla con la misma combinación de ancho, largo, diámetro, transversales y longitudinales."
+    );
+  }
 }
 
 /**
@@ -332,6 +472,9 @@ export async function crearMallaService(
   try {
     await transaction.begin();
 
+    // 1. Validar que no exista otra malla con los mismos datos únicos
+    await validarUnicidadMalla(transaction, payload);
+
     // 2. Inserción de la cabecera en la tabla Mallas
     const reqMalla = new Request(transaction);
 
@@ -350,18 +493,22 @@ export async function crearMallaService(
     reqMalla.input("unidades_por_paquete", payload.unidades_por_paquete);
     reqMalla.input("peso_por_paquete", payload.peso_por_paquete);
     reqMalla.input("region_id", payload.region_id);
+    reqMalla.input(
+      "certificado_id",
+      normalizarCertificadoId(payload.certificado_id)
+    );
 
     const queryInsertMalla = `
       INSERT INTO Mallas_DB_Mallas (
         activo, art_concepto, codigo, art_codigo, designacion, diametro,
-        largo, ancho, sl, st, transversales, region_id,
+        largo, ancho, sl, st, transversales, region_id, certificado_id,
         longitudinales, unidades_por_paquete, peso_por_paquete,
         creado
       )
       OUTPUT INSERTED.id
       VALUES (
         @activo, @art_concepto, @codigo, @art_codigo, @designacion, @diametro,
-        @largo, @ancho, @sl, @st, @transversales, @region_id,
+        @largo, @ancho, @sl, @st, @transversales, @region_id, @certificado_id,
         @longitudinales, @unidades_por_paquete, @peso_por_paquete,
         GETDATE()
       );
@@ -408,8 +555,12 @@ export async function actualizarMallaService(
   try {
     await transaction.begin();
 
+    // 1. Validar que no exista otra malla con los mismos datos únicos
+    await validarUnicidadMalla(transaction, payload, payload.id);
+
     // 2. Actualización de la cabecera en la tabla Mallas
     const reqMalla = new Request(transaction);
+    reqMalla.input("id", payload.id);
     reqMalla.input("activo", payload.activo);
     reqMalla.input("art_concepto", artConceptoInsertar);
     reqMalla.input("codigo", payload.codigo);
@@ -425,6 +576,10 @@ export async function actualizarMallaService(
     reqMalla.input("unidades_por_paquete", payload.unidades_por_paquete);
     reqMalla.input("peso_por_paquete", payload.peso_por_paquete);
     reqMalla.input("region_id", payload.region_id);
+    reqMalla.input(
+      "certificado_id",
+      normalizarCertificadoId(payload.certificado_id)
+    );
 
     const queryUpdateMalla = `
       UPDATE Mallas_DB_Mallas
@@ -443,7 +598,8 @@ export async function actualizarMallaService(
         longitudinales = @longitudinales,
         unidades_por_paquete = @unidades_por_paquete,
         peso_por_paquete = @peso_por_paquete,
-        region_id = @region_id
+        region_id = @region_id,
+        certificado_id = @certificado_id
       WHERE id = @id;
     `;
 
@@ -576,8 +732,11 @@ export async function eliminarMallaService(
     reqDeleteRelaciones.input("tubo_id", id);
 
     const queryDeleteRelaciones = `
-      DELETE FROM Mallas_DB_Rel_Mallas_Maquinas 
-      WHERE tubo_id = @tubo_id;
+      IF OBJECT_ID('Mallas_DB_Rel_Mallas_Maquinas', 'U') IS NOT NULL
+      BEGIN
+        DELETE FROM Mallas_DB_Rel_Mallas_Maquinas
+        WHERE tubo_id = @tubo_id;
+      END
     `;
 
     const resRelaciones = await reqDeleteRelaciones.query(
@@ -677,4 +836,76 @@ export async function listarMallasSelectorService(
     id: row.id,
     medida: row.medida,
   }));
+}
+
+export interface MallaEdicionResponse {
+  id: number;
+  codigo: string;
+  art_codigo: string;
+  designacion: string;
+  art_concepto: string;
+  activo: boolean;
+  diametro: number;
+  ancho: number;
+  largo: number;
+  longitudinales: number;
+  transversales: number;
+  sl: number;
+  st: number;
+  peso_por_paquete: number;
+  unidades_por_paquete: number;
+  region_id: number;
+  certificado_id: number | null;
+}
+
+/**
+ * Servicio para obtener los datos de una malla en el formato que usa el
+ * formulario de edición.
+ */
+export async function obtenerMallaEdicionService(
+  pool: ConnectionPool,
+  id: number
+): Promise<MallaEdicionResponse | null> {
+  const req = pool.request();
+  req.input("id", id);
+
+  const query = `
+    SELECT
+      id,
+      codigo,
+      art_codigo,
+      designacion,
+      art_concepto,
+      activo,
+      diametro,
+      ancho,
+      largo,
+      longitudinales,
+      transversales,
+      sl,
+      st,
+      peso_por_paquete,
+      unidades_por_paquete,
+      region_id,
+      certificado_id
+    FROM Mallas_DB_Mallas
+    WHERE id = @id;
+  `;
+
+  const resultado = await req.query(query);
+
+  if (resultado.recordset.length === 0) {
+    return null;
+  }
+
+  const row = resultado.recordset[0];
+
+  return {
+    ...row,
+    region_id: Number(row.region_id),
+    certificado_id:
+      row.certificado_id !== null && row.certificado_id !== undefined
+        ? Number(row.certificado_id)
+        : null,
+  } as MallaEdicionResponse;
 }

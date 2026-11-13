@@ -22,7 +22,7 @@ export async function obtenerRegionesService(
   const rows = resultado.recordset;
 
   return rows.map((row) => ({
-    id: row.id,
+    id: Number(row.id),
     region: row.region,
   }));
 }

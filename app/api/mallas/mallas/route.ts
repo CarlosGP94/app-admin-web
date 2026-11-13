@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
+import { queueIntegrationSync } from "@/lib/integrations/sync.service";
 import {
   actualizarMallaService,
   crearMallaService,
   ListarMallasParams,
   listarMallasService,
   MallaCreatePayload,
+  MallaDuplicadaError,
   MallaUpdatePayload,
 } from "@/lib/services/mallas/mallas.service";
 
@@ -45,16 +47,40 @@ export async function GET(request: Request) {
     const orderDirParam = searchParams.get("orderDir")?.toUpperCase();
     const orderDir = orderDirParam === "DESC" ? "DESC" : "ASC";
 
-    // 3. Extraer filtros específicos del módulo de tubos
+    // 3. Extraer filtros específicos del módulo de mallas (se aceptan los
+    // nombres que envía la tabla en plural y los singulares como respaldo)
     const buscar = searchParams.get("search") || undefined;
-    const calidadId = searchParams.get("calidad") || undefined;
-    const tipoId = searchParams.get("tipo") || undefined;
-    const espesor = searchParams.get("espesor") || undefined;
+
+    const regionParam =
+      searchParams.get("regiones") ?? searchParams.get("regionId");
+    const diametroParam =
+      searchParams.get("diametros") ?? searchParams.get("diametro");
+    const longitudinalesParam = searchParams.get("longitudinales");
+    const transversalesParam = searchParams.get("transversales");
+    const anchoParam = searchParams.get("ancho");
+    const largoParam = searchParams.get("largo");
+    const slParam = searchParams.get("sl");
+    const stParam = searchParams.get("st");
+
+    const toNumberOrUndefined = (value: string | null): number | undefined => {
+      if (value === null || value.trim() === "") return undefined;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
+    const regionId = toNumberOrUndefined(regionParam);
+    const diametro = toNumberOrUndefined(diametroParam);
+    const longitudinales = toNumberOrUndefined(longitudinalesParam);
+    const transversales = toNumberOrUndefined(transversalesParam);
+    const ancho = toNumberOrUndefined(anchoParam);
+    const largo = toNumberOrUndefined(largoParam);
+    const sl = toNumberOrUndefined(slParam);
+    const st = toNumberOrUndefined(stParam);
 
     // 4. Obtener el Connection Pool correspondiente
     const pool = await getConnection();
 
-    // 5. Mapear parámetros al formato estricto que requiere el servicio de tubos
+    // 5. Mapear parámetros al formato estricto que requiere el servicio de mallas
     const params: ListarMallasParams = {
       page,
       pageSize,
@@ -62,6 +88,14 @@ export async function GET(request: Request) {
       orderDir,
       filtros: {
         buscar,
+        regionId,
+        diametro,
+        ancho,
+        largo,
+        sl,
+        st,
+        longitudinales,
+        transversales,
       },
     };
 
@@ -133,7 +167,10 @@ export async function POST(request: Request) {
     // 4. Ejecutar el servicio de creación
     const resultado = await crearMallaService(pool, body);
 
-    // 5. Responder con el resultado del registro creado (HTTP 201 Created)
+    // 5. Sincronizar bases externas en segundo plano
+    queueIntegrationSync();
+
+    // 6. Responder con el resultado del registro creado (HTTP 201 Created)
     return NextResponse.json(
       {
         success: true,
@@ -144,6 +181,14 @@ export async function POST(request: Request) {
     );
   } catch (error: unknown) {
     console.error("❌ Error en POST /api/mallas/mallas:", error);
+
+    if (error instanceof MallaDuplicadaError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 409 }
+      );
+    }
+
     const message =
       error instanceof Error
         ? error.message
@@ -193,6 +238,9 @@ export async function PUT(request: Request) {
     const pool = await getConnection();
     const resultado = await actualizarMallaService(pool, body);
 
+    // Sincronizar bases externas en segundo plano
+    queueIntegrationSync();
+
     return NextResponse.json(
       {
         success: true,
@@ -203,6 +251,14 @@ export async function PUT(request: Request) {
     );
   } catch (error: unknown) {
     console.error("❌ Error en PUT /api/mallas:", error);
+
+    if (error instanceof MallaDuplicadaError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 409 }
+      );
+    }
+
     const message =
       error instanceof Error
         ? error.message

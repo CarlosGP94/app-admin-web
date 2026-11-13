@@ -7,17 +7,20 @@ import {
 } from "@/lib/services/mallas/etiquetas.service";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 /**
  * PUT: Actualizar un registro de etiqueta existente por ID
  */
 export async function PUT(request: Request, { params }: RouteParams) {
+  let rawId = "";
   try {
-    const id = Number(params.id);
+    const resolved = await params;
+    rawId = resolved.id;
+    const id = Number(rawId);
     if (isNaN(id)) {
       return NextResponse.json(
         { success: false, error: "ID de etiqueta inválido." },
@@ -61,7 +64,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     );
   } catch (error: unknown) {
     console.error(
-      `❌ Error en PUT /api/produccion/etiquetas/${params.id}:`,
+      `❌ Error en PUT /api/produccion/etiquetas/${rawId}:`,
       error
     );
     const message =
@@ -80,8 +83,11 @@ export async function PUT(request: Request, { params }: RouteParams) {
  * DELETE: Eliminar un registro de etiqueta por ID
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
+  let rawId = "";
   try {
-    const id = Number(params.id);
+    const resolved = await params;
+    rawId = resolved.id;
+    const id = Number(rawId);
     if (isNaN(id)) {
       return NextResponse.json(
         { success: false, error: "ID de etiqueta inválido." },
@@ -109,7 +115,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     );
   } catch (error: unknown) {
     console.error(
-      `❌ Error en DELETE /api/produccion/etiquetas/${params.id}:`,
+      `❌ Error en DELETE /api/produccion/etiquetas/${rawId}:`,
       error
     );
     const message =

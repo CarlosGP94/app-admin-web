@@ -1,19 +1,37 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import useDataTable, {
   CurrentFilter,
   FilterOption,
   TableFilter,
 } from "@/hooks/useDataTable";
-import { APP_ROUTES } from "@/config/routes";
-import { Box, IconButton, Tooltip } from "@mui/material";
+import { APP_ROUTES, PERMISOS } from "@/config/routes";
+import { Box, Button, IconButton, Tooltip } from "@mui/material";
 import { Edit2, Trash2 } from "lucide-react";
+import ListAlt from "@mui/icons-material/ListAlt";
 import Table, { Column } from "@/components/commons/Table";
 import DataFilters from "@/components/commons/DataFilters";
 import TopCrud from "@/components/commons/TopCrud";
 import { ConfirmDialog } from "@/components/commons/ConfirmDialog";
 import ProtectedRoute from "@/components/commons/ProtectedRoute";
+import { useAuth } from "@/context/AuthContext";
+import { tienePermiso } from "@/utils/functions";
+import { toast } from "react-toastify";
+import {
+  ExcelProduccionModal,
+  ExcelProduccionFiltros,
+  ExcelProduccionMaquina,
+} from "@/components/mallas/producciones/ExcelProduccionModal";
+
+interface ExcelOpciones {
+  maquinas: ExcelProduccionMaquina[];
+  diametros: number[];
+  rangoFechas: {
+    minFecha: string | null;
+    maxFecha: string | null;
+  };
+}
 
 interface ProduccionMalla {
   id: number;
@@ -50,6 +68,18 @@ export default function ProduccionMallasPage() {
 }
 
 export function ProduccionMallasView() {
+  const { user } = useAuth();
+  const excelPermission = tienePermiso(
+    user?.permisos || [],
+    PERMISOS.mallas.producciones.excel
+  );
+
+  const [openExcelModal, setOpenExcelModal] = useState<boolean>(false);
+  const [loadingExcel, setLoadingExcel] = useState<boolean>(false);
+  const [loadingExcelOptions, setLoadingExcelOptions] =
+    useState<boolean>(false);
+  const [excelOptions, setExcelOptions] = useState<ExcelOpciones | null>(null);
+
   const fetchData = async (
     currentPage: number,
     currentPageSize: number,
@@ -138,10 +168,12 @@ export function ProduccionMallasView() {
     console.log("filters data", data);
 
     return {
-      maquina_id: (data.maquinas || []).map((m: any) => ({
-        value: m.id,
-        label: m.maquina,
-      })),
+      maquina_id: (data.maquinas || []).map(
+        (m: { id: number; maquina: string }) => ({
+          value: m.id,
+          label: m.maquina,
+        })
+      ),
       diametro: (data.diametros || []).map((d: number) => ({
         value: d,
         label: `${d} mm`,
@@ -217,6 +249,97 @@ export function ProduccionMallasView() {
     fetchFilters: fetchFilters,
   });
 
+  const handleOpenExcelModal = async () => {
+    try {
+      setLoadingExcelOptions(true);
+
+      const response = await fetch(APP_ROUTES.api.mallas.producciones_filtros);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error ||
+            errorData.message ||
+            "No se pudieron cargar las opciones del informe."
+        );
+      }
+
+      const result = await response.json();
+      const data = result.data || {};
+
+      setExcelOptions({
+        maquinas: data.maquinas || [],
+        diametros: data.diametros || [],
+        rangoFechas: data.rangoFechas || {
+          minFecha: null,
+          maxFecha: null,
+        },
+      });
+      setOpenExcelModal(true);
+    } catch (error) {
+      console.error("Error al cargar las opciones del informe:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Ocurrió un error al cargar las opciones del informe."
+      );
+    } finally {
+      setLoadingExcelOptions(false);
+    }
+  };
+
+  const handleGenerarExcel = async (filtros: ExcelProduccionFiltros) => {
+    try {
+      setLoadingExcel(true);
+
+      const params = new URLSearchParams();
+
+      filtros.maquina_ids.forEach((id) =>
+        params.append("maquina_id", String(id))
+      );
+      filtros.diametros.forEach((diametro) =>
+        params.append("diametro", String(diametro))
+      );
+      params.set("fechaInicio", filtros.fechaInicio);
+      params.set("fechaFin", filtros.fechaFin);
+
+      const response = await fetch(
+        `${APP_ROUTES.api.mallas.producciones_excel}?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error ||
+            errorData.message ||
+            "Error al generar el Excel de producción."
+        );
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `produccion_mallas_${filtros.fechaInicio}_${filtros.fechaFin}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      setOpenExcelModal(false);
+      toast.success("Excel generado correctamente.");
+    } catch (error) {
+      console.error("Error al generar el Excel de producción:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Hubo un problema al generar el informe en Excel."
+      );
+    } finally {
+      setLoadingExcel(false);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -244,6 +367,21 @@ export function ProduccionMallasView() {
         handleSearchChange={(value) => {
           handleFilterChange("search", value);
         }}
+        actions={
+          excelPermission ? (
+            <Button
+              onClick={handleOpenExcelModal}
+              disabled={loadingExcelOptions}
+              startIcon={<ListAlt fontSize="small" />}
+              sx={{ minWidth: "120px" }}
+              color="primary"
+              size="small"
+              variant="contained"
+            >
+              {loadingExcelOptions ? "Cargando..." : "Generar Excel"}
+            </Button>
+          ) : null
+        }
       />
       {filters.length > 0 && (
         <Box sx={{ mb: 2 }}>
@@ -275,6 +413,17 @@ export function ProduccionMallasView() {
           handlePageChange={handlePageChange}
         />
       </Box>
+      {openExcelModal && excelOptions && (
+        <ExcelProduccionModal
+          open
+          onClose={() => setOpenExcelModal(false)}
+          onConfirm={handleGenerarExcel}
+          loading={loadingExcel}
+          maquinas={excelOptions.maquinas}
+          diametros={excelOptions.diametros}
+          rangoFechas={excelOptions.rangoFechas}
+        />
+      )}
     </Box>
   );
 }
@@ -302,7 +451,11 @@ const columns = (
     label: "Malla",
     align: "left",
     sortable: false,
-    format: (row) => row.malla_codigo || `Malla #${row.malla_id}`,
+    format: (row) => {
+      const mallaId = Number(row.malla_id);
+      if (!row.malla_id || mallaId === 0) return "-";
+      return row.malla_codigo || `Malla #${row.malla_id}`;
+    },
   },
   {
     id: "paquete",
@@ -353,11 +506,25 @@ const columns = (
   {
     id: "creado",
     label: "Fecha",
-    width: 150,
+    width: 180,
     align: "center",
     sortable: true,
-    format: (row) =>
-      row.creado ? new Date(row.creado).toLocaleDateString("es-ES") : "",
+    format: (row) => {
+      if (!row.creado) return "";
+
+      const date = new Date(row.creado);
+      if (Number.isNaN(date.getTime())) return row.creado;
+
+      return date.toLocaleString("es-ES", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+      });
+    },
   },
   {
     id: "action_id" as keyof ProduccionMalla,

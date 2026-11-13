@@ -27,8 +27,10 @@ import {
   CalendarViewDayOutlined,
   TripOriginOutlined,
   SettingsOutlined,
-  FactCheckOutlined,
-  ConfirmationNumberOutlined,
+  GridViewOutlined,
+  LocalOfferOutlined,
+  VerifiedOutlined,
+  ViewModuleOutlined,
 } from "@mui/icons-material";
 import { APP_ROUTES } from "@/config/routes";
 import { useAuth } from "@/context/AuthContext";
@@ -194,7 +196,7 @@ export default function Sidebar({
     },
     {
       text: "Listado de Mallas",
-      icon: <ContentCutOutlined />,
+      icon: <GridViewOutlined />,
       path: APP_ROUTES.mallas.subRoutes.mallas.path,
       paths: [
         APP_ROUTES.mallas.subRoutes.mallas.path,
@@ -206,7 +208,7 @@ export default function Sidebar({
     },
     {
       text: "Plantillas",
-      icon: <ContentCutOutlined />,
+      icon: <ViewModuleOutlined />,
       path: APP_ROUTES.mallas.subRoutes.plantillas.path,
       paths: [
         APP_ROUTES.mallas.subRoutes.plantillas.path,
@@ -218,7 +220,7 @@ export default function Sidebar({
     },
     {
       text: "Certificados",
-      icon: <ContentCutOutlined />,
+      icon: <VerifiedOutlined />,
       path: APP_ROUTES.mallas.subRoutes.certificados.path,
       paths: [
         APP_ROUTES.mallas.subRoutes.certificados.path,
@@ -230,7 +232,7 @@ export default function Sidebar({
     },
     {
       text: "Producciones",
-      icon: <ContentCutOutlined />,
+      icon: <PrecisionManufacturingOutlined />,
       path: APP_ROUTES.mallas.subRoutes.producciones.path,
       paths: [
         APP_ROUTES.mallas.subRoutes.producciones.path,
@@ -242,7 +244,7 @@ export default function Sidebar({
     },
     {
       text: "Registro de Etiquetas",
-      icon: <ContentCutOutlined />,
+      icon: <LocalOfferOutlined />,
       path: APP_ROUTES.mallas.subRoutes.etiquetas.path,
       paths: [
         APP_ROUTES.mallas.subRoutes.etiquetas.path,

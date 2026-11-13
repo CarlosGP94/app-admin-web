@@ -1,27 +1,40 @@
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 import {
+  certificadoRequestPayload,
+  esImagenValida,
+} from "@/lib/services/mallas/certificados.helpers";
+import {
   actualizarCertificadoService,
   eliminarCertificadoService,
   obtenerCertificadoPorIdService,
-  CertificadoUpdatePayload,
-} from "@/lib/services/mallas/certificados.service"; // Ajusta la ruta según la ubicación de tus servicios
+} from "@/lib/services/mallas/certificados.service";
+import {
+  eliminarImagenCertificado,
+  guardarImagenCertificado,
+} from "@/lib/storage/certificados.storage";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 interface RouteParams {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
+}
+
+function parseId(rawId: string): number | null {
+  const id = Number(rawId);
+  return Number.isInteger(id) && id > 0 ? id : null;
 }
 
 /**
- * GET: Obtener el detalle de un certificado por su ID
+ * GET: Obtener el detalle de un certificado por su ID.
  */
-export async function GET(request: Request, props: RouteParams) {
+export async function GET(_request: Request, props: RouteParams) {
   try {
-    const params = await props.params;
-    const id = Number(params.id);
+    const { id: rawId } = await props.params;
+    const id = parseId(rawId);
 
-    if (isNaN(id) || id <= 0) {
+    if (!id) {
       return NextResponse.json(
         { success: false, error: "El ID proporcionado no es válido." },
         { status: 400 }
@@ -38,10 +51,7 @@ export async function GET(request: Request, props: RouteParams) {
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: certificado,
-    });
+    return NextResponse.json({ success: true, data: certificado });
   } catch (error: unknown) {
     console.error("❌ Error en GET /api/mallas/certificados/[id]:", error);
     const message =
@@ -57,40 +67,73 @@ export async function GET(request: Request, props: RouteParams) {
 }
 
 /**
- * PUT: Actualizar un certificado existente
+ * PUT: Actualiza un certificado. Acepta multipart/form-data para reemplazar
+ * la imagen.
  */
 export async function PUT(request: Request, props: RouteParams) {
+  const { id: rawId } = await props.params;
+  const id = parseId(rawId);
+
+  if (!id) {
+    return NextResponse.json(
+      { success: false, error: "El ID proporcionado no es válido." },
+      { status: 400 }
+    );
+  }
+
+  let imagenNueva: string | null = null;
+
   try {
-    const routeParams = await props.params;
-    const id = Number(routeParams.id);
+    const { certificado, imagen } = await certificadoRequestPayload(request);
 
-    if (isNaN(id) || id <= 0) {
+    if (!certificado) {
       return NextResponse.json(
-        { success: false, error: "El ID proporcionado no es válido." },
+        { success: false, error: "El nombre del certificado es obligatorio." },
         { status: 400 }
       );
     }
 
-    const body: Omit<CertificadoUpdatePayload, "id"> = await request.json();
-
-    // Validación básica de campos requeridos
-    if (!body.codigo || !body.lote) {
+    if (!esImagenValida(imagen)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Los campos obligatorios son: codigo y lote.",
-        },
+        { success: false, error: "La imagen adjunta no es válida." },
         { status: 400 }
       );
     }
-
-    const payload: CertificadoUpdatePayload = {
-      id,
-      ...body,
-    };
 
     const pool = await getConnection();
-    const resultado = await actualizarCertificadoService(pool, payload);
+    const actual = await obtenerCertificadoPorIdService(pool, id);
+
+    if (!actual) {
+      return NextResponse.json(
+        { success: false, error: "Certificado no encontrado." },
+        { status: 404 }
+      );
+    }
+
+    if (imagen) {
+      imagenNueva = await guardarImagenCertificado(imagen);
+    }
+
+    const imagenFinal = imagenNueva ?? actual.imagen;
+    const resultado = await actualizarCertificadoService(pool, {
+      id,
+      certificado,
+      imagen: imagenFinal,
+    });
+
+    if (!resultado.actualizado) {
+      if (imagenNueva) {
+        await eliminarImagenCertificado(imagenNueva);
+      }
+      return NextResponse.json(
+        { success: false, error: "Certificado no encontrado." },
+        { status: 404 }
+      );
+    }
+
+    if (imagenNueva && actual.imagen && actual.imagen !== imagenNueva) {
+      await eliminarImagenCertificado(actual.imagen);
+    }
 
     return NextResponse.json(
       {
@@ -101,6 +144,10 @@ export async function PUT(request: Request, props: RouteParams) {
       { status: 200 }
     );
   } catch (error: unknown) {
+    if (imagenNueva) {
+      await eliminarImagenCertificado(imagenNueva);
+    }
+
     console.error("❌ Error en PUT /api/mallas/certificados/[id]:", error);
     const message =
       error instanceof Error
@@ -115,14 +162,14 @@ export async function PUT(request: Request, props: RouteParams) {
 }
 
 /**
- * DELETE: Eliminar un certificado por su ID
+ * DELETE: Elimina un certificado y su imagen asociada.
  */
-export async function DELETE(request: Request, props: RouteParams) {
+export async function DELETE(_request: Request, props: RouteParams) {
   try {
-    const params = await props.params;
-    const id = Number(params.id);
+    const { id: rawId } = await props.params;
+    const id = parseId(rawId);
 
-    if (isNaN(id) || id <= 0) {
+    if (!id) {
       return NextResponse.json(
         { success: false, error: "El ID proporcionado no es válido." },
         { status: 400 }
@@ -141,6 +188,8 @@ export async function DELETE(request: Request, props: RouteParams) {
         { status: 404 }
       );
     }
+
+    await eliminarImagenCertificado(resultado.imagen);
 
     return NextResponse.json({
       success: true,

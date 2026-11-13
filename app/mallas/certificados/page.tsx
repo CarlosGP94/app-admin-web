@@ -12,10 +12,8 @@ import ProtectedRoute from "@/components/commons/ProtectedRoute";
 
 interface CertificadoRow {
   id: number;
-  codigo: string;
-  lote: string;
-  observacion?: string;
-  imagen?: string; // Campo opcional si manejas la URL o nombre de la imagen
+  certificado: string;
+  imagen: string | null;
   creado: string;
 }
 
@@ -174,20 +172,15 @@ const columns = (
     width: 60,
   },
   {
-    id: "codigo",
-    width: 250,
+    id: "certificado",
+    width: 280,
     label: "Certificado",
     align: "left",
     sortable: true,
     format: (row) => (
-      <Box>
-        <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-          {row.codigo}
-        </Typography>
-        <Typography variant="caption" sx={{ color: "text.secondary" }}>
-          Lote: {row.lote}
-        </Typography>
-      </Box>
+      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+        {row.certificado}
+      </Typography>
     ),
   },
   {
@@ -200,8 +193,10 @@ const columns = (
       row.imagen ? (
         <Box
           component="img"
-          src={row.imagen}
-          alt={`Certificado ${row.codigo}`}
+          src={`${APP_ROUTES.api.mallas.certificados_imagen(
+            row.id
+          )}?v=${encodeURIComponent(row.imagen)}`}
+          alt={`Certificado ${row.certificado}`}
           sx={{ width: 40, height: 40, objectFit: "cover", borderRadius: 1 }}
         />
       ) : (
@@ -209,6 +204,29 @@ const columns = (
           Sin imagen
         </Typography>
       ),
+  },
+  {
+    id: "creado",
+    width: 180,
+    label: "Creado",
+    align: "center",
+    sortable: true,
+    format: (row) => {
+      if (!row.creado) return "";
+
+      const date = new Date(row.creado);
+      if (Number.isNaN(date.getTime())) return row.creado;
+
+      return date.toLocaleString("es-ES", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+      });
+    },
   },
   {
     id: "action_id" as keyof CertificadoRow,
