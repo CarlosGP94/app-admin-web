@@ -295,10 +295,11 @@ export default function PlanCorteForm({
     const anchoActual = currentItem.ancho * currentItem.num_flejes;
     const nuevoAnchoTotal =
       anchoTotalUtilizado - anchoActual + currentItem.ancho * value;
+    const margenAnchoEstipulado = anchoEstipulado + (anchoEstipulado * 5) / 100;
 
-    if (nuevoAnchoTotal > anchoEstipulado) {
+    if (nuevoAnchoTotal > margenAnchoEstipulado) {
       toast.error(
-        `No se puede cambiar: El ancho total resultante (${nuevoAnchoTotal} mm) supera el ancho estipulado (${anchoEstipulado} mm).`
+        `No se puede cambiar: El ancho total resultante (${nuevoAnchoTotal} mm) supera el ancho estipulado (${margenAnchoEstipulado} mm).`
       );
       return;
     }
@@ -318,12 +319,13 @@ export default function PlanCorteForm({
     <Box component="form" onSubmit={handleSubmit(onSubmit, onError)} noValidate>
       <Stack spacing={3}>
         {/* ALERTAS GLOBALES DE DIMENSIÓN */}
-        {anchoTotalUtilizado > anchoEstipulado && (
+        {anchoTotalUtilizado >
+          anchoEstipulado + (anchoEstipulado * 5) / 100 && (
           <Alert severity="error">
             <strong>Error de dimensiones:</strong> La suma de los anchos de los
             flejes ({anchoTotalUtilizado} mm) supera el ancho estipulado (
-            {anchoEstipulado} mm). Disminuye la cantidad de flejes o aumenta el
-            ancho estipulado para poder guardar.
+            {anchoEstipulado + (anchoEstipulado * 5) / 100} mm). Disminuye la
+            cantidad de flejes o aumenta el ancho estipulado para poder guardar.
           </Alert>
         )}
 
@@ -472,7 +474,8 @@ export default function PlanCorteForm({
                   Ancho acumulado ocupado: {anchoTotalUtilizado} mm
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Ancho estipulado límite: {anchoEstipulado} mm
+                  Ancho estipulado límite:{" "}
+                  {anchoEstipulado + (anchoEstipulado * 5) / 100} mm
                 </Typography>
               </Grid>
             </Paper>
