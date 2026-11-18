@@ -72,6 +72,7 @@ export default function BobinaForm({
   const watchAncho = Number(watch("ancho")) || 0;
   const watchEspesor = Number(watch("espesor")) || 0;
   const watchCalidadId = watch("calidad_id");
+  const watchFabricanteId = watch("fabricante_id");
   const watchUnidades = watch("unidades");
   const watchPesoMedio = watch("peso_medio");
 
@@ -85,18 +86,34 @@ export default function BobinaForm({
   useEffect(() => {
     if (watchAncho > 0 && watchEspesor > 0) {
       const calidadObj = calidades.find(
-        (c) => Number(c.id) === Number(watchCalidadId),
+        (c) => Number(c.id) === Number(watchCalidadId)
       );
-      const calidadNom = calidadObj?.label_fleje || calidadObj?.nombre || "";
+      const calidadNom = calidadObj?.label_bobina || calidadObj?.nombre || "";
 
-      const conceptoGenerado =
-        `BOBINA ${calidadNom ? `${calidadNom.toUpperCase()} ` : ""}${watchAncho}x${watchEspesor}`.trim();
+      const fabricanteObj = fabricantes.find(
+        (f) => Number(f.id) === Number(watchFabricanteId)
+      );
+      const fabricanteNom = fabricanteObj?.nombre || "";
+
+      const conceptoGenerado = `BOBINA ${
+        calidadNom ? `${calidadNom.toUpperCase()} ` : ""
+      }${
+        fabricanteNom ? `${fabricanteNom.toUpperCase()} ` : ""
+      }${watchAncho}x${watchEspesor}`.trim();
 
       setValue("concepto", conceptoGenerado.toUpperCase(), {
         shouldValidate: true,
       });
     }
-  }, [watchAncho, watchEspesor, watchCalidadId, calidades, setValue]);
+  }, [
+    watchAncho,
+    watchEspesor,
+    watchCalidadId,
+    calidades,
+    watchFabricanteId,
+    fabricantes,
+    setValue,
+  ]);
 
   // 2. Cálculo automático del peso total (unidades * peso_medio)
   useEffect(() => {
@@ -113,7 +130,7 @@ export default function BobinaForm({
 
   const onError = (_formErrors: FieldErrors<BobinaFormValues>) => {
     toast.error(
-      "Hay errores en el formulario. Revisa los campos requeridos antes de guardar.",
+      "Hay errores en el formulario. Revisa los campos requeridos antes de guardar."
     );
   };
 
@@ -170,7 +187,7 @@ export default function BobinaForm({
                     (f: { id: number; nombre: string }) => ({
                       id: Number(f.id),
                       label: f.nombre || `Fabricante ${f.id}`,
-                    }),
+                    })
                   )}
                   loading={loadingFabricantes}
                 />
@@ -299,8 +316,8 @@ export default function BobinaForm({
           {isSubmitting
             ? "Guardando..."
             : isEditing
-              ? "Actualizar Bobina"
-              : "Crear Bobina"}
+            ? "Actualizar Bobina"
+            : "Crear Bobina"}
         </Button>
       </Box>
     </Box>
