@@ -99,7 +99,7 @@ export default function BobinaForm({
         calidadNom ? `${calidadNom.toUpperCase()} ` : ""
       }${
         fabricanteNom ? `${fabricanteNom.toUpperCase()} ` : ""
-      }${watchAncho}x${watchEspesor}`.trim();
+      }${watchEspesor} X ${watchAncho}`.trim();
 
       setValue("concepto", conceptoGenerado.toUpperCase(), {
         shouldValidate: true,
@@ -316,8 +316,8 @@ export default function BobinaForm({
           {isSubmitting
             ? "Guardando..."
             : isEditing
-            ? "Actualizar Bobina"
-            : "Crear Bobina"}
+              ? "Actualizar Bobina"
+              : "Crear Bobina"}
         </Button>
       </Box>
     </Box>
