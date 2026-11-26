@@ -9,7 +9,7 @@ export interface LoteTuboRow {
 export async function obtenerLotesTubosService(
   pool: ConnectionPool,
   fecha?: string,
-  maquinaId?: number,
+  maquinaId?: number
 ): Promise<LoteTuboRow[]> {
   const req = pool.request();
   const conditions: string[] = [];
@@ -35,7 +35,7 @@ export async function obtenerLotesTubosService(
       l.id,
       l.lote,
       l.creado
-    FROM Lotes_Tubos l
+    FROM Tubos_DB_Lotes_Tubos l
     ${whereClause}
     ORDER BY l.creado DESC;
   `;
@@ -87,7 +87,7 @@ export interface ListarLotesResponse {
  */
 export async function listarLotesTubosService(
   pool: ConnectionPool,
-  params: ListarLotesParams,
+  params: ListarLotesParams
 ): Promise<ListarLotesResponse> {
   const page = params.page && params.page > 0 ? params.page : 1;
   const pageSize =
@@ -210,7 +210,7 @@ export interface ListarFiltrosLotesResponse {
  */
 export async function listarFiltrosLotesTubosService(
   pool: ConnectionPool,
-  params: FiltrosLotesParams,
+  params: FiltrosLotesParams
 ): Promise<ListarFiltrosLotesResponse> {
   const { filtros } = params;
 
@@ -331,7 +331,7 @@ export interface LoteTuboConFlejes {
  */
 export async function obtenerLotesTubosConFlejesService(
   pool: ConnectionPool,
-  loteTuboIds: number[],
+  loteTuboIds: number[]
 ): Promise<LoteTuboConFlejes[]> {
   console.log("obtenerLotesTubosConFlejesService - loteTuboIds:", loteTuboIds);
   if (!loteTuboIds || loteTuboIds.length === 0) {
@@ -417,7 +417,7 @@ export async function obtenerLotesTubosConFlejesService(
     // Solo añadimos el fleje si row.fleje_id NO es null o undefined
     if (row.fleje_id) {
       const yaExisteFleje = loteActual.flejes.some(
-        (f) => f.id === row.fleje_id,
+        (f) => f.id === row.fleje_id
       );
 
       if (!yaExisteFleje) {
