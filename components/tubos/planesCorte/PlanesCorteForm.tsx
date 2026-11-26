@@ -151,7 +151,8 @@ export default function PlanCorteForm({
     setAnchoTotalUtilizado(nuevoAnchoUtilizado);
   }, [anchoEstipulado, flejesForm, mapaFlejes, setValue]);
 
-  const excedeAnchoEstipulado = anchoTotalUtilizado > anchoEstipulado;
+  const excedeAnchoEstipulado =
+    anchoTotalUtilizado > anchoEstipulado + (anchoEstipulado * 5) / 100;
 
   // Manejador al seleccionar una opción del Autocomplete
   const handleFlejeSelect = (fleje: OpcionFleje | null) => {
@@ -190,10 +191,10 @@ export default function PlanCorteForm({
 
     const nuevoAnchoAcumulado =
       anchoTotalUtilizado + flejeSeleccionado.ancho * numFlejesAgregar;
-
-    if (nuevoAnchoAcumulado > anchoEstipulado) {
+    const margenAnchoEstipulado = anchoEstipulado + (anchoEstipulado * 5) / 100;
+    if (nuevoAnchoAcumulado > margenAnchoEstipulado) {
       toast.error(
-        `No se puede agregar: El ancho total resultante (${nuevoAnchoAcumulado} mm) supera el ancho estipulado (${anchoEstipulado} mm).`
+        `No se puede agregar: El ancho total resultante (${nuevoAnchoAcumulado} mm) supera el ancho estipulado (${margenAnchoEstipulado} mm).`
       );
       return;
     }
